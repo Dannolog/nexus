@@ -1,0 +1,182 @@
+// Nexus — zentrale Stammdaten (KONZEPT.md §3.3)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---- Mandant (eigene Firma) ----
+model Organization {
+  id        String  @id @default(cuid())
+  name      String
+  shortCode String  @default("")
+  street    String  @default("")
+  zip       String  @default("")
+  city      String  @default("")
+  country   String  @default("Deutschland")
+  taxNumber String  @default("")
+  ustId     String  @default("")
+  version   Int      @default(1)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  numbers   CustomerNumber[]
+}
+
+// ---- Kunde (Superset kontor.Client + clocker.Client) ----
+model Customer {
+  id          String  @id @default(cuid())
+  companyName String  @default("")
+  contactName String  @default("")
+  salutation  String  @default("")
+  shortCode   String  @default("")
+  color       String  @default("#3b82f6")
+  street      String  @default("")
+  zip         String  @default("")
+  city        String  @default("")
+  country     String  @default("Deutschland")
+  addressFree String  @default("")
+  email       String  @default("")
+  phone       String  @default("")
+  taxNumber   String  @default("")
+  ustId       String  @default("")
+  distanceKm  Float   @default(0)
+  notes       String  @default("")
+  contacts    CustomerContact[]
+  numbers     CustomerNumber[]
+  projects    Project[]
+  version     Int      @default(1)
+  deletedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([companyName])
+  @@index([shortCode])
+}
+
+model CustomerNumber {
+  id           String @id @default(cuid())
+  customerId   String
+  orgId        String
+  number       String
+  customer     Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, orgId])
+  @@unique([orgId, number])
+}
+
+model CustomerContact {
+  id         String @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  name       String
+  role       String @default("")
+  email      String @default("")
+  phone      String @default("")
+  mobile     String @default("")
+}
+
+// ---- Projekt (geschäftlich) ----
+model Project {
+  id           String  @id @default(cuid())
+  name         String
+  customerId   String?
+  customer     Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  color        String  @default("#7c3cc0")
+  hourlyRate   Float   @default(0)
+  status       String  @default("offen")
+  teamLeaderId String?
+  archived     Boolean @default(false)
+  version      Int      @default(1)
+  deletedAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([name])
+}
+
+// ---- Mitarbeiter (HR-Kern; Lohn bleibt in clocker) ----
+model Employee {
+  id             String  @id @default(cuid())
+  name           String
+  email          String  @default("")
+  employeeNumber String  @default("")
+  color          String  @default("#7c3cc0")
+  identityId     String?
+  archived       Boolean @default(false)
+  version        Int      @default(1)
+  deletedAt      DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([name])
+}
+
+// ---- Zentrale Identität (Login für ALLE Apps) ----
+model Identity {
+  id           String @id @default(cuid())
+  email        String @unique
+  passwordHash String
+  name         String
+  globalRole   String @default("user")
+  employeeId   String?
+  appAccess    IdentityAppAccess[]
+  version      Int      @default(1)
+  origin       String  @default("central")
+  deletedAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model IdentityAppAccess {
+  id          String  @id @default(cuid())
+  identityId  String
+  appKey      String
+  allowed     Boolean @default(true)
+  role        String  @default("user")
+  rights      String  @default("{}")
+  localUserId String?
+  syncedAt    DateTime?
+  identity    Identity @relation(fields: [identityId], references: [id], onDelete: Cascade)
+
+  @@unique([identityId, appKey])
+  @@index([appKey])
+}
+
+// ---- Undo/Redo: Revisionen jeder Schreiboperation ----
+model Revision {
+  id         String  @id @default(cuid())
+  txId       String
+  entity     String
+  entityId   String
+  action     String
+  before     String? @db.Text
+  after      String? @db.Text
+  identityId String
+  appKey     String
+  undone     Boolean @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([txId])
+  @@index([createdAt])
+}
+
+// ---- Locking: optionaler pessimistischer Edit-Lock ----
+model EditLock {
+  id         String  @id @default(cuid())
+  entity     String
+  entityId   String
+  identityId String
+  identityName String @default("")
+  appKey     String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  @@unique([entity, entityId])
+}

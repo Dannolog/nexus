@@ -1,0 +1,10 @@
+node_modules
+.next
+out
+.env
+.env.local
+*.log
+npm-debug.log*
+.DS_Store
+ENDPOINTS.md
+next-env.d.ts
