@@ -64,6 +64,13 @@
   4. **Phase 1:** kontor+clocker Import-Skript (dedupliziert per Firmenname+shortCode / email) + Anbindung. Dann Trigger aus INTEGRATION_HANDOFF Teil B an kontor/clocker.
   5. `apps.json` (`nexus` → tracked) + Launcher-Kachel.
 
+### 2026-06-26 (Absicherung umgesetzt + Backup/Auto-Push)
+- **GitHub:** Repo `Dannolog/nexus` angelegt, Branch `main` gepusht. Secrets ausgeschlossen.
+- **Backup:** statt 30-Min-git-save jetzt **tägliches DB-Backup** (`scripts/backup-db.sh`, pg_dump -Fc → `backups/`, Rotation 14, DB-URL aus .env). Cron: `15 3 * * *`. Getestet ✓.
+- **Auto-Push bei jeder Änderung:** `scripts/watch-push.js` als PM2-Prozess `nexus-watcher` (Debounce 30s → `git-save.sh`). `backups/` gitignored.
+- **nginx:** Symlink in sites-enabled vorhanden + nginx.conf inkludiert sites-enabled — aber Port 3052 lauscht nicht → **reload nicht durchgelaufen** (nginx -t vermutlich abgebrochen). Nutzer muss `sudo nginx -t && sudo systemctl reload nginx` ausführen und Ausgabe prüfen.
+- Admin-PW: auf Nutzerwunsch übersprungen.
+
 ### 2026-06-26 (Absicherung — vorbereitet, wartet auf Nutzer-Aktionen)
 - Geprüft: keine Secrets versioniert (.env/ENDPOINTS.md gitignored ✓), nginx-Zertifikate vorhanden, Port 3052 frei.
 - Git: Branch auf `main`, `git-save.sh` erstellt, Remote `git@github.com:Dannolog/nexus.git` gesetzt. **Push schlägt fehl bis Repo existiert** ("Repository not found" — SSH-Auth ok).
