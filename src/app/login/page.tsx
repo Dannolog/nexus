@@ -41,10 +41,10 @@ export default function LoginPage() {
         </div>
         <p className="muted" style={{ marginTop: -8, fontSize: 14 }}>Zentrale Stammdaten-Anmeldung</p>
         <label style={{ fontSize: 13 }}>E-Mail
-          <TextField type="email" value={email} onChange={setEmail} autoComplete="username" />
+          <TextField type="email" value={email} onChange={setEmail} autoComplete="username" inputStyle={{ paddingTop: 11, paddingBottom: 11, marginTop: 6 }} />
         </label>
         <label style={{ fontSize: 13 }}>Passwort
-          <TextField type="password" value={password} onChange={setPassword} autoComplete="current-password" />
+          <TextField type="password" value={password} onChange={setPassword} autoComplete="current-password" inputStyle={{ paddingTop: 11, paddingBottom: 11, marginTop: 6 }} />
         </label>
         {err && <div style={{ color: "#ef4444", fontSize: 13 }}>{err}</div>}
         <button className="btn btn-primary" disabled={busy} type="submit" style={{ justifyContent: "center" }}>{busy ? "…" : <><Icon name="login" /> Anmelden</>}</button>
