@@ -80,8 +80,8 @@ export default function HistoryPage() {
                 <td style={{ padding: "10px 12px" }}>{r.appKey}</td>
                 <td style={{ padding: "8px 12px" }}>
                   {r.undone
-                    ? <button className="btn" onClick={() => act(r.txId, "redo")}>Wiederherstellen</button>
-                    : <button className="btn" onClick={() => act(r.txId, "undo")}>Rückgängig</button>}
+                    ? <button className="btn" onClick={() => act(r.txId, "redo")}>↷ Wiederherstellen</button>
+                    : <button className="btn" onClick={() => act(r.txId, "undo")}>↶ Rückgängig</button>}
                 </td>
               </tr>
             ))}

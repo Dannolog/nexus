@@ -3,6 +3,11 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { api, ConflictError } from "@/lib/clientApi";
 import { RESOURCES, Field } from "@/lib/uiSchema";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import SearchInput from "@/components/SearchInput";
+import Toggle from "@/components/Toggle";
+
+const LOGO_RESOURCES = ["customers", "organizations"];
 
 function cell(v: any) {
   if (typeof v === "boolean") return v ? "ja" : "–";
@@ -12,10 +17,13 @@ function cell(v: any) {
 
 export default function ResourceView({ resourceKey }: { resourceKey: string }) {
   const R = RESOURCES[resourceKey];
+  const hasLogo = LOGO_RESOURCES.includes(resourceKey);
   const [rows, setRows] = useState<any[]>([]);
+  const [logos, setLogos] = useState<Record<string, string>>({});
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<any | null>(null); // null=zu, {}=neu, {..}=bearbeiten
+  const [deleting, setDeleting] = useState<any | null>(null);
   const [msg, setMsg] = useState("");
 
   const load = useCallback(async () => {
@@ -23,10 +31,18 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
     try {
       const d = await api(`/api/${R.key}?search=${encodeURIComponent(search)}`);
       setRows(d.data);
+      // Firmenlogos asynchron nachladen (blockiert die Liste nicht)
+      if (hasLogo) {
+        for (const row of d.data) {
+          api(`/api/${R.key}/${row.id}/logo`)
+            .then((r) => { if (r.logo) setLogos((prev) => ({ ...prev, [row.id]: r.logo })); })
+            .catch(() => {});
+        }
+      }
     } finally {
       setLoading(false);
     }
-  }, [R.key, search]);
+  }, [R.key, search, hasLogo]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -38,6 +54,7 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
           body: JSON.stringify({ ...form, expectedVersion: form.version }),
         });
         setMsg("Gespeichert.");
+        if (hasLogo && form.logo !== undefined) setLogos((prev) => ({ ...prev, [form.id]: form.logo }));
       } else {
         await api(`/api/${R.key}`, { method: "POST", body: JSON.stringify(form) });
         setMsg("Angelegt.");
@@ -54,23 +71,25 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
   }
 
   async function remove(row: any) {
-    if (!confirm(`„${row[R.titleField]}" löschen? (rückgängig machbar im Verlauf)`)) return;
     try {
       await api(`/api/${R.key}/${row.id}?expectedVersion=${row.version}`, { method: "DELETE" });
       setMsg("Gelöscht (im Verlauf wiederherstellbar).");
       load();
     } catch (e: any) {
       setMsg("Fehler: " + e.message);
+    } finally {
+      setDeleting(null);
     }
   }
+
+  const colCount = R.columns.length + 1 + (hasLogo ? 1 : 0);
 
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700 }}>{R.title}</h1>
-        <button className="btn btn-primary" onClick={() => setEditing({})}>+ Neu</button>
-        <input className="input" style={{ maxWidth: 260, marginLeft: "auto" }}
-          placeholder="Suche…" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <button className="btn btn-primary" onClick={() => setEditing({})}>➕ Neu</button>
+        <SearchInput value={search} onChange={setSearch} style={{ maxWidth: 260, marginLeft: "auto", width: "100%" }} />
       </div>
       {msg && <div className="card" style={{ padding: "8px 12px", marginBottom: 12, fontSize: 14 }}>{msg}</div>}
 
@@ -78,20 +97,26 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
           <thead>
             <tr style={{ textAlign: "left", borderBottom: "1px solid var(--border)" }}>
+              {hasLogo && <th style={{ padding: "10px 12px", width: 44 }}></th>}
               {R.columns.map((c) => <th key={c.key} style={{ padding: "10px 12px" }}>{c.label}</th>)}
               <th style={{ padding: "10px 12px", width: 1 }}></th>
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan={R.columns.length + 1} style={{ padding: 16 }} className="muted">Lädt…</td></tr>}
-            {!loading && rows.length === 0 && <tr><td colSpan={R.columns.length + 1} style={{ padding: 16 }} className="muted">Keine Einträge.</td></tr>}
+            {loading && <tr><td colSpan={colCount} style={{ padding: 16 }} className="muted">Lädt…</td></tr>}
+            {!loading && rows.length === 0 && <tr><td colSpan={colCount} style={{ padding: 16 }} className="muted">Keine Einträge.</td></tr>}
             {rows.map((row) => (
               <tr key={row.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                {hasLogo && (
+                  <td style={{ padding: "6px 12px" }}>
+                    <LogoThumb src={logos[row.id]} color={row.color} />
+                  </td>
+                )}
                 {R.columns.map((c) => <td key={c.key} style={{ padding: "10px 12px" }}>{cell(row[c.key])}</td>)}
                 <td style={{ padding: "8px 12px", whiteSpace: "nowrap", display: "flex", gap: 8 }}>
-                  <button className="btn" onClick={() => setEditing({ ...row })}>Bearbeiten</button>
-                  <Link className="btn" href={`/history?entity=${R.entity}&entityId=${row.id}`}>Verlauf</Link>
-                  <button className="btn btn-danger" onClick={() => remove(row)}>Löschen</button>
+                  <button className="btn" onClick={() => setEditing({ ...row })}>✏️ Bearbeiten</button>
+                  <Link className="btn" href={`/history?entity=${R.entity}&entityId=${row.id}`}>🕘 Verlauf</Link>
+                  <button className="btn btn-danger" onClick={() => setDeleting(row)}>🗑️ Löschen</button>
                 </td>
               </tr>
             ))}
@@ -99,26 +124,84 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
         </table>
       </div>
 
-      {editing && <EditModal resourceKey={resourceKey} initial={editing} onClose={() => setEditing(null)} onSave={save} />}
+      {editing && (
+        <EditModal
+          resourceKey={resourceKey}
+          hasLogo={hasLogo}
+          initial={editing}
+          onClose={() => setEditing(null)}
+          onSave={save}
+        />
+      )}
+
+      <ConfirmDialog
+        open={!!deleting}
+        title={`„${deleting?.[R.titleField] ?? ""}" löschen?`}
+        message="Der Datensatz wird gelöscht. Im Verlauf ist die Aktion jederzeit wiederherstellbar."
+        onConfirm={() => deleting && remove(deleting)}
+        onCancel={() => setDeleting(null)}
+      />
     </div>
   );
 }
 
-function EditModal({ resourceKey, initial, onClose, onSave }: {
-  resourceKey: string; initial: any; onClose: () => void; onSave: (f: any) => void;
+function LogoThumb({ src, color }: { src?: string; color?: string }) {
+  if (src) return <img src={src} alt="" style={{ width: 32, height: 32, borderRadius: 6, objectFit: "cover", border: "1px solid var(--border)" }} />;
+  return <div style={{ width: 32, height: 32, borderRadius: 6, background: color || "var(--border)", opacity: 0.5 }} />;
+}
+
+function EditModal({ resourceKey, hasLogo, initial, onClose, onSave }: {
+  resourceKey: string; hasLogo: boolean; initial: any; onClose: () => void; onSave: (f: any) => void;
 }) {
   const R = RESOURCES[resourceKey];
   const [form, setForm] = useState<any>(initial);
+  const [currentLogo, setCurrentLogo] = useState<string>("");
   useEffect(() => setForm(initial), [initial]);
+
+  // Logo asynchron nachladen (Liste enthält es nicht)
+  useEffect(() => {
+    if (hasLogo && initial.id) {
+      api(`/api/${R.key}/${initial.id}/logo`).then((r) => setCurrentLogo(r.logo || "")).catch(() => {});
+    } else {
+      setCurrentLogo("");
+    }
+  }, [hasLogo, initial.id, R.key]);
 
   function set(k: string, v: any) { setForm((f: any) => ({ ...f, [k]: v })); }
 
+  function onLogoFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result);
+      setCurrentLogo(dataUrl);
+      set("logo", dataUrl); // wird beim Speichern mitgesendet
+    };
+    reader.readAsDataURL(file);
+  }
+  function removeLogo() { setCurrentLogo(""); set("logo", ""); }
+
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "grid", placeItems: "center", padding: 16, zIndex: 50 }}>
-      <div onClick={(e) => e.stopPropagation()} className="card" style={{ padding: 24, width: 520, maxHeight: "90vh", overflow: "auto" }}>
+      <div onClick={(e) => e.stopPropagation()} className="card" style={{ padding: 24, width: 560, maxHeight: "90vh", overflow: "auto" }}>
         <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>
           {form.id ? `${R.title.replace(/e?n$/, "")} bearbeiten` : `Neu: ${R.title}`}
         </h2>
+
+        {hasLogo && (
+          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 18 }}>
+            <LogoThumb src={currentLogo} color={form.color} />
+            <div style={{ display: "flex", gap: 8 }}>
+              <label className="btn" style={{ cursor: "pointer" }}>
+                🖼️ Symbol wählen
+                <input type="file" accept="image/*" onChange={onLogoFile} style={{ display: "none" }} />
+              </label>
+              {currentLogo && <button type="button" className="btn btn-danger" onClick={removeLogo}>✕ Entfernen</button>}
+            </div>
+          </div>
+        )}
+
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           {R.fields.map((f: Field) => (
             <label key={f.key} style={{ fontSize: 13, gridColumn: f.type === "textarea" ? "1 / -1" : "auto" }}>
@@ -126,7 +209,7 @@ function EditModal({ resourceKey, initial, onClose, onSave }: {
               {f.type === "textarea" ? (
                 <textarea className="input" rows={3} value={form[f.key] ?? ""} onChange={(e) => set(f.key, e.target.value)} />
               ) : f.type === "checkbox" ? (
-                <div><input type="checkbox" checked={!!form[f.key]} onChange={(e) => set(f.key, e.target.checked)} /></div>
+                <div style={{ marginTop: 6 }}><Toggle checked={!!form[f.key]} onChange={(v) => set(f.key, v)} /></div>
               ) : f.type === "select" ? (
                 <select className="input" value={form[f.key] ?? ""} onChange={(e) => set(f.key, e.target.value)}>
                   {(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
@@ -141,8 +224,8 @@ function EditModal({ resourceKey, initial, onClose, onSave }: {
           ))}
         </div>
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 20 }}>
-          <button className="btn" onClick={onClose}>Abbrechen</button>
-          <button className="btn btn-primary" onClick={() => onSave(form)}>Speichern</button>
+          <button className="btn" onClick={onClose}>✖ Abbrechen</button>
+          <button className="btn btn-primary" onClick={() => onSave(form)}>💾 Speichern</button>
         </div>
       </div>
     </div>

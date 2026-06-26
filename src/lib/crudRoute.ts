@@ -30,6 +30,9 @@ export function makeList(entity: EntityName) {
         take,
         orderBy: { updatedAt: "desc" },
       });
+      // Logos NICHT in der Liste mitsenden (Transfer schlank halten) — werden
+      // über /api/<entity>/:id/logo asynchron nachgeladen.
+      for (const r of rows) if ("logo" in r) delete r.logo;
       return json({ data: rows, count: rows.length });
     });
 }
@@ -67,6 +70,21 @@ export function makePatch(entity: EntityName) {
       const { expectedVersion, ...data } = body ?? {};
       const updated = await updateEntity(entity, ctx2.params.id, data, expectedVersion, ctx);
       return json(updated);
+    });
+}
+
+/** GET /api/<entity>/:id/logo — Firmenlogo/-symbol asynchron laden (nur das logo-Feld). */
+export function makeLogoGet(entity: EntityName) {
+  const def = getEntity(entity);
+  return (req: NextRequest, ctx2: { params: { id: string } }) =>
+    handle(async () => {
+      requireApp(req);
+      const row = await (prisma as any)[def.delegate].findUnique({
+        where: { id: ctx2.params.id },
+        select: { logo: true },
+      });
+      if (!row) throw new ApiError("Nicht gefunden", 404);
+      return json({ logo: row.logo || "" });
     });
 }
 

@@ -19,6 +19,7 @@ model Organization {
   country   String  @default("Deutschland")
   taxNumber String  @default("")
   ustId     String  @default("")
+  logo      String  @default("") @db.Text  // Mandanten-Logo/-symbol (base64 data URL), asynchron geladen
   version   Int      @default(1)
   deletedAt DateTime?
   createdAt DateTime @default(now())
@@ -45,6 +46,7 @@ model Customer {
   ustId       String  @default("")
   distanceKm  Float   @default(0)
   notes       String  @default("")
+  logo        String  @default("") @db.Text  // Firmenlogo/-symbol (base64 data URL), asynchron geladen
   contacts    CustomerContact[]
   numbers     CustomerNumber[]
   projects    Project[]

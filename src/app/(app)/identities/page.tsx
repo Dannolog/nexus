@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { api } from "@/lib/clientApi";
+import Toggle from "@/components/Toggle";
 
 const APPS = ["kontor", "clocker", "cnc", "schaltplan", "projecteye", "vision"];
 
@@ -59,7 +60,7 @@ export default function IdentitiesPage() {
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700 }}>Userverwaltung</h1>
-        <button className="btn btn-primary" onClick={openNew}>+ Neuer User</button>
+        <button className="btn btn-primary" onClick={openNew}>➕ Neuer User</button>
       </div>
       <p className="muted" style={{ marginBottom: 16 }}>Ein Login für alle berechtigten Apps. Pro App: Zulassung + Rolle.</p>
       {msg && <div className="card" style={{ padding: "8px 12px", marginBottom: 12, fontSize: 14 }}>{msg}</div>}
@@ -84,7 +85,7 @@ export default function IdentitiesPage() {
                   {(r.appAccess || []).filter((a: any) => a.allowed).map((a: any) => `${a.appKey}:${a.role}`).join(", ") || "–"}
                 </td>
                 <td style={{ padding: "10px 12px" }}>{r.origin}</td>
-                <td style={{ padding: "8px 12px" }}><button className="btn" onClick={() => openEdit(r)}>Bearbeiten</button></td>
+                <td style={{ padding: "8px 12px" }}><button className="btn" onClick={() => openEdit(r)}>✏️ Bearbeiten</button></td>
               </tr>
             ))}
           </tbody>
@@ -118,11 +119,10 @@ export default function IdentitiesPage() {
                 const ac = editing.access[a];
                 return (
                   <div key={a} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <label style={{ width: 140, display: "flex", gap: 8, alignItems: "center", fontSize: 14 }}>
-                      <input type="checkbox" checked={ac.allowed}
-                        onChange={(e) => setEditing({ ...editing, access: { ...editing.access, [a]: { ...ac, allowed: e.target.checked } } })} />
-                      {a}
-                    </label>
+                    <div style={{ width: 140 }}>
+                      <Toggle checked={ac.allowed} label={a}
+                        onChange={(v) => setEditing({ ...editing, access: { ...editing.access, [a]: { ...ac, allowed: v } } })} />
+                    </div>
                     <input className="input" style={{ maxWidth: 180 }} placeholder="Rolle" value={ac.role} disabled={!ac.allowed}
                       onChange={(e) => setEditing({ ...editing, access: { ...editing.access, [a]: { ...ac, role: e.target.value } } })} />
                   </div>
@@ -130,8 +130,8 @@ export default function IdentitiesPage() {
               })}
             </div>
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 20 }}>
-              <button className="btn" onClick={() => setEditing(null)}>Abbrechen</button>
-              <button className="btn btn-primary" onClick={save}>Speichern</button>
+              <button className="btn" onClick={() => setEditing(null)}>✖ Abbrechen</button>
+              <button className="btn btn-primary" onClick={save}>💾 Speichern</button>
             </div>
           </div>
         </div>

@@ -64,6 +64,17 @@
   4. **Phase 1:** kontor+clocker Import-Skript (dedupliziert per Firmenname+shortCode / email) + Anbindung. Dann Trigger aus INTEGRATION_HANDOFF Teil B an kontor/clocker.
   5. `apps.json` (`nexus` → tracked) + Launcher-Kachel.
 
+### 2026-06-26 (UI-Verbesserungen)
+- **Button-Symbole** überall: Login 🔑, Nav (🏠👥📁🧑‍💼🏢🔐🕘), 🌓 Theme, 🚪 Abmelden, ➕ Neu, ✏️ Bearbeiten, 🕘 Verlauf, 🗑️ Löschen, ✖ Abbrechen, 💾 Speichern, ↶ Rückgängig, ↷ Wiederherstellen.
+- **Lösch-Sicherheitsabfrage modernisiert:** neue `components/ConfirmDialog.tsx` (Modal mit ⚠️-Icon, ESC=Abbrechen/Enter=Bestätigen) ersetzt `window.confirm`. Eingebunden in ResourceView (alle Löschvorgänge).
+- **Suchfeld** `components/SearchInput.tsx`: 🔍 Lupe, ✕ Clear-Cross, ESC bei gefülltem Feld → leeren, ESC bei leerem Feld → blur (Autofokus off).
+- **Checkboxen modernisiert:** `components/Toggle.tsx` (Switch) ersetzt native Checkboxen (archived in ResourceView, App-Zulassung in Userverwaltung).
+- **Menü links volle Browserhöhe:** Sidebar `height:100vh` + eigenes Scrolling, Container `overflow:hidden`, nur Hauptbereich scrollt.
+- **Firmen-Logos:** Schema `Customer.logo` + `Organization.logo` (@db.Text base64) → `db push`. Upload im Bearbeiten-Modal (File→base64), Thumbnail-Spalte in Liste.
+- **Logo-Laden asynchron ausgelagert:** Liste sendet KEIN logo (crudRoute löscht es), separater Endpoint `GET /api/{customers,organizations}/:id/logo`; UI lädt Logos nach Listen-Render nach. Getestet ✓.
+- **App-Symbol:** Nexus-Netzwerk-Logo `src/app/icon.svg` (Favicon, automatisch) + `components/AppLogo.tsx` in Sidebar + Login.
+- Production-Build ✓ (prisma-Skripte aus tsconfig-typecheck ausgeschlossen), PM2 neu gestartet.
+
 ### 2026-06-26 (Phase 1 — Bestandsdaten-Import)
 - **Wunsch Daniel:** Langzeit soll Nexus die Daten ALLER Apps zentral halten; jetzt erstmal nur übernehmen (Apps noch nicht umhängen). → Memory `nexus-langzeit-ziel`.
 - Import-Skript `prisma/import-phase1.ts` gebaut: liest kontor- + clocker-DBs direkt (pg), schreibt nach Nexus (prisma), **idempotent**, keine Revisionen (System-Import). Ausführen: `TS_NODE_TRANSPILE_ONLY=1 node node_modules/ts-node/dist/bin.js --compiler-options '{"module":"CommonJS","moduleResolution":"node"}' prisma/import-phase1.ts`.
