@@ -10,6 +10,7 @@ export type Resource = {
   entity: string; // Revision-Entity-Name
   title: string;
   icon: string; // Icon-Name (siehe components/Icon)
+  prefix: string; // Kürzel für Index-Spalte (z.B. KU-1)
   titleField: string;
   columns: { key: string; label: string }[];
   fields: Field[];
@@ -21,6 +22,7 @@ export const RESOURCES: Record<string, Resource> = {
     entity: "Customer",
     title: "Kunden",
     icon: "users",
+    prefix: "KU",
     titleField: "companyName",
     columns: [
       { key: "companyName", label: "Firma" },
@@ -52,6 +54,7 @@ export const RESOURCES: Record<string, Resource> = {
     entity: "Project",
     title: "Projekte",
     icon: "folder",
+    prefix: "PR",
     titleField: "name",
     columns: [
       { key: "name", label: "Name" },
@@ -74,6 +77,7 @@ export const RESOURCES: Record<string, Resource> = {
     entity: "Employee",
     title: "Mitarbeiter",
     icon: "user",
+    prefix: "MA",
     titleField: "name",
     columns: [
       { key: "name", label: "Name" },
@@ -95,6 +99,7 @@ export const RESOURCES: Record<string, Resource> = {
     entity: "Organization",
     title: "Mandanten",
     icon: "building",
+    prefix: "MD",
     titleField: "name",
     columns: [
       { key: "name", label: "Name" },

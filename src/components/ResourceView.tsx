@@ -7,6 +7,8 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import SearchInput from "@/components/SearchInput";
 import Toggle from "@/components/Toggle";
 import Icon from "@/components/Icon";
+import ColorPicker from "@/components/ColorPicker";
+import TextField from "@/components/TextField";
 
 const LOGO_RESOURCES = ["customers", "organizations"];
 
@@ -85,7 +87,7 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
     }
   }
 
-  const colCount = R.columns.length + 1 + (hasLogo ? 1 : 0);
+  const colCount = R.columns.length + 2 + (hasLogo ? 1 : 0);
 
   return (
     <div>
@@ -102,6 +104,7 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
           <thead>
             <tr style={{ textAlign: "left", borderBottom: "1px solid var(--border)" }}>
+              <th style={{ padding: "10px 12px", width: 1, whiteSpace: "nowrap" }}>Nr.</th>
               {hasLogo && <th style={{ padding: "10px 12px", width: 44 }}></th>}
               {R.columns.map((c) => <th key={c.key} style={{ padding: "10px 12px" }}>{c.label}</th>)}
               <th style={{ padding: "10px 12px", width: 1 }}></th>
@@ -110,8 +113,11 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
           <tbody>
             {loading && <tr><td colSpan={colCount} style={{ padding: 16 }} className="muted">Lädt…</td></tr>}
             {!loading && rows.length === 0 && <tr><td colSpan={colCount} style={{ padding: 16 }} className="muted">Keine Einträge.</td></tr>}
-            {rows.map((row) => (
+            {rows.map((row, i) => (
               <tr key={row.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                <td style={{ padding: "10px 12px", whiteSpace: "nowrap", color: "var(--muted)", fontVariantNumeric: "tabular-nums", fontSize: 13 }}>
+                  {R.prefix}-{i + 1}
+                </td>
                 {hasLogo && (
                   <td style={{ padding: "6px 12px" }}>
                     <LogoThumb src={logos[row.id]} color={row.color} />
@@ -212,7 +218,15 @@ function EditModal({ resourceKey, hasLogo, initial, onClose, onSave }: {
             <label key={f.key} style={{ fontSize: 13, gridColumn: f.type === "textarea" ? "1 / -1" : "auto" }}>
               {f.label}
               {f.type === "textarea" ? (
-                <textarea className="input" rows={3} value={form[f.key] ?? ""} onChange={(e) => set(f.key, e.target.value)} />
+                <textarea className="input" rows={3} value={form[f.key] ?? ""}
+                  onChange={(e) => set(f.key, e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      e.preventDefault();
+                      if (String((e.target as HTMLTextAreaElement).value).length > 0) set(f.key, "");
+                      else (e.currentTarget as HTMLTextAreaElement).blur();
+                    }
+                  }} />
               ) : f.type === "checkbox" ? (
                 <div style={{ marginTop: 6 }}><Toggle checked={!!form[f.key]} onChange={(v) => set(f.key, v)} /></div>
               ) : f.type === "select" ? (
@@ -220,10 +234,13 @@ function EditModal({ resourceKey, hasLogo, initial, onClose, onSave }: {
                   {(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
                 </select>
               ) : f.type === "color" ? (
-                <input type="color" className="input" style={{ height: 38, padding: 2 }} value={form[f.key] ?? "#3b82f6"} onChange={(e) => set(f.key, e.target.value)} />
+                <ColorPicker value={form[f.key] ?? "#3b82f6"} onChange={(v) => set(f.key, v)} />
               ) : (
-                <input className="input" type={f.type === "number" ? "number" : f.type === "email" ? "email" : "text"}
-                  value={form[f.key] ?? ""} onChange={(e) => set(f.key, f.type === "number" ? Number(e.target.value) : e.target.value)} />
+                <TextField
+                  type={f.type === "number" ? "number" : f.type === "email" ? "email" : "text"}
+                  value={form[f.key]}
+                  onChange={(v) => set(f.key, f.type === "number" ? (v === "" ? 0 : Number(v)) : v)}
+                />
               )}
             </label>
           ))}

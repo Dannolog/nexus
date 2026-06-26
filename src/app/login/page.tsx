@@ -3,6 +3,7 @@ import { useState } from "react";
 import { setSession } from "@/lib/clientApi";
 import AppLogo from "@/components/AppLogo";
 import Icon from "@/components/Icon";
+import TextField from "@/components/TextField";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("admin@nexus.local");
@@ -40,10 +41,10 @@ export default function LoginPage() {
         </div>
         <p className="muted" style={{ marginTop: -8, fontSize: 14 }}>Zentrale Stammdaten-Anmeldung</p>
         <label style={{ fontSize: 13 }}>E-Mail
-          <input className="input" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" />
+          <TextField type="email" value={email} onChange={setEmail} autoComplete="username" />
         </label>
         <label style={{ fontSize: 13 }}>Passwort
-          <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
+          <TextField type="password" value={password} onChange={setPassword} autoComplete="current-password" />
         </label>
         {err && <div style={{ color: "#ef4444", fontSize: 13 }}>{err}</div>}
         <button className="btn btn-primary" disabled={busy} type="submit" style={{ justifyContent: "center" }}>{busy ? "…" : <><Icon name="login" /> Anmelden</>}</button>

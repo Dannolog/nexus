@@ -64,6 +64,7 @@ export default function HistoryPage() {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
           <thead>
             <tr style={{ textAlign: "left", borderBottom: "1px solid var(--border)" }}>
+              <th style={{ padding: "10px 12px", width: 1, whiteSpace: "nowrap" }}>Nr.</th>
               <th style={{ padding: "10px 12px" }}>Zeit</th>
               <th style={{ padding: "10px 12px" }}>Entität</th>
               <th style={{ padding: "10px 12px" }}>Aktion</th>
@@ -73,9 +74,10 @@ export default function HistoryPage() {
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 && <tr><td colSpan={6} className="muted" style={{ padding: 16 }}>Keine Einträge.</td></tr>}
-            {rows.map((r) => (
+            {rows.length === 0 && <tr><td colSpan={7} className="muted" style={{ padding: 16 }}>Keine Einträge.</td></tr>}
+            {rows.map((r, i) => (
               <tr key={r.id} style={{ borderBottom: "1px solid var(--border)", opacity: r.undone ? 0.55 : 1 }}>
+                <td style={{ padding: "10px 12px", whiteSpace: "nowrap", color: "var(--muted)", fontVariantNumeric: "tabular-nums", fontSize: 13 }}>VL-{i + 1}</td>
                 <td style={{ padding: "10px 12px", whiteSpace: "nowrap" }}>{fmt(r.createdAt)}</td>
                 <td style={{ padding: "10px 12px" }}>{r.entity}</td>
                 <td style={{ padding: "10px 12px" }}>{r.action}{r.undone ? " (rückgängig)" : ""}</td>

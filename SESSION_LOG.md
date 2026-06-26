@@ -64,6 +64,11 @@
   4. **Phase 1:** kontor+clocker Import-Skript (dedupliziert per Firmenname+shortCode / email) + Anbindung. Dann Trigger aus INTEGRATION_HANDOFF Teil B an kontor/clocker.
   5. `apps.json` (`nexus` → tracked) + Launcher-Kachel.
 
+### 2026-06-26 (ColorPicker, TextField, Index-Spalte)
+- **Moderner ColorPicker** (`components/ColorPicker.tsx`): Swatch-Button + Popover mit Preset-Palette, nativem Picker und Hex-Eingabe; ersetzt natives `<input type=color>`.
+- **TextField** (`components/TextField.tsx`): Clear-Cross (✕) an jedem Feld, ESC bei gefülltem Feld → leeren, 2. ESC (leeres Feld) → Fokus aufheben (blur). Eingebaut in ResourceView-Formular (text/email/number), Userverwaltung (E-Mail/Name/Passwort/Rolle), Login (E-Mail/Passwort). Textarea: gleiches ESC-Verhalten inline.
+- **Index-Spalte „Nr."** mit Seiten-Kürzel in allen Tabellen: Kunden KU-, Projekte PR-, Mitarbeiter MA-, Mandanten MD- (aus uiSchema-`prefix`), Userverwaltung US-, Verlauf VL-.
+
 ### 2026-06-26 (Mobil-konform + Überschriften-Icons)
 - **Icons in allen Seitenüberschriften** (Dashboard/Listen/Verlauf/Userverwaltung); Listen-Icon aus neuem `icon`-Feld in uiSchema-Resource.
 - **Responsive/Mobil:** Media-Queries in globals.css (Breakpoint 768px). Desktop: feste Sidebar. Mobil: fixe **Topbar mit Logo + Hamburger**, Sidebar wird Off-Canvas-Drawer (translateX) mit Overlay + Schließen-Button; schließt bei Seitenwechsel. App-Shell/Sidebar/Main als CSS-Klassen (`.app-shell/.sidebar/.topbar/.main`). Header-Leisten `flex-wrap`, Such-Feld flexibel; Modals `maxWidth:92vw` + Formular-Grid `repeat(auto-fit,minmax(190px,1fr))` → 1-spaltig auf schmalen Screens. Menü-Icon ergänzt.

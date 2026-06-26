@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { api } from "@/lib/clientApi";
 import Toggle from "@/components/Toggle";
 import Icon from "@/components/Icon";
+import TextField from "@/components/TextField";
 
 const APPS = ["kontor", "clocker", "cnc", "schaltplan", "projecteye", "vision"];
 
@@ -71,6 +72,7 @@ export default function IdentitiesPage() {
       <div className="card" style={{ overflow: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
           <thead><tr style={{ textAlign: "left", borderBottom: "1px solid var(--border)" }}>
+            <th style={{ padding: "10px 12px", width: 1, whiteSpace: "nowrap" }}>Nr.</th>
             <th style={{ padding: "10px 12px" }}>Name</th>
             <th style={{ padding: "10px 12px" }}>E-Mail</th>
             <th style={{ padding: "10px 12px" }}>Globale Rolle</th>
@@ -79,8 +81,9 @@ export default function IdentitiesPage() {
             <th></th>
           </tr></thead>
           <tbody>
-            {rows.map((r) => (
+            {rows.map((r, i) => (
               <tr key={r.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                <td style={{ padding: "10px 12px", whiteSpace: "nowrap", color: "var(--muted)", fontVariantNumeric: "tabular-nums", fontSize: 13 }}>US-{i + 1}</td>
                 <td style={{ padding: "10px 12px" }}>{r.name}</td>
                 <td style={{ padding: "10px 12px" }}>{r.email}</td>
                 <td style={{ padding: "10px 12px" }}>{r.globalRole}</td>
@@ -101,13 +104,13 @@ export default function IdentitiesPage() {
             <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>{editing.id ? "User bearbeiten" : "Neuer User"}</h2>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12 }}>
               <label style={{ fontSize: 13 }}>E-Mail
-                <input className="input" value={editing.email} disabled={!!editing.id} onChange={(e) => setEditing({ ...editing, email: e.target.value })} />
+                <TextField type="email" value={editing.email} disabled={!!editing.id} onChange={(v) => setEditing({ ...editing, email: v })} />
               </label>
               <label style={{ fontSize: 13 }}>Name
-                <input className="input" value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
+                <TextField value={editing.name} onChange={(v) => setEditing({ ...editing, name: v })} />
               </label>
               <label style={{ fontSize: 13 }}>Passwort {editing.id && <span className="muted">(leer = unverändert)</span>}
-                <input className="input" type="password" value={editing.password} onChange={(e) => setEditing({ ...editing, password: e.target.value })} />
+                <TextField type="password" value={editing.password} onChange={(v) => setEditing({ ...editing, password: v })} />
               </label>
               <label style={{ fontSize: 13 }}>Globale Rolle
                 <select className="input" value={editing.globalRole} onChange={(e) => setEditing({ ...editing, globalRole: e.target.value })}>
@@ -126,8 +129,8 @@ export default function IdentitiesPage() {
                       <Toggle checked={ac.allowed} label={a}
                         onChange={(v) => setEditing({ ...editing, access: { ...editing.access, [a]: { ...ac, allowed: v } } })} />
                     </div>
-                    <input className="input" style={{ maxWidth: 180 }} placeholder="Rolle" value={ac.role} disabled={!ac.allowed}
-                      onChange={(e) => setEditing({ ...editing, access: { ...editing.access, [a]: { ...ac, role: e.target.value } } })} />
+                    <TextField style={{ maxWidth: 180, flex: 1 }} placeholder="Rolle" value={ac.role} disabled={!ac.allowed}
+                      onChange={(v) => setEditing({ ...editing, access: { ...editing.access, [a]: { ...ac, role: v } } })} />
                   </div>
                 );
               })}
