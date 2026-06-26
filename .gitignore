@@ -8,3 +8,4 @@ npm-debug.log*
 .DS_Store
 ENDPOINTS.md
 next-env.d.ts
+backups/

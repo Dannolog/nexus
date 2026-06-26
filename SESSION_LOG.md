@@ -64,6 +64,15 @@
   4. **Phase 1:** kontor+clocker Import-Skript (dedupliziert per Firmenname+shortCode / email) + Anbindung. Dann Trigger aus INTEGRATION_HANDOFF Teil B an kontor/clocker.
   5. `apps.json` (`nexus` → tracked) + Launcher-Kachel.
 
+### 2026-06-26 (Absicherung — vorbereitet, wartet auf Nutzer-Aktionen)
+- Geprüft: keine Secrets versioniert (.env/ENDPOINTS.md gitignored ✓), nginx-Zertifikate vorhanden, Port 3052 frei.
+- Git: Branch auf `main`, `git-save.sh` erstellt, Remote `git@github.com:Dannolog/nexus.git` gesetzt. **Push schlägt fehl bis Repo existiert** ("Repository not found" — SSH-Auth ok).
+- `scripts/set-admin-password.ts` erstellt (Nutzer setzt PW selbst).
+- **OFFEN — braucht Nutzer:**
+  1. **nginx** (sudo): `sudo cp /mnt/devip3/nexus/deploy/nexus-https /etc/nginx/sites-available/ && sudo ln -sf /etc/nginx/sites-available/nexus-https /etc/nginx/sites-enabled/ && sudo nginx -t && sudo systemctl reload nginx`
+  2. **GitHub-Repo** `nexus` (leer) auf github.com/Dannolog anlegen → dann `git push -u origin main` (ich) + Cronjob (30-Min-Auto-Save).
+  3. **Admin-PW** ändern: in UI (Userverwaltung → Administrator) ODER `scripts/set-admin-password.ts '<pw>'`.
+
 ### 2026-06-26 (ColorPicker, TextField, Index-Spalte)
 - **Moderner ColorPicker** (`components/ColorPicker.tsx`): Swatch-Button + Popover mit Preset-Palette, nativem Picker und Hex-Eingabe; ersetzt natives `<input type=color>`.
 - **TextField** (`components/TextField.tsx`): Clear-Cross (✕) an jedem Feld, ESC bei gefülltem Feld → leeren, 2. ESC (leeres Feld) → Fokus aufheben (blur). Eingebaut in ResourceView-Formular (text/email/number), Userverwaltung (E-Mail/Name/Passwort/Rolle), Login (E-Mail/Passwort). Textarea: gleiches ESC-Verhalten inline.
