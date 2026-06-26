@@ -1,4 +1,5 @@
 "use client";
+import Icon from "@/components/Icon";
 
 /**
  * Suchfeld mit Lupe, Clear-Cross und ESC-Verhalten:
@@ -19,8 +20,8 @@ export default function SearchInput({
 }) {
   return (
     <div style={{ position: "relative", display: "inline-block", ...style }}>
-      <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", opacity: 0.5, fontSize: 14, pointerEvents: "none" }}>
-        🔍
+      <span style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", opacity: 0.5, pointerEvents: "none", display: "flex" }}>
+        <Icon name="search" size={16} />
       </span>
       <input
         className="input"
@@ -43,10 +44,10 @@ export default function SearchInput({
           onClick={() => onChange("")}
           style={{
             position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)",
-            border: 0, background: "transparent", cursor: "pointer", fontSize: 15, opacity: 0.55, lineHeight: 1, padding: 4, color: "var(--fg)",
+            border: 0, background: "transparent", cursor: "pointer", opacity: 0.55, lineHeight: 1, padding: 4, color: "var(--fg)", display: "flex",
           }}
         >
-          ✕
+          <Icon name="x" size={15} />
         </button>
       )}
     </div>

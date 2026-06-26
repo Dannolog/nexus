@@ -6,6 +6,7 @@ import { RESOURCES, Field } from "@/lib/uiSchema";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import SearchInput from "@/components/SearchInput";
 import Toggle from "@/components/Toggle";
+import Icon from "@/components/Icon";
 
 const LOGO_RESOURCES = ["customers", "organizations"];
 
@@ -20,7 +21,9 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
   const hasLogo = LOGO_RESOURCES.includes(resourceKey);
   const [rows, setRows] = useState<any[]>([]);
   const [logos, setLogos] = useState<Record<string, string>>({});
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(() =>
+    typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("q") || "" : ""
+  );
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<any | null>(null); // null=zu, {}=neu, {..}=bearbeiten
   const [deleting, setDeleting] = useState<any | null>(null);
@@ -63,7 +66,7 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
       load();
     } catch (e: any) {
       if (e instanceof ConflictError) {
-        setMsg("⚠ Versionskonflikt — der Datensatz wurde zwischenzeitlich geändert. Aktueller Stand geladen.");
+        setMsg("Versionskonflikt — der Datensatz wurde zwischenzeitlich geändert. Aktueller Stand geladen.");
         setEditing({ ...e.current });
         load();
       } else setMsg("Fehler: " + e.message);
@@ -88,7 +91,7 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700 }}>{R.title}</h1>
-        <button className="btn btn-primary" onClick={() => setEditing({})}>➕ Neu</button>
+        <button className="btn btn-primary" onClick={() => setEditing({})}><Icon name="plus" /> Neu</button>
         <SearchInput value={search} onChange={setSearch} style={{ maxWidth: 260, marginLeft: "auto", width: "100%" }} />
       </div>
       {msg && <div className="card" style={{ padding: "8px 12px", marginBottom: 12, fontSize: 14 }}>{msg}</div>}
@@ -114,9 +117,9 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
                 )}
                 {R.columns.map((c) => <td key={c.key} style={{ padding: "10px 12px" }}>{cell(row[c.key])}</td>)}
                 <td style={{ padding: "8px 12px", whiteSpace: "nowrap", display: "flex", gap: 8 }}>
-                  <button className="btn" onClick={() => setEditing({ ...row })}>✏️ Bearbeiten</button>
-                  <Link className="btn" href={`/history?entity=${R.entity}&entityId=${row.id}`}>🕘 Verlauf</Link>
-                  <button className="btn btn-danger" onClick={() => setDeleting(row)}>🗑️ Löschen</button>
+                  <button className="btn" onClick={() => setEditing({ ...row })}><Icon name="pencil" /> Bearbeiten</button>
+                  <Link className="btn" href={`/history?entity=${R.entity}&entityId=${row.id}`}><Icon name="history" /> Verlauf</Link>
+                  <button className="btn btn-danger" onClick={() => setDeleting(row)}><Icon name="trash" /> Löschen</button>
                 </td>
               </tr>
             ))}
@@ -194,10 +197,10 @@ function EditModal({ resourceKey, hasLogo, initial, onClose, onSave }: {
             <LogoThumb src={currentLogo} color={form.color} />
             <div style={{ display: "flex", gap: 8 }}>
               <label className="btn" style={{ cursor: "pointer" }}>
-                🖼️ Symbol wählen
+                <Icon name="image" /> Symbol wählen
                 <input type="file" accept="image/*" onChange={onLogoFile} style={{ display: "none" }} />
               </label>
-              {currentLogo && <button type="button" className="btn btn-danger" onClick={removeLogo}>✕ Entfernen</button>}
+              {currentLogo && <button type="button" className="btn btn-danger" onClick={removeLogo}><Icon name="x" /> Entfernen</button>}
             </div>
           </div>
         )}
@@ -224,8 +227,8 @@ function EditModal({ resourceKey, hasLogo, initial, onClose, onSave }: {
           ))}
         </div>
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 20 }}>
-          <button className="btn" onClick={onClose}>✖ Abbrechen</button>
-          <button className="btn btn-primary" onClick={() => onSave(form)}>💾 Speichern</button>
+          <button className="btn" onClick={onClose}><Icon name="x" /> Abbrechen</button>
+          <button className="btn btn-primary" onClick={() => onSave(form)}><Icon name="save" /> Speichern</button>
         </div>
       </div>
     </div>

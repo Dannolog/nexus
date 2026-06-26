@@ -1,5 +1,6 @@
 "use client";
 import { useEffect } from "react";
+import Icon from "@/components/Icon";
 
 /**
  * Moderne Bestätigungsabfrage (Modal) — ersetzt window.confirm.
@@ -9,8 +10,9 @@ export default function ConfirmDialog({
   open,
   title = "Wirklich löschen?",
   message,
-  confirmLabel = "🗑️ Löschen",
-  cancelLabel = "✖ Abbrechen",
+  confirmLabel = "Löschen",
+  cancelLabel = "Abbrechen",
+  confirmIcon = "trash",
   danger = true,
   onConfirm,
   onCancel,
@@ -20,6 +22,7 @@ export default function ConfirmDialog({
   message?: React.ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
+  confirmIcon?: string;
   danger?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
@@ -47,21 +50,22 @@ export default function ConfirmDialog({
             style={{
               width: 44, height: 44, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 22, flexShrink: 0,
               background: danger ? "rgba(239,68,68,.12)" : "rgba(59,130,246,.12)",
+              color: danger ? "#ef4444" : "var(--accent)",
             }}
           >
-            {danger ? "⚠️" : "❓"}
+            <Icon name="alert" size={22} />
           </div>
           <h2 style={{ fontSize: 18, fontWeight: 700 }}>{title}</h2>
         </div>
         {message && <div className="muted" style={{ fontSize: 14, marginBottom: 20, lineHeight: 1.5 }}>{message}</div>}
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          <button className="btn" onClick={onCancel} autoFocus>{cancelLabel}</button>
+          <button className="btn" onClick={onCancel} autoFocus><Icon name="x" /> {cancelLabel}</button>
           <button
             className="btn btn-primary"
             onClick={onConfirm}
             style={danger ? { background: "#ef4444", borderColor: "#ef4444" } : undefined}
           >
-            {confirmLabel}
+            <Icon name={confirmIcon} /> {confirmLabel}
           </button>
         </div>
       </div>

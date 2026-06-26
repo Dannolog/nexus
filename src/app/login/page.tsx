@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { setSession } from "@/lib/clientApi";
 import AppLogo from "@/components/AppLogo";
+import Icon from "@/components/Icon";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("admin@nexus.local");
@@ -45,7 +46,7 @@ export default function LoginPage() {
           <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
         </label>
         {err && <div style={{ color: "#ef4444", fontSize: 13 }}>{err}</div>}
-        <button className="btn btn-primary" disabled={busy} type="submit">{busy ? "…" : "🔑 Anmelden"}</button>
+        <button className="btn btn-primary" disabled={busy} type="submit" style={{ justifyContent: "center" }}>{busy ? "…" : <><Icon name="login" /> Anmelden</>}</button>
       </form>
     </main>
   );

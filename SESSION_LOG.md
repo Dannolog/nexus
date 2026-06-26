@@ -64,6 +64,11 @@
   4. **Phase 1:** kontor+clocker Import-Skript (dedupliziert per Firmenname+shortCode / email) + Anbindung. Dann Trigger aus INTEGRATION_HANDOFF Teil B an kontor/clocker.
   5. `apps.json` (`nexus` → tracked) + Launcher-Kachel.
 
+### 2026-06-26 (SVG-Icons + ⌘K-Suche)
+- **Alle Emoji → moderne SVG-Icons:** neue `components/Icon.tsx` (Lucide-Stil, stroke=currentColor → erbt Button-Farbe). Set: home/users/folder/user/building/shield/history/login/logout/moon/plus/pencil/trash/x/save/check/undo/redo/image/alert/search/command. Ersetzt in Nav, Login, ResourceView, ConfirmDialog, SearchInput, History, Identities, Dashboard-Kacheln. `.btn` → inline-flex+gap für Icon+Text-Ausrichtung.
+- **⌘K-Suche (Command-Palette):** neue `components/CommandPalette.tsx` — global per ⌘K/Strg+K (oder Sidebar-Button „Suchen… ⌘K"). Leeres Feld → Schnellnavigation; Eingabe → Live-Suche (debounced 180ms) über Kunden/Projekte/Mitarbeiter; Pfeiltasten + Enter, ESC schließt. Treffer öffnen die Listen-Seite mit `?q=`; ResourceView liest `?q=` als Anfangssuche.
+- Production-Build ✓, PM2 neu, Routen 200.
+
 ### 2026-06-26 (UI-Verbesserungen)
 - **Button-Symbole** überall: Login 🔑, Nav (🏠👥📁🧑‍💼🏢🔐🕘), 🌓 Theme, 🚪 Abmelden, ➕ Neu, ✏️ Bearbeiten, 🕘 Verlauf, 🗑️ Löschen, ✖ Abbrechen, 💾 Speichern, ↶ Rückgängig, ↷ Wiederherstellen.
 - **Lösch-Sicherheitsabfrage modernisiert:** neue `components/ConfirmDialog.tsx` (Modal mit ⚠️-Icon, ESC=Abbrechen/Enter=Bestätigen) ersetzt `window.confirm`. Eingebunden in ResourceView (alle Löschvorgänge).

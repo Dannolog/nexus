@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { api } from "@/lib/clientApi";
+import Icon from "@/components/Icon";
 
 function fmt(ts: string) {
   const d = new Date(ts);
@@ -80,8 +81,8 @@ export default function HistoryPage() {
                 <td style={{ padding: "10px 12px" }}>{r.appKey}</td>
                 <td style={{ padding: "8px 12px" }}>
                   {r.undone
-                    ? <button className="btn" onClick={() => act(r.txId, "redo")}>↷ Wiederherstellen</button>
-                    : <button className="btn" onClick={() => act(r.txId, "undo")}>↶ Rückgängig</button>}
+                    ? <button className="btn" onClick={() => act(r.txId, "redo")}><Icon name="redo" /> Wiederherstellen</button>
+                    : <button className="btn" onClick={() => act(r.txId, "undo")}><Icon name="undo" /> Rückgängig</button>}
                 </td>
               </tr>
             ))}

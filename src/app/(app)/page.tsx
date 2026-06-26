@@ -2,12 +2,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/clientApi";
+import Icon from "@/components/Icon";
 
 const TILES = [
-  { href: "/customers", label: "Kunden", key: "customers" },
-  { href: "/projects", label: "Projekte", key: "projects" },
-  { href: "/employees", label: "Mitarbeiter", key: "employees" },
-  { href: "/identities", label: "User", key: "identities" },
+  { href: "/customers", label: "Kunden", key: "customers", icon: "users" },
+  { href: "/projects", label: "Projekte", key: "projects", icon: "folder" },
+  { href: "/employees", label: "Mitarbeiter", key: "employees", icon: "user" },
+  { href: "/identities", label: "User", key: "identities", icon: "shield" },
 ];
 
 export default function Dashboard() {
@@ -22,7 +23,10 @@ export default function Dashboard() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: 16 }}>
         {TILES.map((t) => (
           <Link key={t.href} href={t.href} className="card" style={{ padding: 20, textDecoration: "none", color: "var(--fg)" }}>
-            <div style={{ fontSize: 32, fontWeight: 700 }}>{counts ? counts[t.key] ?? "–" : "…"}</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ fontSize: 32, fontWeight: 700 }}>{counts ? counts[t.key] ?? "–" : "…"}</div>
+              <span style={{ color: "var(--accent)", opacity: 0.85 }}><Icon name={t.icon} size={26} /></span>
+            </div>
             <div className="muted">{t.label}</div>
           </Link>
         ))}

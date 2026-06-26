@@ -32,8 +32,10 @@ body {
 }
 .input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 .btn {
+  display: inline-flex; align-items: center; gap: 0.4rem;
   border-radius: 0.5rem; padding: 0.4rem 0.8rem; font-weight: 500;
   border: 1px solid var(--border); background: var(--card); color: var(--fg); cursor: pointer;
+  white-space: nowrap;
 }
 .btn:hover { border-color: var(--accent); }
 .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }

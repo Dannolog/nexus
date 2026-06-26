@@ -4,15 +4,17 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { getUser, clearSession } from "@/lib/clientApi";
 import AppLogo from "@/components/AppLogo";
+import Icon from "@/components/Icon";
+import CommandPalette from "@/components/CommandPalette";
 
 const NAV = [
-  { href: "/", label: "Übersicht", icon: "🏠" },
-  { href: "/customers", label: "Kunden", icon: "👥" },
-  { href: "/projects", label: "Projekte", icon: "📁" },
-  { href: "/employees", label: "Mitarbeiter", icon: "🧑‍💼" },
-  { href: "/organizations", label: "Mandanten", icon: "🏢" },
-  { href: "/identities", label: "Userverwaltung", icon: "🔐" },
-  { href: "/history", label: "Verlauf (Undo/Redo)", icon: "🕘" },
+  { href: "/", label: "Übersicht", icon: "home" },
+  { href: "/customers", label: "Kunden", icon: "users" },
+  { href: "/projects", label: "Projekte", icon: "folder" },
+  { href: "/employees", label: "Mitarbeiter", icon: "user" },
+  { href: "/organizations", label: "Mandanten", icon: "building" },
+  { href: "/identities", label: "Userverwaltung", icon: "shield" },
+  { href: "/history", label: "Verlauf (Undo/Redo)", icon: "history" },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -45,6 +47,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 700, fontSize: 20, padding: "4px 8px 12px" }}>
           <AppLogo size={28} /> Nexus
         </div>
+        <button
+          onClick={() => window.dispatchEvent(new Event("open-command-palette"))}
+          style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", marginBottom: 8, borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--muted)", cursor: "pointer", fontSize: 13 }}
+        >
+          <Icon name="search" size={15} />
+          <span style={{ flex: 1, textAlign: "left" }}>Suchen…</span>
+          <kbd style={{ fontSize: 11, padding: "1px 5px", borderRadius: 5, border: "1px solid var(--border)" }}>⌘K</kbd>
+        </button>
         {NAV.map((n) => {
           const active = n.href === "/" ? pathname === "/" : pathname.startsWith(n.href);
           return (
@@ -53,17 +63,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 background: active ? "var(--accent)" : "transparent",
                 color: active ? "#fff" : "var(--fg)", textDecoration: "none",
                 display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ width: 18, textAlign: "center" }}>{n.icon}</span>{n.label}
+              <Icon name={n.icon} size={18} />{n.label}
             </Link>
           );
         })}
         <div style={{ marginTop: "auto", display: "grid", gap: 8, paddingTop: 12 }}>
-          <button className="btn" onClick={toggleTheme}>🌓 Theme</button>
+          <button className="btn" onClick={toggleTheme}><Icon name="moon" /> Theme</button>
           <div className="muted" style={{ fontSize: 12, padding: "0 4px" }}>{user?.name} ({user?.globalRole})</div>
-          <button className="btn" onClick={() => { clearSession(); window.location.href = "/login"; }}>🚪 Abmelden</button>
+          <button className="btn" onClick={() => { clearSession(); window.location.href = "/login"; }}><Icon name="logout" /> Abmelden</button>
         </div>
       </aside>
       <main style={{ flex: 1, padding: 24, overflow: "auto" }}>{children}</main>
+      <CommandPalette />
     </div>
   );
 }

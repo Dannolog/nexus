@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { api } from "@/lib/clientApi";
 import Toggle from "@/components/Toggle";
+import Icon from "@/components/Icon";
 
 const APPS = ["kontor", "clocker", "cnc", "schaltplan", "projecteye", "vision"];
 
@@ -60,7 +61,7 @@ export default function IdentitiesPage() {
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700 }}>Userverwaltung</h1>
-        <button className="btn btn-primary" onClick={openNew}>➕ Neuer User</button>
+        <button className="btn btn-primary" onClick={openNew}><Icon name="plus" /> Neuer User</button>
       </div>
       <p className="muted" style={{ marginBottom: 16 }}>Ein Login für alle berechtigten Apps. Pro App: Zulassung + Rolle.</p>
       {msg && <div className="card" style={{ padding: "8px 12px", marginBottom: 12, fontSize: 14 }}>{msg}</div>}
@@ -85,7 +86,7 @@ export default function IdentitiesPage() {
                   {(r.appAccess || []).filter((a: any) => a.allowed).map((a: any) => `${a.appKey}:${a.role}`).join(", ") || "–"}
                 </td>
                 <td style={{ padding: "10px 12px" }}>{r.origin}</td>
-                <td style={{ padding: "8px 12px" }}><button className="btn" onClick={() => openEdit(r)}>✏️ Bearbeiten</button></td>
+                <td style={{ padding: "8px 12px" }}><button className="btn" onClick={() => openEdit(r)}><Icon name="pencil" /> Bearbeiten</button></td>
               </tr>
             ))}
           </tbody>
@@ -130,8 +131,8 @@ export default function IdentitiesPage() {
               })}
             </div>
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 20 }}>
-              <button className="btn" onClick={() => setEditing(null)}>✖ Abbrechen</button>
-              <button className="btn btn-primary" onClick={save}>💾 Speichern</button>
+              <button className="btn" onClick={() => setEditing(null)}><Icon name="x" /> Abbrechen</button>
+              <button className="btn btn-primary" onClick={save}><Icon name="save" /> Speichern</button>
             </div>
           </div>
         </div>
