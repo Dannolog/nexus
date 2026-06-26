@@ -39,6 +39,7 @@ body {
 }
 .btn:hover { border-color: var(--accent); }
 .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+.btn-icon { padding: 0.45rem 0.5rem; }
 .btn-danger { color: #ef4444; }
 .muted { color: var(--muted); }
 

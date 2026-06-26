@@ -91,7 +91,7 @@ export default function IdentitiesPage() {
                   {(r.appAccess || []).filter((a: any) => a.allowed).map((a: any) => `${a.appKey}:${a.role}`).join(", ") || "–"}
                 </td>
                 <td style={{ padding: "10px 12px" }}>{r.origin}</td>
-                <td style={{ padding: "8px 12px" }}><button className="btn" onClick={() => openEdit(r)}><Icon name="pencil" /> Bearbeiten</button></td>
+                <td style={{ padding: "8px 12px" }}><button className="btn btn-icon" title="Bearbeiten" aria-label="Bearbeiten" onClick={() => openEdit(r)}><Icon name="pencil" /></button></td>
               </tr>
             ))}
           </tbody>
@@ -100,8 +100,11 @@ export default function IdentitiesPage() {
 
       {editing && (
         <div onClick={() => setEditing(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "grid", placeItems: "center", padding: 16, zIndex: 50 }}>
-          <div onClick={(e) => e.stopPropagation()} className="card" style={{ padding: 24, width: 560, maxWidth: "92vw", maxHeight: "90vh", overflow: "auto" }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>{editing.id ? "User bearbeiten" : "Neuer User"}</h2>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: 560, maxWidth: "92vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ padding: "18px 24px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700 }}>{editing.id ? "User bearbeiten" : "Neuer User"}</h2>
+            </div>
+            <div style={{ padding: 24, overflowY: "auto", flex: 1 }}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12 }}>
               <label style={{ fontSize: 13 }}>E-Mail
                 <TextField type="email" value={editing.email} disabled={!!editing.id} onChange={(v) => setEditing({ ...editing, email: v })} />
@@ -135,7 +138,8 @@ export default function IdentitiesPage() {
                 );
               })}
             </div>
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 20 }}>
+            </div>
+            <div style={{ padding: "14px 24px", borderTop: "1px solid var(--border)", flexShrink: 0, display: "flex", gap: 8, justifyContent: "flex-end" }}>
               <button className="btn" onClick={() => setEditing(null)}><Icon name="x" /> Abbrechen</button>
               <button className="btn btn-primary" onClick={save}><Icon name="save" /> Speichern</button>
             </div>

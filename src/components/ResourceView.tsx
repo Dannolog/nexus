@@ -124,10 +124,10 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
                   </td>
                 )}
                 {R.columns.map((c) => <td key={c.key} style={{ padding: "10px 12px" }}>{cell(row[c.key])}</td>)}
-                <td style={{ padding: "8px 12px", whiteSpace: "nowrap", display: "flex", gap: 8 }}>
-                  <button className="btn" onClick={() => setEditing({ ...row })}><Icon name="pencil" /> Bearbeiten</button>
-                  <Link className="btn" href={`/history?entity=${R.entity}&entityId=${row.id}`}><Icon name="history" /> Verlauf</Link>
-                  <button className="btn btn-danger" onClick={() => setDeleting(row)}><Icon name="trash" /> Löschen</button>
+                <td style={{ padding: "8px 12px", whiteSpace: "nowrap", display: "flex", gap: 6 }}>
+                  <button className="btn btn-icon" title="Bearbeiten" aria-label="Bearbeiten" onClick={() => setEditing({ ...row })}><Icon name="pencil" /></button>
+                  <Link className="btn btn-icon" title="Verlauf" aria-label="Verlauf" href={`/history?entity=${R.entity}&entityId=${row.id}`}><Icon name="history" /></Link>
+                  <button className="btn btn-icon btn-danger" title="Löschen" aria-label="Löschen" onClick={() => setDeleting(row)}><Icon name="trash" /></button>
                 </td>
               </tr>
             ))}
@@ -195,11 +195,14 @@ function EditModal({ resourceKey, hasLogo, initial, onClose, onSave }: {
 
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "grid", placeItems: "center", padding: 16, zIndex: 50 }}>
-      <div onClick={(e) => e.stopPropagation()} className="card" style={{ padding: 24, width: 560, maxWidth: "92vw", maxHeight: "90vh", overflow: "auto" }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>
-          {form.id ? `${R.title.replace(/e?n$/, "")} bearbeiten` : `Neu: ${R.title}`}
-        </h2>
+      <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: 560, maxWidth: "92vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ padding: "18px 24px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700 }}>
+            {form.id ? `${R.title.replace(/e?n$/, "")} bearbeiten` : `Neu: ${R.title}`}
+          </h2>
+        </div>
 
+        <div style={{ padding: 24, overflowY: "auto", flex: 1 }}>
         {hasLogo && (
           <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 18 }}>
             <LogoThumb src={currentLogo} color={form.color} />
@@ -245,7 +248,9 @@ function EditModal({ resourceKey, hasLogo, initial, onClose, onSave }: {
             </label>
           ))}
         </div>
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 20 }}>
+        </div>
+
+        <div style={{ padding: "14px 24px", borderTop: "1px solid var(--border)", flexShrink: 0, display: "flex", gap: 8, justifyContent: "flex-end" }}>
           <button className="btn" onClick={onClose}><Icon name="x" /> Abbrechen</button>
           <button className="btn btn-primary" onClick={() => onSave(form)}><Icon name="save" /> Speichern</button>
         </div>
