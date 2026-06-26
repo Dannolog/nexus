@@ -17,7 +17,7 @@
 - [x] 4. Prisma-Schema (§3.3) + db push + Seed (Demo-Mandant + Admin) ✓
 - [x] 5. REST-API (§4) + Audit/Revision (§3.4) + Locking (§3.5) — Undo/Redo getestet ✓
 - [x] 6. UI (Listen/Formulare/Verlauf) ✓
-- [ ] 7. Phase 1: kontor+clocker-Import (dedupliziert) + Anbindung
+- [~] 7. Phase 1: kontor+clocker-Import (dedupliziert) ✓ — **Anbindung der Apps noch offen** (bewusst: erst Daten übernehmen)
 - [ ] 8. „Stammdaten-Zugriff"-Abschnitt in angebundene Apps
 - [ ] 9. apps.json + Launcher-Kachel
 
@@ -63,3 +63,12 @@
   3. Git-Sicherung: Repo `nexus` auf github.com/Dannolog anlegen lassen, dann `/home/claudeco/git-setup-app.sh /mnt/devip3/nexus nexus`. (Lokaler git init + commit bereits gemacht.)
   4. **Phase 1:** kontor+clocker Import-Skript (dedupliziert per Firmenname+shortCode / email) + Anbindung. Dann Trigger aus INTEGRATION_HANDOFF Teil B an kontor/clocker.
   5. `apps.json` (`nexus` → tracked) + Launcher-Kachel.
+
+### 2026-06-26 (Phase 1 — Bestandsdaten-Import)
+- **Wunsch Daniel:** Langzeit soll Nexus die Daten ALLER Apps zentral halten; jetzt erstmal nur übernehmen (Apps noch nicht umhängen). → Memory `nexus-langzeit-ziel`.
+- Import-Skript `prisma/import-phase1.ts` gebaut: liest kontor- + clocker-DBs direkt (pg), schreibt nach Nexus (prisma), **idempotent**, keine Revisionen (System-Import). Ausführen: `TS_NODE_TRANSPILE_ONLY=1 node node_modules/ts-node/dist/bin.js --compiler-options '{"module":"CommonJS","moduleResolution":"node"}' prisma/import-phase1.ts`.
+- Mapping: Kunden=kontor.Client (führend) + Merge clocker.Client (Farbe/Adresse/Notizen/Kürzel ergänzt, neue hinzugefügt); Mandanten=kontor.Company (id übernommen); Kundennummern=kontor.ClientCompanyNumber; Kontakte=beide (dedupe); Mitarbeiter=clocker.User→Employee; Identitäten=clocker+kontor User dedupe per email (bcrypt-Hash `$2b$` direkt übernommen → bestehende Logins funktionieren); Projekte=clocker.Project (clientId→customer, teamLeaderId→employee).
+- **Idempotenz getestet** (2. Lauf → identische Zähler).
+- Test-/Demo-Artefakte (Test AG, Wegwerf, Mustermann-Seed, Demo-Projekt, seed-org) entfernt.
+- **Endstand (echte Daten):** Customer 21 · Organization 2 · Project 38 · Employee 25 · Identity 27. Über API verifiziert; Merge-Beispiel „Baier Maschinen (bm)" ok.
+- **Apps NICHT angebunden** (bewusst). Nächste mögliche Schritte: nginx/PW/Git (s.o.), dann Anbindung via INTEGRATION_HANDOFF Teil B (Trigger an kontor → clocker), oder weitere App-Daten zentralisieren (Langzeit-Ziel).
