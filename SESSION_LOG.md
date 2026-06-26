@@ -64,6 +64,10 @@
   4. **Phase 1:** kontor+clocker Import-Skript (dedupliziert per Firmenname+shortCode / email) + Anbindung. Dann Trigger aus INTEGRATION_HANDOFF Teil B an kontor/clocker.
   5. `apps.json` (`nexus` → tracked) + Launcher-Kachel.
 
+### 2026-06-26 (Mobil-konform + Überschriften-Icons)
+- **Icons in allen Seitenüberschriften** (Dashboard/Listen/Verlauf/Userverwaltung); Listen-Icon aus neuem `icon`-Feld in uiSchema-Resource.
+- **Responsive/Mobil:** Media-Queries in globals.css (Breakpoint 768px). Desktop: feste Sidebar. Mobil: fixe **Topbar mit Logo + Hamburger**, Sidebar wird Off-Canvas-Drawer (translateX) mit Overlay + Schließen-Button; schließt bei Seitenwechsel. App-Shell/Sidebar/Main als CSS-Klassen (`.app-shell/.sidebar/.topbar/.main`). Header-Leisten `flex-wrap`, Such-Feld flexibel; Modals `maxWidth:92vw` + Formular-Grid `repeat(auto-fit,minmax(190px,1fr))` → 1-spaltig auf schmalen Screens. Menü-Icon ergänzt.
+
 ### 2026-06-26 (SVG-Icons + ⌘K-Suche)
 - **Alle Emoji → moderne SVG-Icons:** neue `components/Icon.tsx` (Lucide-Stil, stroke=currentColor → erbt Button-Farbe). Set: home/users/folder/user/building/shield/history/login/logout/moon/plus/pencil/trash/x/save/check/undo/redo/image/alert/search/command. Ersetzt in Nav, Login, ResourceView, ConfirmDialog, SearchInput, History, Identities, Dashboard-Kacheln. `.btn` → inline-flex+gap für Icon+Text-Ausrichtung.
 - **⌘K-Suche (Command-Palette):** neue `components/CommandPalette.tsx` — global per ⌘K/Strg+K (oder Sidebar-Button „Suchen… ⌘K"). Leeres Feld → Schnellnavigation; Eingabe → Live-Suche (debounced 180ms) über Kunden/Projekte/Mitarbeiter; Pfeiltasten + Enter, ESC schließt. Treffer öffnen die Listen-Seite mit `?q=`; ResourceView liest `?q=` als Anfangssuche.

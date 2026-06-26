@@ -89,12 +89,12 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, display: "flex", alignItems: "center", gap: 10 }}>
           <Icon name={R.icon} size={24} /> {R.title}
         </h1>
         <button className="btn btn-primary" onClick={() => setEditing({})}><Icon name="plus" /> Neu</button>
-        <SearchInput value={search} onChange={setSearch} style={{ maxWidth: 260, marginLeft: "auto", width: "100%" }} />
+        <SearchInput value={search} onChange={setSearch} style={{ flex: "1 1 200px", maxWidth: 320, marginLeft: "auto" }} />
       </div>
       {msg && <div className="card" style={{ padding: "8px 12px", marginBottom: 12, fontSize: 14 }}>{msg}</div>}
 
@@ -189,7 +189,7 @@ function EditModal({ resourceKey, hasLogo, initial, onClose, onSave }: {
 
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "grid", placeItems: "center", padding: 16, zIndex: 50 }}>
-      <div onClick={(e) => e.stopPropagation()} className="card" style={{ padding: 24, width: 560, maxHeight: "90vh", overflow: "auto" }}>
+      <div onClick={(e) => e.stopPropagation()} className="card" style={{ padding: 24, width: 560, maxWidth: "92vw", maxHeight: "90vh", overflow: "auto" }}>
         <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>
           {form.id ? `${R.title.replace(/e?n$/, "")} bearbeiten` : `Neu: ${R.title}`}
         </h2>
@@ -207,7 +207,7 @@ function EditModal({ resourceKey, hasLogo, initial, onClose, onSave }: {
           </div>
         )}
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12 }}>
           {R.fields.map((f: Field) => (
             <label key={f.key} style={{ fontSize: 13, gridColumn: f.type === "textarea" ? "1 / -1" : "auto" }}>
               {f.label}

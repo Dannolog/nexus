@@ -20,6 +20,7 @@ const NAV = [
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [ready, setReady] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -33,6 +34,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     setReady(true);
   }, [router]);
 
+  // Mobiles Menü bei Seitenwechsel schließen
+  useEffect(() => { setMenuOpen(false); }, [pathname]);
+
   function toggleTheme() {
     const el = document.documentElement;
     const dark = el.classList.toggle("dark");
@@ -42,10 +46,28 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (!ready) return null;
 
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-      <aside className="card" style={{ width: 220, height: "100vh", flexShrink: 0, borderRadius: 0, borderTop: 0, borderBottom: 0, borderLeft: 0, padding: 16, display: "flex", flexDirection: "column", gap: 4, overflowY: "auto" }}>
+    <div className="app-shell">
+      {/* Mobile Topbar mit Logo + Hamburger */}
+      <header className="topbar">
+        <button onClick={() => setMenuOpen(true)} aria-label="Menü öffnen"
+          style={{ display: "inline-flex", border: 0, background: "transparent", color: "var(--fg)", cursor: "pointer", padding: 4 }}>
+          <Icon name="menu" size={24} />
+        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, fontSize: 18 }}>
+          <AppLogo size={24} /> Nexus
+        </div>
+      </header>
+
+      {/* Overlay (mobil, schließt das Menü) */}
+      <div className={"sidebar-overlay" + (menuOpen ? " open" : "")} onClick={() => setMenuOpen(false)} />
+
+      <aside className={"sidebar" + (menuOpen ? " open" : "")} style={{ background: "var(--card)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 700, fontSize: 20, padding: "4px 8px 12px" }}>
           <AppLogo size={28} /> Nexus
+          <button className="sidebar-close" onClick={() => setMenuOpen(false)} aria-label="Menü schließen"
+            style={{ marginLeft: "auto", border: 0, background: "transparent", color: "var(--fg)", cursor: "pointer", padding: 4 }}>
+            <Icon name="x" size={20} />
+          </button>
         </div>
         <button
           onClick={() => window.dispatchEvent(new Event("open-command-palette"))}
@@ -73,7 +95,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <button className="btn" onClick={() => { clearSession(); window.location.href = "/login"; }}><Icon name="logout" /> Abmelden</button>
         </div>
       </aside>
-      <main style={{ flex: 1, padding: 24, overflow: "auto" }}>{children}</main>
+      <main className="main">{children}</main>
       <CommandPalette />
     </div>
   );

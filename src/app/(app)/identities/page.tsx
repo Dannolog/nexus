@@ -97,9 +97,9 @@ export default function IdentitiesPage() {
 
       {editing && (
         <div onClick={() => setEditing(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "grid", placeItems: "center", padding: 16, zIndex: 50 }}>
-          <div onClick={(e) => e.stopPropagation()} className="card" style={{ padding: 24, width: 560, maxHeight: "90vh", overflow: "auto" }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ padding: 24, width: 560, maxWidth: "92vw", maxHeight: "90vh", overflow: "auto" }}>
             <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>{editing.id ? "User bearbeiten" : "Neuer User"}</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12 }}>
               <label style={{ fontSize: 13 }}>E-Mail
                 <input className="input" value={editing.email} disabled={!!editing.id} onChange={(e) => setEditing({ ...editing, email: e.target.value })} />
               </label>
