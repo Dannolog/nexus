@@ -60,7 +60,9 @@ export default function IdentitiesPage() {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700 }}>Userverwaltung</h1>
+        <h1 style={{ fontSize: 24, fontWeight: 700, display: "flex", alignItems: "center", gap: 10 }}>
+          <Icon name="shield" size={24} /> Userverwaltung
+        </h1>
         <button className="btn btn-primary" onClick={openNew}><Icon name="plus" /> Neuer User</button>
       </div>
       <p className="muted" style={{ marginBottom: 16 }}>Ein Login für alle berechtigten Apps. Pro App: Zulassung + Rolle.</p>

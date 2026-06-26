@@ -18,7 +18,9 @@ export default function Dashboard() {
   }, []);
   return (
     <div>
-      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 4 }}>Übersicht</h1>
+      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 10 }}>
+        <Icon name="home" size={24} /> Übersicht
+      </h1>
       <p className="muted" style={{ marginBottom: 20 }}>Zentrale Stammdaten für alle Apps</p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: 16 }}>
         {TILES.map((t) => (

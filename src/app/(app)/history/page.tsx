@@ -53,7 +53,9 @@ export default function HistoryPage() {
 
   return (
     <div>
-      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 4 }}>Verlauf</h1>
+      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 10 }}>
+        <Icon name="history" size={24} /> Verlauf
+      </h1>
       <p className="muted" style={{ marginBottom: 16 }}>
         {filter.entityId ? `Datensatz ${filter.entity} ${filter.entityId}` : "Alle Änderungen — jede Aktion ist rückgängig und wiederherstellbar."}
       </p>

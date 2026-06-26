@@ -90,7 +90,9 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700 }}>{R.title}</h1>
+        <h1 style={{ fontSize: 24, fontWeight: 700, display: "flex", alignItems: "center", gap: 10 }}>
+          <Icon name={R.icon} size={24} /> {R.title}
+        </h1>
         <button className="btn btn-primary" onClick={() => setEditing({})}><Icon name="plus" /> Neu</button>
         <SearchInput value={search} onChange={setSearch} style={{ maxWidth: 260, marginLeft: "auto", width: "100%" }} />
       </div>

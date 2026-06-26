@@ -9,6 +9,7 @@ export type Resource = {
   key: string; // URL-Segment + API
   entity: string; // Revision-Entity-Name
   title: string;
+  icon: string; // Icon-Name (siehe components/Icon)
   titleField: string;
   columns: { key: string; label: string }[];
   fields: Field[];
@@ -19,6 +20,7 @@ export const RESOURCES: Record<string, Resource> = {
     key: "customers",
     entity: "Customer",
     title: "Kunden",
+    icon: "users",
     titleField: "companyName",
     columns: [
       { key: "companyName", label: "Firma" },
@@ -49,6 +51,7 @@ export const RESOURCES: Record<string, Resource> = {
     key: "projects",
     entity: "Project",
     title: "Projekte",
+    icon: "folder",
     titleField: "name",
     columns: [
       { key: "name", label: "Name" },
@@ -70,6 +73,7 @@ export const RESOURCES: Record<string, Resource> = {
     key: "employees",
     entity: "Employee",
     title: "Mitarbeiter",
+    icon: "user",
     titleField: "name",
     columns: [
       { key: "name", label: "Name" },
@@ -90,6 +94,7 @@ export const RESOURCES: Record<string, Resource> = {
     key: "organizations",
     entity: "Organization",
     title: "Mandanten",
+    icon: "building",
     titleField: "name",
     columns: [
       { key: "name", label: "Name" },
