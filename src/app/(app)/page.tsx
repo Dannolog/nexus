@@ -7,8 +7,8 @@ import Icon from "@/components/Icon";
 const TILES = [
   { href: "/customers", label: "Kunden", key: "customers", icon: "users" },
   { href: "/projects", label: "Projekte", key: "projects", icon: "folder" },
+  { href: "/tasks", label: "Aufgaben", key: "tasks", icon: "tasks" },
   { href: "/employees", label: "Mitarbeiter", key: "employees", icon: "user" },
-  { href: "/identities", label: "User", key: "identities", icon: "shield" },
 ];
 
 export default function Dashboard() {

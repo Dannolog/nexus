@@ -15,6 +15,7 @@ const LOGO_RESOURCES = ["customers", "organizations"];
 function cell(v: any) {
   if (typeof v === "boolean") return v ? "ja" : "–";
   if (v == null || v === "") return "–";
+  if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}T/.test(v)) return new Date(v).toLocaleDateString("de-DE");
   return String(v);
 }
 
@@ -238,6 +239,10 @@ function EditModal({ resourceKey, hasLogo, initial, onClose, onSave }: {
                 </select>
               ) : f.type === "color" ? (
                 <ColorPicker value={form[f.key] ?? "#3b82f6"} onChange={(v) => set(f.key, v)} />
+              ) : f.type === "date" ? (
+                <input className="input" type="date"
+                  value={form[f.key] ? String(form[f.key]).slice(0, 10) : ""}
+                  onChange={(e) => set(f.key, e.target.value ? new Date(e.target.value).toISOString() : null)} />
               ) : (
                 <TextField
                   type={f.type === "number" ? "number" : f.type === "email" ? "email" : "text"}

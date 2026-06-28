@@ -9,6 +9,7 @@ export const GET = () =>
     const counts = {
       customers: await prisma.customer.count(),
       projects: await prisma.project.count(),
+      tasks: await prisma.task.count(),
       employees: await prisma.employee.count(),
       identities: await prisma.identity.count(),
     };

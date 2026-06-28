@@ -3,6 +3,7 @@
 export type EntityName =
   | "Customer"
   | "Project"
+  | "Task"
   | "Employee"
   | "Organization"
   | "Identity";
@@ -25,6 +26,11 @@ export const ENTITIES: Record<EntityName, EntityDef> = {
   Project: {
     delegate: "project",
     searchable: ["name", "status"],
+    protectedFields: PROTECTED,
+  },
+  Task: {
+    delegate: "task",
+    searchable: ["title", "status", "priority"],
     protectedFields: PROTECTED,
   },
   Employee: {

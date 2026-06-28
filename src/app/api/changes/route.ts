@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 const SYNC_ENTITIES: { key: string; delegate: string }[] = [
   { key: "customers", delegate: "customer" },
   { key: "projects", delegate: "project" },
+  { key: "tasks", delegate: "task" },
   { key: "employees", delegate: "employee" },
   { key: "organizations", delegate: "organization" },
 ];

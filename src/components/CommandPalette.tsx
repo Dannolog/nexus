@@ -7,6 +7,7 @@ import Icon from "@/components/Icon";
 const SOURCES = [
   { key: "customers", label: "Kunde", icon: "users", title: (r: any) => r.companyName || r.contactName || "(ohne Namen)" },
   { key: "projects", label: "Projekt", icon: "folder", title: (r: any) => r.name },
+  { key: "tasks", label: "Aufgabe", icon: "tasks", title: (r: any) => r.title },
   { key: "employees", label: "Mitarbeiter", icon: "user", title: (r: any) => r.name },
 ];
 
@@ -14,6 +15,7 @@ const NAV = [
   { href: "/", label: "Übersicht", icon: "home" },
   { href: "/customers", label: "Kunden", icon: "users" },
   { href: "/projects", label: "Projekte", icon: "folder" },
+  { href: "/tasks", label: "Aufgaben", icon: "tasks" },
   { href: "/employees", label: "Mitarbeiter", icon: "user" },
   { href: "/organizations", label: "Mandanten", icon: "building" },
   { href: "/identities", label: "Userverwaltung", icon: "shield" },

@@ -2,7 +2,7 @@
 export type Field = {
   key: string;
   label: string;
-  type?: "text" | "number" | "color" | "checkbox" | "textarea" | "select" | "email";
+  type?: "text" | "number" | "color" | "checkbox" | "textarea" | "select" | "email" | "date";
   options?: string[];
 };
 export type Resource = {
@@ -70,6 +70,31 @@ export const RESOURCES: Record<string, Resource> = {
       { key: "status", label: "Status", type: "select", options: ["offen", "laeuft", "fertig"] },
       { key: "teamLeaderId", label: "Teamleiter-ID" },
       { key: "archived", label: "Archiviert", type: "checkbox" },
+    ],
+  },
+  tasks: {
+    key: "tasks",
+    entity: "Task",
+    title: "Aufgaben",
+    icon: "tasks",
+    prefix: "AU",
+    titleField: "title",
+    columns: [
+      { key: "title", label: "Titel" },
+      { key: "status", label: "Status" },
+      { key: "priority", label: "Priorität" },
+      { key: "dueDate", label: "Fällig" },
+      { key: "done", label: "Erledigt" },
+    ],
+    fields: [
+      { key: "title", label: "Titel" },
+      { key: "status", label: "Status", type: "select", options: ["offen", "laeuft", "erledigt"] },
+      { key: "priority", label: "Priorität", type: "select", options: ["niedrig", "normal", "hoch"] },
+      { key: "projectId", label: "Projekt-ID" },
+      { key: "assigneeId", label: "Zuständiger (Mitarbeiter-ID)" },
+      { key: "dueDate", label: "Fällig am", type: "date" },
+      { key: "done", label: "Erledigt", type: "checkbox" },
+      { key: "description", label: "Beschreibung", type: "textarea" },
     ],
   },
   employees: {

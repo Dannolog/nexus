@@ -102,6 +102,28 @@ model Project {
   @@index([name])
 }
 
+// ---- Aufgabe (zentral; alle Apps arbeiten gemeinsam daran) ----
+model Task {
+  id          String  @id @default(cuid())
+  title       String
+  description String  @default("") @db.Text
+  status      String  @default("offen")    // offen | laeuft | erledigt
+  priority    String  @default("normal")   // niedrig | normal | hoch
+  projectId   String?                       // zentrale Projekt-ID
+  assigneeId  String?                       // zuständiger Mitarbeiter (Employee-ID)
+  dueDate     DateTime?
+  done        Boolean @default(false)
+  appKey      String  @default("")          // optional: welche App die Aufgabe erstellt hat
+  version     Int      @default(1)
+  deletedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([assigneeId])
+  @@index([status])
+}
+
 // ---- Mitarbeiter (HR-Kern; Lohn bleibt in clocker) ----
 model Employee {
   id             String  @id @default(cuid())
