@@ -81,6 +81,12 @@
   2. **GitHub-Repo** `nexus` (leer) auf github.com/Dannolog anlegen → dann `git push -u origin main` (ich) + Cronjob (30-Min-Auto-Save).
   3. **Admin-PW** ändern: in UI (Userverwaltung → Administrator) ODER `scripts/set-admin-password.ts '<pw>'`.
 
+### 2026-06-28 (Zentrale Aufgaben + App-Einbindung vorbereitet)
+- **App-Anbindung vorbereitet (nicht ausgeführt):** `shared/nexus/TRIGGERS.md` mit fertigem Copy-Paste-Einbindungs-Trigger pro App (kontor, clocker, ProjectEye, CNC, Schaltplan, Vision) — echte Basis-URL (http://127.0.0.1:3050 bzw. https://192.168.1.10:3052 für CNC) + App-Key + §5/§3.7-Verweis. Reihenfolge kontor→clocker→ProjectEye→CNC→Schaltplan→Vision. Apps werden NICHT von hier angebunden (machen die App-Sessions).
+- **Zentrale Aufgaben (Task) gebaut** (Wunsch: vorbereiten, nicht verbinden): neues `Task`-Model (title, description, status offen|laeuft|erledigt, priority, projectId, assigneeId, dueDate, done, appKey, versioniert/soft-delete). db push ✓. Registry + API `/api/tasks` (+[id]) über generische CRUD → Undo/Redo + 409-Locking automatisch. Delta-Sync + Health um tasks erweitert. UI: uiSchema-Resource (Prefix AU-), Nav „Aufgaben", Seite /tasks, Date-Feldtyp (nativer date-input + Listen-Datumsformat), Command-Palette-Quelle, Dashboard-Kachel. End-to-end getestet, Testdaten entfernt.
+- Doku ergänzt: API.md (tasks-Entität + Felder), TRIGGERS.md (ProjectEye → zentrale Tasks).
+- P3 (Launcher-Kachel) weiter zurückgestellt.
+
 ### 2026-06-26 (ColorPicker, TextField, Index-Spalte)
 - **Moderner ColorPicker** (`components/ColorPicker.tsx`): Swatch-Button + Popover mit Preset-Palette, nativem Picker und Hex-Eingabe; ersetzt natives `<input type=color>`.
 - **TextField** (`components/TextField.tsx`): Clear-Cross (✕) an jedem Feld, ESC bei gefülltem Feld → leeren, 2. ESC (leeres Feld) → Fokus aufheben (blur). Eingebaut in ResourceView-Formular (text/email/number), Userverwaltung (E-Mail/Name/Passwort/Rolle), Login (E-Mail/Passwort). Textarea: gleiches ESC-Verhalten inline.
