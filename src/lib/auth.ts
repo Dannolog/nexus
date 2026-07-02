@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { ApiError } from "./http";
 import { verifyUserToken, JwtPayload } from "./jwt";
+import { prisma } from "./prisma";
 
 /** Bekannte Apps + ihr API-Key (Header X-App-Key) aus der Env. */
 const APP_KEYS: Record<string, string | undefined> = {
@@ -42,6 +43,18 @@ export async function requireAuth(req: NextRequest): Promise<AuthContext> {
     user = await verifyUserToken(token);
   } catch {
     throw new ApiError("Ungültiges/abgelaufenes Token", 401);
+  }
+  // Live-Prüfung der App-Zulassung bei JEDEM Zugriff (nicht nur beim Login):
+  // Entzug der Freigabe wirkt so sofort — das ausgestellte JWT verliert seine
+  // Wirkung, ohne auf den Token-Ablauf warten zu müssen. Ausgenommen sind die
+  // eigene UI ("nexus", kein App-Key) und globale Admins (analog Login-Logik).
+  if (appKey !== "nexus" && user.globalRole !== "admin") {
+    const access = await prisma.identityAppAccess.findUnique({
+      where: { identityId_appKey: { identityId: user.sub, appKey } },
+    });
+    if (!access || !access.allowed) {
+      throw new ApiError(`Kein Zugriff auf App '${appKey}'`, 403);
+    }
   }
   return { appKey, identityId: user.sub, identityName: user.name, user };
 }

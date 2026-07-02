@@ -123,7 +123,13 @@ export default function IdentitiesPage() {
               </label>
             </div>
             <h3 style={{ fontSize: 14, fontWeight: 600, margin: "18px 0 8px" }}>App-Zulassung</h3>
-            <div style={{ display: "grid", gap: 8 }}>
+            {editing.globalRole === "admin" && (
+              <p className="muted" style={{ fontSize: 12, margin: "0 0 8px" }}>
+                Globaler Admin — hat automatisch Zugriff auf <b>alle</b> Apps. Die folgenden
+                App-Freigaben werden dann ignoriert.
+              </p>
+            )}
+            <div style={{ display: "grid", gap: 8, opacity: editing.globalRole === "admin" ? 0.45 : 1, pointerEvents: editing.globalRole === "admin" ? "none" : "auto" }}>
               {APPS.map((a) => {
                 const ac = editing.access[a];
                 return (
@@ -132,8 +138,14 @@ export default function IdentitiesPage() {
                       <Toggle checked={ac.allowed} label={a}
                         onChange={(v) => setEditing({ ...editing, access: { ...editing.access, [a]: { ...ac, allowed: v } } })} />
                     </div>
-                    <TextField style={{ maxWidth: 180, flex: 1 }} placeholder="Rolle" value={ac.role} disabled={!ac.allowed}
-                      onChange={(v) => setEditing({ ...editing, access: { ...editing.access, [a]: { ...ac, role: v } } })} />
+                    <select className="input" style={{ maxWidth: 180, flex: 1 }} value={ac.role} disabled={!ac.allowed}
+                      onChange={(e) => setEditing({ ...editing, access: { ...editing.access, [a]: { ...ac, role: e.target.value } } })}>
+                      <option value="user">user</option>
+                      <option value="admin">admin</option>
+                      {ac.role && !["user", "admin"].includes(ac.role) && (
+                        <option value={ac.role}>{ac.role}</option>
+                      )}
+                    </select>
                   </div>
                 );
               })}
