@@ -31,6 +31,17 @@ body {
   border-radius: 0.5rem; padding: 0.4rem 0.6rem; width: 100%; color: var(--fg);
 }
 .input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+/* Browser-Autofill: kein gelber Hintergrund/Rahmen — Karten-Look beibehalten */
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover,
+.input:-webkit-autofill:focus,
+.input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--fg);
+  -webkit-box-shadow: 0 0 0 1000px var(--card) inset;
+  box-shadow: 0 0 0 1000px var(--card) inset;
+  caret-color: var(--fg);
+  transition: background-color 9999s ease-in-out 0s;
+}
 .btn {
   display: inline-flex; align-items: center; gap: 0.4rem;
   border-radius: 0.5rem; padding: 0.4rem 0.8rem; font-weight: 500;

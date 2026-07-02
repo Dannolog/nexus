@@ -33,21 +33,79 @@ export default function LoginPage() {
   }
 
   return (
-    <main style={{ display: "grid", placeItems: "center", minHeight: "100vh", padding: 16 }}>
-      <form onSubmit={submit} className="card" style={{ padding: 28, width: 360, display: "grid", gap: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <AppLogo size={32} />
-          <h1 style={{ fontSize: 22, fontWeight: 700 }}>Nexus</h1>
+    <main
+      style={{
+        display: "grid",
+        placeItems: "center",
+        minHeight: "100vh",
+        padding: 16,
+        background:
+          "radial-gradient(900px 500px at 50% -5%, rgba(59,130,246,0.14), transparent 70%), var(--bg)",
+      }}
+    >
+      <form
+        onSubmit={submit}
+        className="card"
+        style={{
+          padding: 32,
+          width: 380,
+          maxWidth: "100%",
+          display: "grid",
+          gap: 16,
+          boxShadow: "0 12px 40px rgba(0,0,0,0.10)",
+        }}
+      >
+        <div style={{ display: "grid", justifyItems: "center", gap: 10, marginBottom: 4 }}>
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 16,
+              display: "grid",
+              placeItems: "center",
+              background: "color-mix(in srgb, var(--accent) 14%, transparent)",
+            }}
+          >
+            <AppLogo size={34} />
+          </div>
+          <h1 style={{ fontSize: 24, fontWeight: 700, lineHeight: 1 }}>Nexus</h1>
+          <p className="muted" style={{ fontSize: 13, textAlign: "center" }}>
+            Zentrale Stammdaten-Anmeldung
+          </p>
         </div>
-        <p className="muted" style={{ marginTop: -8, fontSize: 14 }}>Zentrale Stammdaten-Anmeldung</p>
-        <label style={{ fontSize: 13 }}>E-Mail
-          <TextField type="email" value={email} onChange={setEmail} autoComplete="username" inputStyle={{ paddingTop: 11, paddingBottom: 11, marginTop: 6 }} />
+
+        <label style={{ fontSize: 13, fontWeight: 500, display: "grid", gap: 6 }}>
+          E-Mail
+          <TextField type="email" value={email} onChange={setEmail} autoComplete="username" placeholder="name@firma.de" inputStyle={{ paddingTop: 11, paddingBottom: 11 }} />
         </label>
-        <label style={{ fontSize: 13 }}>Passwort
-          <TextField type="password" value={password} onChange={setPassword} autoComplete="current-password" inputStyle={{ paddingTop: 11, paddingBottom: 11, marginTop: 6 }} />
+        <label style={{ fontSize: 13, fontWeight: 500, display: "grid", gap: 6 }}>
+          Passwort
+          <TextField type="password" value={password} onChange={setPassword} autoComplete="current-password" placeholder="••••••••" inputStyle={{ paddingTop: 11, paddingBottom: 11 }} />
         </label>
-        {err && <div style={{ color: "#ef4444", fontSize: 13 }}>{err}</div>}
-        <button className="btn btn-primary" disabled={busy} type="submit" style={{ justifyContent: "center" }}>{busy ? "…" : <><Icon name="login" /> Anmelden</>}</button>
+
+        {err && (
+          <div
+            style={{
+              color: "#ef4444",
+              fontSize: 13,
+              background: "rgba(239,68,68,0.10)",
+              border: "1px solid rgba(239,68,68,0.30)",
+              borderRadius: 8,
+              padding: "8px 10px",
+            }}
+          >
+            {err}
+          </div>
+        )}
+
+        <button
+          className="btn btn-primary"
+          disabled={busy}
+          type="submit"
+          style={{ justifyContent: "center", padding: "11px 16px", marginTop: 4 }}
+        >
+          {busy ? "…" : <><Icon name="login" /> Anmelden</>}
+        </button>
       </form>
     </main>
   );
