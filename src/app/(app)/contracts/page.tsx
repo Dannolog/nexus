@@ -166,6 +166,10 @@ export default function ContractsPage() {
           #vertrag-druck, #vertrag-druck * { visibility: visible !important; }
           #vertrag-druck { position: absolute; left: 0; top: 0; width: 100%; }
           .vv-measure { display: none !important; }
+          .vv-toolbar { display: none !important; }
+          .vv-zoom-outer { overflow: visible !important; }
+          .vv-zoombox { width: auto !important; height: auto !important; margin: 0 !important; position: static !important; }
+          .vv-scale { transform: none !important; position: static !important; width: auto !important; }
           .a4-page {
             box-shadow: none !important; margin: 0 !important; border: 0 !important;
             page-break-after: always; break-after: page; min-height: auto !important;
