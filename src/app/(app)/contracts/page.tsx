@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { api, ConflictError } from "@/lib/clientApi";
 import Icon from "@/components/Icon";
@@ -164,11 +164,14 @@ export default function ContractsPage() {
         @media print {
           body * { visibility: hidden !important; }
           #vertrag-druck, #vertrag-druck * { visibility: visible !important; }
-          #vertrag-druck {
-            position: absolute; left: 0; top: 0; width: 100%;
-            box-shadow: none !important; border: 0 !important; margin: 0 !important; padding: 0 !important;
+          #vertrag-druck { position: absolute; left: 0; top: 0; width: 100%; }
+          .vv-measure { display: none !important; }
+          .a4-page {
+            box-shadow: none !important; margin: 0 !important; border: 0 !important;
+            page-break-after: always; break-after: page; min-height: auto !important;
           }
-          @page { margin: 18mm 16mm; }
+          .a4-page:last-child { page-break-after: auto; break-after: auto; }
+          @page { size: A4; margin: 0; }
         }
       `}</style>
 
