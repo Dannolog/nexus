@@ -351,120 +351,276 @@ function Feld({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-// ── Die druckbare Vertragsvorschau (immer heller „Papier"-Look) ──
-function VertragVorschau({ form, befristet }: { form: Contract; befristet: boolean }) {
-  const paragraphen: { titel: string; text: React.ReactNode }[] = [
-    {
-      titel: "§ 1 Beginn des Arbeitsverhältnisses und Tätigkeit",
-      text: (
-        <>
-          Das Arbeitsverhältnis beginnt am <b>{fmtDate(form.startDate)}</b>. Der Arbeitnehmer wird als{" "}
-          <b>{txt(form.jobTitle)}</b> eingestellt.{" "}
-          {befristet
-            ? <>Das Arbeitsverhältnis ist befristet und endet am <b>{fmtDate(form.endDate)}</b>, ohne dass es einer Kündigung bedarf.</>
-            : <>Das Arbeitsverhältnis wird auf unbestimmte Zeit geschlossen.</>}{" "}
-          Arbeitsort ist <b>{txt(form.workplace)}</b>.
-        </>
-      ),
-    },
-    {
-      titel: "§ 2 Probezeit",
-      text: Number(form.probationMonths) > 0
-        ? <>Die ersten <b>{form.probationMonths}</b> Monate des Arbeitsverhältnisses gelten als Probezeit. Während der Probezeit kann das Arbeitsverhältnis beiderseits mit einer Frist von zwei Wochen gekündigt werden.</>
+// ── A4-Maße (96 dpi) und Layout-Reserven für die Seiten-Umbruchrechnung ──
+const A4_W = 794;
+const A4_H = 1123;
+const PAD_X = 62;
+const PAD_TOP = 50;
+const PAD_BOTTOM = 18;
+const FOOT_H = 34;
+const HEAD_FIRST = 152; // Briefkopf + Titel auf Seite 1
+const HEAD_REST = 50;   // laufende Kopfzeile ab Seite 2
+const ITEM_GAP = 8;
+const CONTENT_W = A4_W - PAD_X * 2;
+const usableHeight = (pageIndex: number) =>
+  A4_H - PAD_TOP - PAD_BOTTOM - FOOT_H - (pageIndex === 0 ? HEAD_FIRST : HEAD_REST);
+
+const bulletFrei = [
+  ["eigene Eheschließung / Verpartnerung", "2 Tage"],
+  ["Niederkunft der Ehefrau / Lebenspartnerin", "2 Tage"],
+  ["Tod des Ehe- oder Lebenspartners", "3 Tage"],
+  ["Tod eines eigenen Kindes oder eines Elternteils", "2 Tage"],
+  ["Umzug mit eigenem Hausstand (max. 1× pro Jahr)", "1 Tag"],
+];
+
+// ── Modernisierter Klauselsatz für Baier Maschinen (ohne Betriebsrat) ──
+function buildSections(form: Contract, befristet: boolean): { t: string; items: React.ReactNode[] }[] {
+  const stnd = form.salaryPeriod === "stündlich";
+  return [
+    { t: "§ 1 Beginn des Arbeitsverhältnisses, Tätigkeit und Probezeit", items: [
+      <>Das Arbeitsverhältnis beginnt am <b>{fmtDate(form.startDate)}</b>. Der Arbeitnehmer wird als <b>{txt(form.jobTitle)}</b> eingestellt. {befristet
+        ? <>Das Arbeitsverhältnis ist befristet und endet am <b>{fmtDate(form.endDate)}</b>, ohne dass es einer Kündigung bedarf.</>
+        : <>Das Arbeitsverhältnis wird auf unbestimmte Zeit geschlossen.</>}</>,
+      <>Der Arbeitnehmer verrichtet die ihm übertragenen Aufgaben, die üblicherweise in seinem Tätigkeitsbereich anfallen. Der Arbeitgeber kann ihm bei Bedarf andere zumutbare, gleichwertige Tätigkeiten übertragen, die seinen Kenntnissen und Fähigkeiten entsprechen; die wechselseitigen Interessen werden dabei angemessen berücksichtigt.</>,
+      <>Arbeitsort ist <b>{txt(form.workplace)}</b>. Der Arbeitnehmer ist verpflichtet, bei Bedarf auch an auswärtigen Arbeitsplätzen (z. B. Montagestellen, Messen, wechselnden Einsatzorten) tätig zu werden; ein vorübergehender Einsatz im Ausland ist möglich.</>,
+      Number(form.probationMonths) > 0
+        ? <>Die ersten <b>{form.probationMonths}</b> Monate gelten als Probezeit. Während dieser Zeit kann das Arbeitsverhältnis beiderseits mit einer Frist von zwei Wochen gekündigt werden (§ 622 Abs. 3 BGB).</>
         : <>Eine Probezeit wird nicht vereinbart.</>,
-    },
-    {
-      titel: "§ 3 Arbeitszeit",
-      text: <>Die regelmäßige wöchentliche Arbeitszeit beträgt <b>{txt(form.weeklyHours)}</b> Stunden. Beginn und Ende der täglichen Arbeitszeit sowie die Verteilung auf die Wochentage richten sich nach den betrieblichen Erfordernissen.</>,
-    },
-    {
-      titel: "§ 4 Vergütung",
-      text: <>Der Arbeitnehmer erhält ein {form.salaryPeriod === "stündlich" ? "Bruttostundenentgelt" : "monatliches Bruttoentgelt"} in Höhe von <b>{fmtMoney(form.salary)}</b>. Die Vergütung ist jeweils zum Ende eines Kalendermonats fällig und wird bargeldlos auf ein vom Arbeitnehmer benanntes Konto überwiesen.</>,
-    },
-    {
-      titel: "§ 5 Urlaub",
-      text: <>Der Arbeitnehmer hat Anspruch auf einen bezahlten Jahresurlaub von <b>{txt(form.vacationDays)}</b> Arbeitstagen. Das Urlaubsjahr ist das Kalenderjahr.</>,
-    },
-    {
-      titel: "§ 6 Arbeitsverhinderung",
-      text: <>Der Arbeitnehmer ist verpflichtet, dem Arbeitgeber jede Arbeitsverhinderung und ihre voraussichtliche Dauer unverzüglich mitzuteilen. Bei einer Arbeitsunfähigkeit infolge Krankheit ist spätestens am dritten Kalendertag eine ärztliche Bescheinigung vorzulegen.</>,
-    },
-    {
-      titel: "§ 7 Kündigung",
-      text: <>Nach Ablauf der Probezeit richtet sich die Kündigung des Arbeitsverhältnisses nach <b>{txt(form.noticeText)}</b>. Jede Kündigung bedarf zu ihrer Wirksamkeit der Schriftform.</>,
-    },
-    {
-      titel: "§ 8 Verschwiegenheit",
-      text: <>Der Arbeitnehmer verpflichtet sich, über alle ihm im Rahmen seiner Tätigkeit bekannt werdenden betrieblichen Angelegenheiten Stillschweigen zu bewahren. Diese Verpflichtung besteht auch nach Beendigung des Arbeitsverhältnisses fort.</>,
-    },
-    ...(String(form.additionalTerms || "").trim()
-      ? [{ titel: "§ 9 Nebenabreden", text: <span style={{ whiteSpace: "pre-wrap" }}>{form.additionalTerms}</span> }]
-      : []),
-    {
-      titel: `§ ${String(form.additionalTerms || "").trim() ? 10 : 9} Schlussbestimmungen`,
-      text: <>Änderungen und Ergänzungen dieses Vertrages bedürfen der Schriftform; dies gilt auch für die Aufhebung des Schriftformerfordernisses. Sollte eine Bestimmung dieses Vertrages unwirksam sein oder werden, so bleibt die Wirksamkeit der übrigen Bestimmungen hiervon unberührt.</>,
-    },
+      <>Eine ordentliche Kündigung vor Arbeitsantritt ist ausgeschlossen.</>,
+    ]},
+    { t: "§ 2 Arbeitszeit", items: [
+      <>Die regelmäßige wöchentliche Arbeitszeit beträgt <b>{txt(form.weeklyHours)}</b> Stunden (ohne Pausen).</>,
+      <>Beginn, Ende und Verteilung der täglichen Arbeitszeit richten sich nach den betrieblichen Erfordernissen und werden vom Arbeitgeber nach billigem Ermessen festgelegt.</>,
+      <>Der Arbeitnehmer ist im gesetzlich zulässigen Rahmen zur Leistung von Mehrarbeit und Überstunden verpflichtet, soweit betriebliche Erfordernisse dies notwendig machen.</>,
+    ]},
+    { t: "§ 3 Vergütung", items: [
+      <>Der Arbeitnehmer erhält ein {stnd ? "Bruttostundenentgelt" : "monatliches Bruttoentgelt"} in Höhe von <b>{fmtMoney(form.salary)}</b>{stnd ? " je geleisteter Arbeitsstunde" : ""}.</>,
+      <>Die Vergütung ist zum Ende eines Kalendermonats fällig und wird bargeldlos auf ein vom Arbeitnehmer benanntes Konto überwiesen.</>,
+      <>Freiwillige Sonderleistungen (z. B. Gratifikationen, Prämien, Einmalzahlungen) begründen auch bei wiederholter Zahlung keinen Rechtsanspruch für die Zukunft, sofern sie nicht ausdrücklich als verbindlich zugesagt werden.</>,
+      <>Zu viel gezahlte Bezüge hat der Arbeitnehmer unverzüglich anzuzeigen und zurückzuzahlen.</>,
+    ]},
+    { t: "§ 4 Urlaub", items: [
+      <>Der Arbeitnehmer hat Anspruch auf einen bezahlten Jahresurlaub von <b>{txt(form.vacationDays)}</b> Arbeitstagen bei einer Fünf-Tage-Woche. Bei abweichender Verteilung der Arbeitstage wird der Anspruch anteilig angepasst.</>,
+      <>Im Ein- und Austrittsjahr besteht der Urlaubsanspruch anteilig (ein Zwölftel je vollem Beschäftigungsmonat), mindestens jedoch in Höhe des gesetzlichen Mindesturlaubs.</>,
+      <>Urlaub ist rechtzeitig zu beantragen und vor Antritt vom Arbeitgeber zu genehmigen. Im Übrigen gelten die Vorschriften des Bundesurlaubsgesetzes.</>,
+    ]},
+    { t: "§ 5 Arbeitsverhinderung und Arbeitsunfähigkeit", items: [
+      <>Jede Arbeitsverhinderung ist dem Arbeitgeber unverzüglich – spätestens zu Beginn der Arbeitszeit – unter Angabe der Gründe und der voraussichtlichen Dauer mitzuteilen.</>,
+      <>Bei krankheitsbedingter Arbeitsunfähigkeit ist spätestens am darauffolgenden Arbeitstag eine ärztliche Bescheinigung über deren Bestehen und voraussichtliche Dauer vorzulegen. Dauert die Arbeitsunfähigkeit länger als bescheinigt, ist eine Folgebescheinigung vorzulegen.</>,
+      <>Arztbesuche sind grundsätzlich außerhalb der Arbeitszeit wahrzunehmen, soweit dies nicht aus akuten medizinischen Gründen unabdingbar ist. Die Entgeltfortzahlung im Krankheitsfall richtet sich nach den gesetzlichen Bestimmungen.</>,
+    ]},
+    { t: "§ 6 Bezahlte Freistellung (§ 616 BGB)", items: [
+      <>In folgenden Fällen wird unter Fortzahlung der Vergütung Freistellung von der Arbeit gewährt:
+        <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+          {bulletFrei.map(([grund, tage]) => (
+            <li key={grund} style={{ display: "flex", justifyContent: "space-between", gap: 12, listStyle: "none", marginBottom: 2 }}>
+              <span>{grund}</span><span style={{ whiteSpace: "nowrap", fontWeight: 600 }}>{tage}</span>
+            </li>
+          ))}
+        </ul>
+      </>,
+      <>Diese Aufzählung ist abschließend. Im Übrigen ist § 616 BGB abbedungen; eine Entgeltfortzahlung bei sonstiger vorübergehender Verhinderung findet nicht statt.</>,
+    ]},
+    { t: "§ 7 Nebentätigkeit", items: [
+      <>Jede entgeltliche oder die Interessen des Arbeitgebers berührende Nebentätigkeit ist vor ihrer Aufnahme in Textform anzuzeigen und bedarf der Zustimmung des Arbeitgebers.</>,
+      <>Die Zustimmung kann versagt oder widerrufen werden, wenn die Nebentätigkeit berechtigte Interessen des Arbeitgebers beeinträchtigt oder die Arbeitskraft des Arbeitnehmers mindert. Ehrenamtliche Tätigkeiten bleiben unberührt, soweit sie die Interessen des Arbeitgebers nicht beeinträchtigen.</>,
+    ]},
+    { t: "§ 8 Verschwiegenheit", items: [
+      <>Der Arbeitnehmer bewahrt über alle ihm bekannt gewordenen Geschäfts- und Betriebsgeheimnisse sowie über als vertraulich gekennzeichnete Informationen sowohl gegenüber Außenstehenden als auch gegenüber unbefugten Mitarbeitern Stillschweigen.</>,
+      <>Die Verschwiegenheitspflicht besteht auch nach Beendigung des Arbeitsverhältnisses fort. Geschäftsunterlagen und Arbeitsmittel sind bei Beendigung vollständig herauszugeben.</>,
+    ]},
+    { t: "§ 9 Betriebliche Altersversorgung", items: [
+      <>Ein Anspruch auf eine vom Arbeitgeber finanzierte betriebliche Altersversorgung besteht nicht. Auf die Möglichkeit der Entgeltumwandlung nach den gesetzlichen Bestimmungen wird hingewiesen.</>,
+    ]},
+    { t: "§ 10 Beendigung des Arbeitsverhältnisses", items: [
+      <>Nach Ablauf der Probezeit richtet sich die Kündigung nach <b>{txt(form.noticeText)}</b> (mindestens § 622 BGB). Eine für den Arbeitgeber geltende verlängerte Kündigungsfrist gilt auch für eine Kündigung durch den Arbeitnehmer.</>,
+      <>Jede Kündigung bedarf zu ihrer Wirksamkeit der Schriftform; die elektronische Form ist ausgeschlossen (§ 623 BGB).</>,
+      <>Der Arbeitgeber ist berechtigt, den Arbeitnehmer im Zusammenhang mit einer Kündigung unter Fortzahlung der Bezüge und unter Anrechnung auf Urlaubs- und Freistellungsansprüche von der Arbeitsleistung freizustellen.</>,
+      befristet
+        ? <>Bei einem befristeten Arbeitsverhältnis endet dieses mit Ablauf der Befristung, ohne dass es einer Kündigung bedarf.</>
+        : <>Das Arbeitsverhältnis endet spätestens mit Ablauf des Monats, in dem der Arbeitnehmer die Regelaltersgrenze der gesetzlichen Rentenversicherung erreicht.</>,
+    ]},
+    { t: "§ 11 Vertragsstrafe", items: [
+      <>Nimmt der Arbeitnehmer die Arbeit schuldhaft nicht auf oder löst er das Arbeitsverhältnis vertragswidrig ohne Einhaltung der Kündigungsfrist, so ist eine Vertragsstrafe in Höhe einer Bruttomonatsvergütung verwirkt – höchstens begrenzt auf die bis zum Ablauf der maßgeblichen Kündigungsfrist geschuldete Vergütung.</>,
+      <>Die Geltendmachung eines weitergehenden Schadens bleibt unberührt.</>,
+    ]},
+    { t: "§ 12 Ausschlussfrist", items: [
+      <>Alle beiderseitigen Ansprüche aus und im Zusammenhang mit dem Arbeitsverhältnis verfallen, wenn sie nicht innerhalb von drei Monaten nach Fälligkeit in Textform gegenüber der anderen Vertragspartei geltend gemacht werden.</>,
+      <>Die Ausschlussfrist gilt nicht für Ansprüche aus vorsätzlichem oder grob fahrlässigem Handeln, aus der Verletzung von Leben, Körper oder Gesundheit sowie für Ansprüche, die kraft Gesetzes unabdingbar sind (insbesondere aus dem Mindestlohngesetz).</>,
+    ]},
+    { t: "§ 13 Abtretung und Verpfändung", items: [
+      <>Die Abtretung oder Verpfändung von Entgeltansprüchen an Dritte ist dem Arbeitgeber unverzüglich anzuzeigen. Für die Bearbeitung einer Lohnpfändung oder -abtretung kann eine Bearbeitungspauschale von 10,00 € je Vorgang erhoben werden, soweit der unpfändbare Teil der Vergütung dadurch nicht verringert wird.</>,
+    ]},
+    { t: "§ 14 Datenschutzrechtlicher Hinweis", items: [
+      <>Der Arbeitnehmer wird darauf hingewiesen, dass seine personenbezogenen Daten gemäß § 26 BDSG bzw. Art. 6 DSGVO zum Zweck der Begründung, Durchführung und Beendigung des Beschäftigungsverhältnisses verarbeitet und gespeichert werden.</>,
+    ]},
+    { t: "§ 15 Nebenabreden und Schriftform", items: [
+      String(form.additionalTerms || "").trim()
+        ? <>Ergänzend wird vereinbart: <span style={{ whiteSpace: "pre-wrap" }}>{form.additionalTerms}</span></>
+        : <>Weitere Nebenabreden zu diesem Vertrag bestehen nicht.</>,
+      <>Änderungen und Ergänzungen dieses Vertrages bedürfen der Schriftform; dies gilt auch für die Aufhebung des Schriftformerfordernisses. Ausdrücklich getroffene individuelle Vertragsabreden bleiben wirksam (§ 305b BGB).</>,
+      <>Sollte eine Bestimmung dieses Vertrages unwirksam sein oder werden, so bleibt die Wirksamkeit der übrigen Bestimmungen hiervon unberührt.</>,
+    ]},
   ];
+}
 
+// ── einzelne Bausteine ──
+function Briefkopf() {
   return (
-    <div id="vertrag-druck" style={{
-      background: "#ffffff", color: "#1a1a1a", borderRadius: 8, border: "1px solid var(--border)",
-      boxShadow: "0 1px 3px rgba(0,0,0,.08)", padding: "38px 44px", maxWidth: 820, margin: "0 auto",
-      fontFamily: "var(--font-sans), system-ui, -apple-system, sans-serif", fontSize: 13.5, lineHeight: 1.65,
-    }}>
-      {/* Briefkopf */}
-      <div style={{ display: "flex", alignItems: "center", gap: 16, borderBottom: "2px solid #0047b3", paddingBottom: 14, marginBottom: 24 }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/baier-logo.svg" alt="Baier Maschinen" style={{ height: 54, width: "auto" }} />
-        <div style={{ lineHeight: 1.35 }}>
-          <div style={{ fontSize: 21, fontWeight: 700, letterSpacing: ".01em", color: "#0047b3", fontFamily: "var(--font-display), sans-serif" }}>{ARBEITGEBER.name}</div>
-          <div style={{ fontSize: 12, color: "#444" }}>{ARBEITGEBER.inhaber}</div>
-        </div>
-        <div style={{ marginLeft: "auto", textAlign: "right", fontSize: 10.5, color: "#555", fontFamily: "var(--font-sans), system-ui, sans-serif" }}>
-          <div>{ARBEITGEBER.strasse}</div>
-          <div>{ARBEITGEBER.ort}</div>
-          <div>{ARBEITGEBER.tel}</div>
-          <div>{ARBEITGEBER.email}</div>
-        </div>
+    <div style={{ display: "flex", alignItems: "center", gap: 16, borderBottom: "2px solid #0047b3", paddingBottom: 12 }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/baier-logo.svg" alt="Baier Maschinen" style={{ height: 48, width: "auto" }} />
+      <div style={{ lineHeight: 1.3 }}>
+        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: ".01em", color: "#0047b3", fontFamily: "var(--font-display), sans-serif" }}>{ARBEITGEBER.name}</div>
+        <div style={{ fontSize: 11.5, color: "#444" }}>{ARBEITGEBER.inhaber}</div>
       </div>
+      <div style={{ marginLeft: "auto", textAlign: "right", fontSize: 10, color: "#555", fontFamily: "var(--font-sans), system-ui, sans-serif" }}>
+        <div>{ARBEITGEBER.strasse}</div>
+        <div>{ARBEITGEBER.ort}</div>
+        <div>{ARBEITGEBER.tel}</div>
+        <div>{ARBEITGEBER.email}</div>
+      </div>
+    </div>
+  );
+}
 
-      <h2 style={{ textAlign: "center", fontSize: 25, fontWeight: 700, letterSpacing: ".14em", margin: "4px 0 24px", fontFamily: "var(--font-display), sans-serif" }}>ARBEITSVERTRAG</h2>
+function LaufKopf() {
+  return (
+    <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", borderBottom: "1px solid #ccc", paddingBottom: 6, color: "#666" }}>
+      <span style={{ fontStyle: "italic", fontWeight: 700, fontSize: 12, letterSpacing: ".04em", fontFamily: "var(--font-display), sans-serif" }}>ARBEITSVERTRAG</span>
+      <span style={{ fontSize: 11, color: "#0047b3", fontWeight: 700, fontFamily: "var(--font-display), sans-serif" }}>{ARBEITGEBER.name}</span>
+    </div>
+  );
+}
 
-      {/* Parteien */}
-      <p style={{ margin: "0 0 4px" }}>Zwischen</p>
-      <p style={{ margin: "0 0 4px", paddingLeft: 18 }}>
-        <b>{ARBEITGEBER.name}</b>, {ARBEITGEBER.inhaber}, {ARBEITGEBER.strasse}, {ARBEITGEBER.ort}
-      </p>
-      <p style={{ margin: "0 0 12px", fontStyle: "italic", color: "#555" }}>– nachfolgend „Arbeitgeber" –</p>
-      <p style={{ margin: "0 0 4px" }}>und</p>
-      <p style={{ margin: "0 0 4px", paddingLeft: 18 }}>
-        <b>{txt(form.employeeName)}</b>,{" "}
-        {txt(form.employeeAddress).split(/\n/).map((z: string, i: number) => (
-          <span key={i}>{i > 0 ? ", " : ""}{z}</span>
-        ))}
+function Fuss({ page, total, docRef }: { page: number; total: number; docRef: string }) {
+  return (
+    <div style={{ position: "absolute", left: PAD_X, right: PAD_X, bottom: PAD_BOTTOM, display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 9.5, color: "#888", borderTop: "1px solid #ddd", paddingTop: 5 }}>
+      <span>{docRef}</span>
+      <span>Seite {page} von {total}</span>
+    </div>
+  );
+}
+
+function Kasten({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ border: "1px solid #333", borderRadius: 2, padding: "4px 9px", background: "#f4f6f9", fontWeight: 700, fontSize: 13, letterSpacing: ".005em", fontFamily: "var(--font-display), sans-serif", color: "#111" }}>
+      {children}
+    </div>
+  );
+}
+
+function Absatz({ n, children }: { n: number | null; children: React.ReactNode }) {
+  return (
+    <div style={{ display: "flex", gap: 8, textAlign: "justify" }}>
+      {n != null && <span style={{ minWidth: 20, flexShrink: 0, color: "#0047b3", fontWeight: 600 }}>{n}.</span>}
+      <div style={{ flex: 1 }}>{children}</div>
+    </div>
+  );
+}
+
+function A4Seite({ page, total, docRef, children }: { page: number; total: number; docRef: string; children: React.ReactNode }) {
+  return (
+    <div className="a4-page" style={{
+      width: A4_W, minHeight: A4_H, background: "#fff", color: "#1a1a1a", position: "relative",
+      margin: "0 auto 22px", boxShadow: "0 2px 12px rgba(0,0,0,.14)", boxSizing: "border-box",
+      padding: `${PAD_TOP}px ${PAD_X}px ${PAD_BOTTOM + FOOT_H}px`,
+      fontFamily: "var(--font-sans), system-ui, -apple-system, sans-serif", fontSize: 12.5, lineHeight: 1.5,
+    }}>
+      {page === 1 ? (
+        <>
+          <Briefkopf />
+          <h2 style={{ textAlign: "center", fontSize: 24, fontWeight: 700, letterSpacing: ".16em", margin: "16px 0 4px", fontFamily: "var(--font-display), sans-serif" }}>ARBEITSVERTRAG</h2>
+          <p style={{ textAlign: "center", fontSize: 10, color: "#777", margin: "0 0 16px", fontStyle: "italic" }}>
+            Die Bezeichnung „Arbeitnehmer" dient ausschließlich der besseren Lesbarkeit und gilt für Beschäftigte jeglichen Geschlechts.
+          </p>
+        </>
+      ) : (
+        <div style={{ marginBottom: 14 }}><LaufKopf /></div>
+      )}
+      <div style={{ display: "grid", gap: ITEM_GAP }}>{children}</div>
+      <Fuss page={page} total={total} docRef={docRef} />
+    </div>
+  );
+}
+
+// ── Vorschau mit automatischem Seitenumbruch ──
+function VertragVorschau({ form, befristet }: { form: Contract; befristet: boolean }) {
+  const sections = buildSections(form, befristet);
+  const docRef = `Arbeitsvertrag · ${txt(form.employeeName, "—")}`;
+
+  // Flache Liste aller Fließ-Elemente (für die Umbruchrechnung)
+  type Flow = { key: string; heading: boolean; node: React.ReactNode };
+  const flow: Flow[] = [];
+  flow.push({ key: "parties", heading: false, node: (
+    <div>
+      <p style={{ margin: "0 0 3px" }}>Zwischen</p>
+      <p style={{ margin: "0 0 3px", paddingLeft: 16 }}><b>{ARBEITGEBER.name}</b>, {ARBEITGEBER.inhaber}, {ARBEITGEBER.strasse}, {ARBEITGEBER.ort}</p>
+      <p style={{ margin: "0 0 10px", fontStyle: "italic", color: "#666" }}>– nachfolgend „Arbeitgeber" –</p>
+      <p style={{ margin: "0 0 3px" }}>und</p>
+      <p style={{ margin: "0 0 3px", paddingLeft: 16 }}>
+        <b>{txt(form.employeeName)}</b>{form.employeeAddress ? <>, {txt(form.employeeAddress).split(/\n/).map((z: string, i: number) => <span key={i}>{i > 0 ? ", " : ""}{z}</span>)}</> : ""}
         {form.employeeBirth ? <>, geboren am <b>{form.employeeBirth}</b></> : ""}
       </p>
-      <p style={{ margin: "0 0 16px", fontStyle: "italic", color: "#555" }}>– nachfolgend „Arbeitnehmer" –</p>
-      <p style={{ margin: "0 0 20px" }}>wird folgender Arbeitsvertrag geschlossen:</p>
-
-      {/* Paragraphen */}
-      {paragraphen.map((p, i) => (
-        <div key={i} style={{ marginBottom: 15, breakInside: "avoid" }}>
-          <div style={{ fontWeight: 600, marginBottom: 4, fontFamily: "var(--font-display), sans-serif", color: "#0047b3", fontSize: 14, letterSpacing: ".005em" }}>{p.titel}</div>
-          <div style={{ textAlign: "justify" }}>{p.text}</div>
-        </div>
-      ))}
-
-      {/* Unterschriften */}
-      <p style={{ margin: "26px 0 40px" }}>{txt(form.signCity, "________")}, den {fmtDate(form.signDate)}</p>
-      <div style={{ display: "flex", gap: 48, marginTop: 20 }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ borderTop: "1px solid #1a1a1a", paddingTop: 5, fontSize: 12 }}>Arbeitgeber<br />{ARBEITGEBER.name}</div>
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ borderTop: "1px solid #1a1a1a", paddingTop: 5, fontSize: 12 }}>Arbeitnehmer<br />{txt(form.employeeName, "")}</div>
-        </div>
+      <p style={{ margin: "0 0 10px", fontStyle: "italic", color: "#666" }}>– nachfolgend „Arbeitnehmer" –</p>
+      <p style={{ margin: 0 }}>wird folgender {befristet ? "befristeter" : "unbefristeter"} Arbeitsvertrag geschlossen:</p>
+    </div>
+  )});
+  sections.forEach((s, si) => {
+    flow.push({ key: `h${si}`, heading: true, node: <Kasten>{s.t}</Kasten> });
+    s.items.forEach((it, ii) => {
+      flow.push({ key: `i${si}_${ii}`, heading: false, node: <Absatz n={s.items.length > 1 ? ii + 1 : null}>{it}</Absatz> });
+    });
+  });
+  flow.push({ key: "sign", heading: false, node: (
+    <div style={{ marginTop: 18 }}>
+      <p style={{ margin: "0 0 34px" }}>{txt(form.signCity, "________")}, den {fmtDate(form.signDate)}</p>
+      <div style={{ display: "flex", gap: 44 }}>
+        <div style={{ flex: 1, borderTop: "1px solid #1a1a1a", paddingTop: 5, fontSize: 11.5 }}>Arbeitgeber<br />{ARBEITGEBER.name}</div>
+        <div style={{ flex: 1, borderTop: "1px solid #1a1a1a", paddingTop: 5, fontSize: 11.5 }}>Arbeitnehmer<br />{txt(form.employeeName, "")}</div>
       </div>
+    </div>
+  )});
+
+  const measureRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [pages, setPages] = useState<number[][] | null>(null);
+  const sig = JSON.stringify({ form, befristet });
+
+  useEffect(() => {
+    const heights = measureRefs.current.map((el) => (el ? el.offsetHeight : 0));
+    const result: number[][] = [];
+    let cur: number[] = [];
+    let used = 0;
+    for (let k = 0; k < flow.length; k++) {
+      const avail = usableHeight(result.length);
+      const h = heights[k] || 0;
+      const need = flow[k].heading ? h + ITEM_GAP + (heights[k + 1] || 0) : h;
+      if (cur.length > 0 && used + need > avail) { result.push(cur); cur = []; used = 0; }
+      cur.push(k);
+      used += h + ITEM_GAP;
+    }
+    if (cur.length) result.push(cur);
+    setPages(result);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sig]);
+
+  const laidOut = pages || [flow.map((_, k) => k)];
+  const total = laidOut.length;
+
+  return (
+    <div id="vertrag-druck">
+      {/* unsichtbare Mess-Schicht (gleiche Breite/Schrift wie die Seite) */}
+      <div className="vv-measure" aria-hidden style={{ position: "absolute", left: -99999, top: 0, width: CONTENT_W, visibility: "hidden", pointerEvents: "none", fontFamily: "var(--font-sans), system-ui, sans-serif", fontSize: 12.5, lineHeight: 1.5 }}>
+        {flow.map((f, k) => (
+          <div key={f.key} ref={(el) => { measureRefs.current[k] = el; }} style={{ marginBottom: ITEM_GAP }}>{f.node}</div>
+        ))}
+      </div>
+
+      {laidOut.map((idxs, pi) => (
+        <A4Seite key={pi} page={pi + 1} total={total} docRef={docRef}>
+          {idxs.map((k) => <div key={flow[k].key}>{flow[k].node}</div>)}
+        </A4Seite>
+      ))}
     </div>
   );
 }
