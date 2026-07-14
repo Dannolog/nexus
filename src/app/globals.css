@@ -70,8 +70,10 @@ body {
   .app-shell { display: block; height: 100vh; overflow: auto; }
   .topbar {
     display: flex; align-items: center; gap: 12px;
-    position: fixed; top: 0; left: 0; right: 0; height: 54px; z-index: 40;
-    padding: 0 14px; background: var(--card); border-bottom: 1px solid var(--border);
+    position: fixed; top: 0; left: 0; right: 0; z-index: 40;
+    height: calc(54px + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) calc(14px + env(safe-area-inset-right)) 0 calc(14px + env(safe-area-inset-left));
+    background: var(--card); border-bottom: 1px solid var(--border);
   }
   .sidebar {
     position: fixed; top: 0; left: 0; height: 100vh; z-index: 60;
@@ -83,5 +85,9 @@ body {
     display: block; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 50;
   }
   .sidebar-close { display: inline-flex; }
-  .main { padding: 16px; padding-top: 68px; height: auto; overflow: visible; }
+  .main {
+    height: auto; overflow: visible;
+    padding: 16px calc(16px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+    padding-top: calc(68px + env(safe-area-inset-top));
+  }
 }
