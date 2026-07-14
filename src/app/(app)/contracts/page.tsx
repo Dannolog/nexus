@@ -193,7 +193,7 @@ export default function ContractsPage() {
 
       {msg && <div className="card" style={{ padding: "8px 12px", marginBottom: 12, fontSize: 14 }}>{msg}</div>}
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(320px, 420px) 1fr", gap: 20, alignItems: "start" }}>
+      <div className="contract-grid">
         {/* ── Linke Spalte: gespeicherte Verträge + Formular ── */}
         <div style={{ display: "grid", gap: 16 }}>
           <div className="card" style={{ padding: 12 }}>

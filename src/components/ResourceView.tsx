@@ -101,7 +101,8 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
       </div>
       {msg && <div className="card" style={{ padding: "8px 12px", marginBottom: 12, fontSize: 14 }}>{msg}</div>}
 
-      <div className="card" style={{ overflow: "auto" }}>
+      {/* Desktop: Tabelle */}
+      <div className="card only-desktop" style={{ overflow: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
           <thead>
             <tr style={{ textAlign: "left", borderBottom: "1px solid var(--border)" }}>
@@ -134,6 +135,36 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Handy: Kacheln/Karten statt Tabelle */}
+      <div className="only-mobile" style={{ gap: 10 }}>
+        {loading && <div className="card muted" style={{ padding: 16 }}>Lädt…</div>}
+        {!loading && rows.length === 0 && <div className="card muted" style={{ padding: 16 }}>Keine Einträge.</div>}
+        {rows.map((row, i) => (
+          <div key={row.id} className="card" style={{ padding: 14, display: "grid", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              {hasLogo && <LogoThumb src={logos[row.id]} color={row.color} />}
+              <div style={{ fontWeight: 600, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
+                {cell(row[R.titleField]) === "–" ? `${R.prefix}-${i + 1}` : cell(row[R.titleField])}
+              </div>
+              <span className="muted" style={{ fontSize: 12, flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{R.prefix}-{i + 1}</span>
+            </div>
+            <div style={{ display: "grid", gap: 5, fontSize: 13 }}>
+              {R.columns.filter((c) => c.key !== R.titleField).map((c) => (
+                <div key={c.key} style={{ display: "flex", gap: 10 }}>
+                  <span className="muted" style={{ minWidth: 96, flexShrink: 0 }}>{c.label}</span>
+                  <span style={{ flex: 1, minWidth: 0, wordBreak: "break-word" }}>{cell(row[c.key])}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", borderTop: "1px solid var(--border)", paddingTop: 10 }}>
+              <button className="btn btn-icon" title="Bearbeiten" aria-label="Bearbeiten" onClick={() => setEditing({ ...row })}><Icon name="pencil" /></button>
+              <Link className="btn btn-icon" title="Verlauf" aria-label="Verlauf" href={`/history?entity=${R.entity}&entityId=${row.id}`}><Icon name="history" /></Link>
+              <button className="btn btn-icon btn-danger" title="Löschen" aria-label="Löschen" onClick={() => setDeleting(row)}><Icon name="trash" /></button>
+            </div>
+          </div>
+        ))}
       </div>
 
       {editing && (

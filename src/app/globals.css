@@ -28,8 +28,10 @@ body {
 .card { background: var(--card); border: 1px solid var(--border); border-radius: 0.75rem; }
 .input {
   background: var(--card); border: 1px solid var(--border);
-  border-radius: 0.5rem; padding: 0.4rem 0.6rem; width: 100%; color: var(--fg);
+  border-radius: 0.5rem; padding: 0.55rem 0.7rem; width: 100%; color: var(--fg);
+  font-size: 0.95rem; line-height: 1.4;
 }
+textarea.input { line-height: 1.5; }
 .input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 /* Browser-Autofill: kein gelber Hintergrund/Rahmen — Karten-Look beibehalten */
 .input:-webkit-autofill,
@@ -53,6 +55,11 @@ body {
 .btn-icon { padding: 0.45rem 0.5rem; }
 .btn-danger { color: #ef4444; }
 .muted { color: var(--muted); }
+
+/* ---- Responsive Helfer: Tabelle am Desktop, Karten am Handy ---- */
+.only-mobile { display: none; }
+/* Arbeitsverträge: Formular + Vorschau nebeneinander (Desktop) */
+.contract-grid { display: grid; grid-template-columns: minmax(320px, 420px) 1fr; gap: 20px; align-items: start; }
 
 /* ---- App-Shell / Responsive ---- */
 .app-shell { display: flex; height: 100vh; overflow: hidden; }
@@ -90,4 +97,20 @@ body {
     padding: 16px calc(16px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
     padding-top: calc(68px + env(safe-area-inset-top));
   }
+
+  /* Touch-taugliche Eingaben: 16px verhindert iOS-Auto-Zoom beim Fokus */
+  .input, select.input, textarea.input { font-size: 16px; padding: 0.7rem 0.8rem; }
+  .btn { padding: 0.6rem 0.9rem; }
+  .btn-icon { padding: 0.55rem 0.6rem; }
+  /* Größere Touch-Ziele in der Menü-Schublade */
+  .sidebar a { padding: 11px 12px !important; font-size: 15px; }
+
+  /* Listen: Desktop-Tabelle aus, Handy-Karten an */
+  .only-desktop { display: none !important; }
+  .only-mobile { display: grid; }
+}
+
+/* Arbeitsverträge unter 900px: Formular über Vorschau stapeln */
+@media (max-width: 900px) {
+  .contract-grid { grid-template-columns: 1fr; }
 }
