@@ -407,17 +407,17 @@ function VertragVorschau({ form, befristet }: { form: Contract; befristet: boole
     <div id="vertrag-druck" style={{
       background: "#ffffff", color: "#1a1a1a", borderRadius: 8, border: "1px solid var(--border)",
       boxShadow: "0 1px 3px rgba(0,0,0,.08)", padding: "38px 44px", maxWidth: 820, margin: "0 auto",
-      fontFamily: "Georgia, 'Times New Roman', serif", fontSize: 13.5, lineHeight: 1.6,
+      fontFamily: "var(--font-sans), system-ui, -apple-system, sans-serif", fontSize: 13.5, lineHeight: 1.65,
     }}>
       {/* Briefkopf */}
       <div style={{ display: "flex", alignItems: "center", gap: 16, borderBottom: "2px solid #0047b3", paddingBottom: 14, marginBottom: 24 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/baier-logo.svg" alt="Baier Maschinen" style={{ height: 54, width: "auto" }} />
         <div style={{ lineHeight: 1.35 }}>
-          <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: ".02em", color: "#0047b3" }}>{ARBEITGEBER.name}</div>
+          <div style={{ fontSize: 21, fontWeight: 700, letterSpacing: ".01em", color: "#0047b3", fontFamily: "var(--font-display), sans-serif" }}>{ARBEITGEBER.name}</div>
           <div style={{ fontSize: 12, color: "#444" }}>{ARBEITGEBER.inhaber}</div>
         </div>
-        <div style={{ marginLeft: "auto", textAlign: "right", fontSize: 10.5, color: "#555", fontFamily: "system-ui, sans-serif" }}>
+        <div style={{ marginLeft: "auto", textAlign: "right", fontSize: 10.5, color: "#555", fontFamily: "var(--font-sans), system-ui, sans-serif" }}>
           <div>{ARBEITGEBER.strasse}</div>
           <div>{ARBEITGEBER.ort}</div>
           <div>{ARBEITGEBER.tel}</div>
@@ -425,7 +425,7 @@ function VertragVorschau({ form, befristet }: { form: Contract; befristet: boole
         </div>
       </div>
 
-      <h2 style={{ textAlign: "center", fontSize: 22, fontWeight: 700, letterSpacing: ".08em", margin: "0 0 22px" }}>ARBEITSVERTRAG</h2>
+      <h2 style={{ textAlign: "center", fontSize: 25, fontWeight: 700, letterSpacing: ".14em", margin: "4px 0 24px", fontFamily: "var(--font-display), sans-serif" }}>ARBEITSVERTRAG</h2>
 
       {/* Parteien */}
       <p style={{ margin: "0 0 4px" }}>Zwischen</p>
@@ -447,7 +447,7 @@ function VertragVorschau({ form, befristet }: { form: Contract; befristet: boole
       {/* Paragraphen */}
       {paragraphen.map((p, i) => (
         <div key={i} style={{ marginBottom: 15, breakInside: "avoid" }}>
-          <div style={{ fontWeight: 700, marginBottom: 3 }}>{p.titel}</div>
+          <div style={{ fontWeight: 600, marginBottom: 4, fontFamily: "var(--font-display), sans-serif", color: "#0047b3", fontSize: 14, letterSpacing: ".005em" }}>{p.titel}</div>
           <div style={{ textAlign: "justify" }}>{p.text}</div>
         </div>
       ))}
