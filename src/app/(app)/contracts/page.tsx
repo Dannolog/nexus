@@ -325,10 +325,10 @@ export default function ContractsPage() {
           </div>
         </div>
 
-        {/* ── Rechte Spalte: Live-Vorschau (Papier) ── */}
-        <div style={{ overflowX: "auto" }}>
+        {/* ── Rechte Spalte: Live-Vorschau (Papier), zoombar ── */}
+        <ZoomView>
           <VertragVorschau form={form} befristet={befristet} />
-        </div>
+        </ZoomView>
       </div>
 
       <ConfirmDialog
@@ -540,6 +540,53 @@ function A4Seite({ page, total, docRef, children }: { page: number; total: numbe
       )}
       <div style={{ display: "grid", gap: ITEM_GAP }}>{children}</div>
       <Fuss page={page} total={total} docRef={docRef} />
+    </div>
+  );
+}
+
+// ── Zoombare Vorschau-Hülle: Standard = an Containerbreite angepasst (kein H-Scroll) ──
+function ZoomView({ children }: { children: React.ReactNode }) {
+  const outerRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const [outerW, setOuterW] = useState(0);
+  const [innerH, setInnerH] = useState(0);
+  const [fitMode, setFitMode] = useState(true);
+  const [zoom, setZoom] = useState(1);
+
+  const fit = outerW > 0 ? Math.min(1.5, outerW / A4_W) : 1;
+  const z = fitMode ? fit : zoom;
+
+  useEffect(() => {
+    const measure = () => {
+      if (outerRef.current) setOuterW(outerRef.current.clientWidth);
+      if (innerRef.current) setInnerH(innerRef.current.offsetHeight);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (outerRef.current) ro.observe(outerRef.current);
+    if (innerRef.current) ro.observe(innerRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  const applyZoom = (nz: number) => { setFitMode(false); setZoom(Math.max(0.3, Math.min(2, Math.round(nz * 100) / 100))); };
+
+  return (
+    <div>
+      <div className="vv-toolbar" style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+        <button className="btn btn-icon" title="Verkleinern" onClick={() => applyZoom(z - 0.1)} style={{ fontWeight: 700 }}>−</button>
+        <span className="muted" style={{ fontSize: 12, width: 46, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>{Math.round(z * 100)}%</span>
+        <button className="btn btn-icon" title="Vergrößern" onClick={() => applyZoom(z + 0.1)} style={{ fontWeight: 700 }}>+</button>
+        <button className="btn" title="An Containerbreite anpassen" onClick={() => setFitMode(true)} style={{ opacity: fitMode ? 1 : 0.7 }}>
+          <Icon name="maximize" /> Breite
+        </button>
+      </div>
+      <div ref={outerRef} className="vv-zoom-outer" style={{ width: "100%", overflowX: z > fit + 0.001 ? "auto" : "hidden", overflowY: "hidden" }}>
+        <div className="vv-zoombox" style={{ width: A4_W * z, height: innerH ? innerH * z : undefined, margin: "0 auto", position: "relative" }}>
+          <div className="vv-scale" ref={innerRef} style={{ width: A4_W, transform: `scale(${z})`, transformOrigin: "top left", position: "absolute", top: 0, left: 0 }}>
+            {children}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
