@@ -13,6 +13,7 @@ const NAV = [
   { href: "/projects", label: "Projekte", icon: "folder" },
   { href: "/tasks", label: "Aufgaben", icon: "tasks" },
   { href: "/employees", label: "Mitarbeiter", icon: "user" },
+  { href: "/contracts", label: "Arbeitsverträge", icon: "file-text" },
   { href: "/organizations", label: "Mandanten", icon: "building" },
   { href: "/identities", label: "Userverwaltung", icon: "shield" },
   { href: "/history", label: "Verlauf (Undo/Redo)", icon: "history" },

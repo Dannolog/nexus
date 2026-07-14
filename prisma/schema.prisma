@@ -204,3 +204,38 @@ model EditLock {
 
   @@unique([entity, entityId])
 }
+
+// ---- Arbeitsvertrag (HR-Dokument; Mitarbeiterdaten werden zum Vertragszeitpunkt eingefroren) ----
+model EmploymentContract {
+  id              String   @id @default(cuid())
+  title           String   @default("")                 // z. B. "Arbeitsvertrag – Max Mustermann"
+  employeeId      String   @default("")                 // Referenz auf Employee (lose ID, wie Task.assigneeId)
+  // Vertragsparteien (denormalisiert – Dokument bleibt eigenständig)
+  employeeName    String   @default("")
+  employeeAddress String   @default("")                 // Straße, PLZ Ort (mehrzeilig erlaubt)
+  employeeBirth   String   @default("")                 // Geburtsdatum (Freitext, z. B. "01.01.1990")
+  // Vertragsdaten
+  jobTitle        String   @default("")                 // Tätigkeit / Position
+  startDate       DateTime?                              // Eintrittsdatum
+  contractType    String   @default("unbefristet")      // unbefristet | befristet
+  endDate         DateTime?                              // bei Befristung
+  probationMonths Int      @default(6)                   // Probezeit in Monaten (0 = keine)
+  weeklyHours     Float    @default(40)                  // Wochenarbeitszeit
+  salary          Float    @default(0)                   // Bruttoentgelt
+  salaryPeriod    String   @default("monatlich")         // monatlich | stündlich
+  vacationDays    Int      @default(30)                  // Urlaubstage/Jahr
+  noticeText      String   @default("gesetzliche Fristen") // Kündigungsfrist
+  workplace       String   @default("Cloppenburg")       // Arbeitsort
+  additionalTerms String   @default("") @db.Text          // freie Zusatzvereinbarungen
+  signCity        String   @default("Cloppenburg")        // Unterschriftsort
+  signDate        DateTime?                               // Datum der Unterzeichnung
+  status          String   @default("entwurf")            // entwurf | aktiv | beendet
+  archived        Boolean  @default(false)
+  version         Int      @default(1)
+  deletedAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([employeeId])
+  @@index([status])
+}

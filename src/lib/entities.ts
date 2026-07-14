@@ -6,7 +6,8 @@ export type EntityName =
   | "Task"
   | "Employee"
   | "Organization"
-  | "Identity";
+  | "Identity"
+  | "EmploymentContract";
 
 export type EntityDef = {
   delegate: string;
@@ -47,6 +48,11 @@ export const ENTITIES: Record<EntityName, EntityDef> = {
     delegate: "identity",
     searchable: ["email", "name"],
     protectedFields: [...PROTECTED, "passwordHash"],
+  },
+  EmploymentContract: {
+    delegate: "employmentContract",
+    searchable: ["title", "employeeName", "jobTitle", "status"],
+    protectedFields: PROTECTED,
   },
 };
 
