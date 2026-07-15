@@ -225,9 +225,43 @@ function EditModal({ resourceKey, hasLogo, initial, onClose, onSave }: {
   }
   function removeLogo() { setCurrentLogo(""); set("logo", ""); }
 
+  // Einzelnes Eingabe-Control zu einem Feld (wird in beiden Layouts wiederverwendet)
+  const fieldControl = (f: Field) =>
+    f.type === "textarea" ? (
+      <textarea className="input" rows={3} value={form[f.key] ?? ""}
+        onChange={(e) => set(f.key, e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            e.preventDefault();
+            if (String((e.target as HTMLTextAreaElement).value).length > 0) set(f.key, "");
+            else (e.currentTarget as HTMLTextAreaElement).blur();
+          }
+        }} />
+    ) : f.type === "checkbox" ? (
+      <div style={{ marginTop: 6 }}><Toggle checked={!!form[f.key]} onChange={(v) => set(f.key, v)} /></div>
+    ) : f.type === "select" ? (
+      <select className="input" value={form[f.key] ?? ""} onChange={(e) => set(f.key, e.target.value)}>
+        {(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
+      </select>
+    ) : f.type === "color" ? (
+      <ColorPicker value={form[f.key] ?? "#3b82f6"} onChange={(v) => set(f.key, v)} />
+    ) : f.type === "date" ? (
+      <input className="input" type="date"
+        value={form[f.key] ? String(form[f.key]).slice(0, 10) : ""}
+        onChange={(e) => set(f.key, e.target.value ? new Date(e.target.value).toISOString() : null)} />
+    ) : (
+      <TextField
+        type={f.type === "number" ? "number" : f.type === "email" ? "email" : "text"}
+        value={form[f.key]}
+        onChange={(v) => set(f.key, f.type === "number" ? (v === "" ? 0 : Number(v)) : v)}
+      />
+    );
+
+  const grouped = R.fields.some((f) => f.group);
+
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "grid", placeItems: "center", padding: 16, zIndex: 50 }}>
-      <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: 560, maxWidth: "92vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: 620, maxWidth: "92vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ padding: "18px 24px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
           <h2 style={{ fontSize: 18, fontWeight: 700 }}>
             {form.id ? `${R.title.replace(/e?n$/, "")} bearbeiten` : `Neu: ${R.title}`}
@@ -248,42 +282,41 @@ function EditModal({ resourceKey, hasLogo, initial, onClose, onSave }: {
           </div>
         )}
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12 }}>
-          {R.fields.map((f: Field) => (
-            <label key={f.key} style={{ fontSize: 13, gridColumn: f.type === "textarea" ? "1 / -1" : "auto" }}>
-              {f.label}
-              {f.type === "textarea" ? (
-                <textarea className="input" rows={3} value={form[f.key] ?? ""}
-                  onChange={(e) => set(f.key, e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") {
-                      e.preventDefault();
-                      if (String((e.target as HTMLTextAreaElement).value).length > 0) set(f.key, "");
-                      else (e.currentTarget as HTMLTextAreaElement).blur();
-                    }
-                  }} />
-              ) : f.type === "checkbox" ? (
-                <div style={{ marginTop: 6 }}><Toggle checked={!!form[f.key]} onChange={(v) => set(f.key, v)} /></div>
-              ) : f.type === "select" ? (
-                <select className="input" value={form[f.key] ?? ""} onChange={(e) => set(f.key, e.target.value)}>
-                  {(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
-                </select>
-              ) : f.type === "color" ? (
-                <ColorPicker value={form[f.key] ?? "#3b82f6"} onChange={(v) => set(f.key, v)} />
-              ) : f.type === "date" ? (
-                <input className="input" type="date"
-                  value={form[f.key] ? String(form[f.key]).slice(0, 10) : ""}
-                  onChange={(e) => set(f.key, e.target.value ? new Date(e.target.value).toISOString() : null)} />
-              ) : (
-                <TextField
-                  type={f.type === "number" ? "number" : f.type === "email" ? "email" : "text"}
-                  value={form[f.key]}
-                  onChange={(v) => set(f.key, f.type === "number" ? (v === "" ? 0 : Number(v)) : v)}
-                />
-              )}
-            </label>
-          ))}
-        </div>
+        {grouped ? (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: 12, rowGap: 14 }}>
+            {(() => {
+              let last: string | undefined;
+              const out: React.ReactNode[] = [];
+              R.fields.forEach((f: Field) => {
+                if (f.group && f.group !== last) {
+                  last = f.group;
+                  out.push(
+                    <div key={"grp-" + f.group} style={{ gridColumn: "1 / -1", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", color: "var(--muted)", borderBottom: "1px solid var(--border)", paddingBottom: 4, marginTop: out.length ? 8 : 0 }}>
+                      {f.group}
+                    </div>
+                  );
+                }
+                const span = f.type === "textarea" ? 12 : Math.min(12, Math.max(2, f.span || 6));
+                out.push(
+                  <label key={f.key} style={{ fontSize: 13, gridColumn: `span ${span}`, display: "grid", gap: 4, minWidth: 0 }}>
+                    {f.label}
+                    {fieldControl(f)}
+                  </label>
+                );
+              });
+              return out;
+            })()}
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12 }}>
+            {R.fields.map((f: Field) => (
+              <label key={f.key} style={{ fontSize: 13, gridColumn: f.type === "textarea" ? "1 / -1" : "auto", display: "grid", gap: 4, minWidth: 0 }}>
+                {f.label}
+                {fieldControl(f)}
+              </label>
+            ))}
+          </div>
+        )}
         </div>
 
         <div style={{ padding: "14px 24px", borderTop: "1px solid var(--border)", flexShrink: 0, display: "flex", gap: 8, justifyContent: "flex-end" }}>
