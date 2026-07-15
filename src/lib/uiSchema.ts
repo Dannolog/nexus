@@ -4,6 +4,8 @@ export type Field = {
   label: string;
   type?: "text" | "number" | "color" | "checkbox" | "textarea" | "select" | "email" | "date";
   options?: string[];
+  group?: string; // optionale Abschnitts-Überschrift im Bearbeiten-Dialog
+  span?: number; // Feldbreite in 12er-Rastern (1–12); Standard 6 (halbe Breite)
 };
 export type Resource = {
   key: string; // URL-Segment + API
@@ -132,14 +134,14 @@ export const RESOURCES: Record<string, Resource> = {
       { key: "city", label: "Ort" },
     ],
     fields: [
-      { key: "name", label: "Name" },
-      { key: "shortCode", label: "Kürzel" },
-      { key: "street", label: "Straße" },
-      { key: "zip", label: "PLZ" },
-      { key: "city", label: "Ort" },
-      { key: "country", label: "Land" },
-      { key: "taxNumber", label: "Steuernr." },
-      { key: "ustId", label: "USt-IdNr." },
+      { key: "name", label: "Name", group: "Stammdaten", span: 8 },
+      { key: "shortCode", label: "Kürzel", group: "Stammdaten", span: 4 },
+      { key: "street", label: "Straße", group: "Adresse", span: 8 },
+      { key: "zip", label: "PLZ", group: "Adresse", span: 4 },
+      { key: "city", label: "Ort", group: "Adresse", span: 8 },
+      { key: "country", label: "Land", group: "Adresse", span: 4 },
+      { key: "taxNumber", label: "Steuernummer", group: "Steuer", span: 6 },
+      { key: "ustId", label: "USt-IdNr.", group: "Steuer", span: 6 },
     ],
   },
 };
