@@ -60,6 +60,9 @@ textarea.input { line-height: 1.5; }
 .only-mobile { display: none; }
 /* Arbeitsverträge: Formular + Vorschau nebeneinander (Desktop) */
 .contract-grid { display: grid; grid-template-columns: minmax(320px, 420px) 1fr; gap: 20px; align-items: start; }
+/* Grid-Felder dürfen NICHT mit dem Inhalt wachsen → Vorschau-Container behält seine Breite,
+   der Zoom scrollt intern statt die Spalte zu verbreitern. */
+.contract-grid > * { min-width: 0; }
 
 /* ---- App-Shell / Responsive ---- */
 .app-shell { display: flex; height: 100vh; overflow: hidden; }
