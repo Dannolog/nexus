@@ -11,6 +11,7 @@ const SYNC_ENTITIES: { key: string; delegate: string }[] = [
   { key: "tasks", delegate: "task" },
   { key: "employees", delegate: "employee" },
   { key: "organizations", delegate: "organization" },
+  { key: "products", delegate: "product" },
 ];
 
 /**

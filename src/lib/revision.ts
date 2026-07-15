@@ -86,11 +86,32 @@ export async function createEntity(
   txId = newTxId()
 ) {
   const def = getEntity(entity);
-  return prisma.$transaction(async (tx) => {
-    const created = await (tx as any)[def.delegate].create({ data: sanitize(entity, data) });
-    await record(tx, { txId, entity, entityId: created.id, action: "CREATE", before: null, after: created, ctx });
-    return created;
-  });
+  const attempt = () =>
+    prisma.$transaction(async (tx) => {
+      const clean = sanitize(entity, data);
+      // Zentrale fortlaufende Nummer vergeben (höchste vorhandene + 1), inkl. soft-deleted,
+      // damit Nummern nie doppelt/wiederverwendet werden.
+      if (def.autoNumberField) {
+        const agg = await (tx as any)[def.delegate].aggregate({ _max: { [def.autoNumberField]: true } });
+        const max = (agg?._max?.[def.autoNumberField] as number | null) ?? 0;
+        clean[def.autoNumberField] = max + 1;
+      }
+      const created = await (tx as any)[def.delegate].create({ data: clean });
+      await record(tx, { txId, entity, entityId: created.id, action: "CREATE", before: null, after: created, ctx });
+      return created;
+    });
+
+  if (!def.autoNumberField) return attempt();
+  // Bei parallelem POST können zwei Transaktionen dieselbe Nummer berechnen → Unique-Konflikt
+  // (P2002). Dann neu berechnen und erneut versuchen.
+  for (let i = 0; ; i++) {
+    try {
+      return await attempt();
+    } catch (e: any) {
+      if (e?.code === "P2002" && i < 5) continue;
+      throw e;
+    }
+  }
 }
 
 export async function updateEntity(

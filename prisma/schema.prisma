@@ -59,6 +59,26 @@ model Customer {
   @@index([shortCode])
 }
 
+// Zentraler Artikelstamm (Kernfelder). Preis/MwSt bleiben in kontor, Lieferanten-/
+// Hersteller-Nr. in ProjectEye lokal. `number` = zentrale, fortlaufende Stammnummer,
+// wird ausschließlich von Nexus beim POST vergeben (höchste + 1, transaktional).
+model Product {
+  id          String    @id @default(cuid())
+  number      Int       @unique
+  name        String    @default("")
+  description String    @default("")
+  unit        String    @default("Stk.")
+  category    String    @default("")
+  active      Boolean   @default(true)
+  origin      String    @default("")
+  version     Int       @default(1)
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([updatedAt])
+}
+
 model CustomerNumber {
   id           String @id @default(cuid())
   customerId   String

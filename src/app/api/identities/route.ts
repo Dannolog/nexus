@@ -37,7 +37,16 @@ export const POST = (req: NextRequest) =>
 
     const txId = newTxId();
     const existing = await prisma.identity.findUnique({ where: { email }, include: { appAccess: true } });
-    const passwordHash = body.password ? await bcrypt.hash(String(body.password), 10) : undefined;
+    // passwordHash: entweder ein bereits fertiger bcrypt-Hash (z.B. Login-Umzug aus kontor —
+    // Login ohne Passwort-Neusetzen) ODER Klartext-`password`, den wir hier hashen.
+    const rawHash = typeof body.passwordHash === "string" ? body.passwordHash.trim() : "";
+    const isBcrypt = /^\$2[aby]\$\d{2}\$/.test(rawHash);
+    if (rawHash && !isBcrypt) throw new ApiError("passwordHash muss ein bcrypt-Hash sein ($2a/$2b/$2y…)", 400);
+    const passwordHash = isBcrypt
+      ? rawHash
+      : body.password
+        ? await bcrypt.hash(String(body.password), 10)
+        : undefined;
 
     const result = await prisma.$transaction(async (tx) => {
       let identity;
@@ -72,9 +81,11 @@ export const POST = (req: NextRequest) =>
       // appAccess upserten (pro appKey)
       const accessList: any[] = Array.isArray(body.appAccess) ? body.appAccess : [];
       for (const a of accessList) {
-        if (!a.appKey) continue;
+        // Spec sendet { app, role }; ältere Aufrufer { appKey } → beide akzeptieren.
+        const appKey = a.appKey || a.app;
+        if (!appKey) continue;
         await tx.identityAppAccess.upsert({
-          where: { identityId_appKey: { identityId: identity.id, appKey: a.appKey } },
+          where: { identityId_appKey: { identityId: identity.id, appKey } },
           update: {
             allowed: a.allowed ?? true,
             role: a.role ?? "user",
@@ -84,7 +95,7 @@ export const POST = (req: NextRequest) =>
           },
           create: {
             identityId: identity.id,
-            appKey: a.appKey,
+            appKey,
             allowed: a.allowed ?? true,
             role: a.role ?? "user",
             rights: typeof a.rights === "string" ? a.rights : JSON.stringify(a.rights ?? {}),
