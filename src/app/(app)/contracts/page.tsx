@@ -578,7 +578,10 @@ function ZoomView({ children }: { children: React.ReactNode }) {
     <div>
       <div className="vv-toolbar" style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
         <button className="btn btn-icon" title="Verkleinern" onClick={() => applyZoom(z - 0.1)} style={{ fontWeight: 700 }}>−</button>
-        <span className="muted" style={{ fontSize: 12, width: 46, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>{Math.round(z * 100)}%</span>
+        <button type="button" title="Auf 100 % setzen" onClick={() => applyZoom(1)}
+          style={{ fontSize: 12, width: 52, textAlign: "center", fontVariantNumeric: "tabular-nums", cursor: "pointer", background: "transparent", border: "1px solid var(--border)", borderRadius: 6, padding: "4px 0", color: "var(--muted)" }}>
+          {Math.round(z * 100)}%
+        </button>
         <button className="btn btn-icon" title="Vergrößern" onClick={() => applyZoom(z + 0.1)} style={{ fontWeight: 700 }}>+</button>
         <button className="btn" title="An Containerbreite anpassen" onClick={() => setFitMode(true)} style={{ opacity: fitMode ? 1 : 0.7 }}>
           <Icon name="maximize" /> Breite
