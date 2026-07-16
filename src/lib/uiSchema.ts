@@ -16,6 +16,7 @@ export type Resource = {
   titleField: string;
   columns: { key: string; label: string }[];
   fields: Field[];
+  detail?: boolean; // true → Klick auf eine Zeile öffnet eine Detail-Vorschau
 };
 
 export const RESOURCES: Record<string, Resource> = {
@@ -151,11 +152,13 @@ export const RESOURCES: Record<string, Resource> = {
     icon: "package",
     prefix: "ART",
     titleField: "name",
+    detail: true,
     columns: [
       { key: "number", label: "Stammnr." },
       { key: "name", label: "Bezeichnung" },
       { key: "unit", label: "Einheit" },
       { key: "category", label: "Kategorie" },
+      { key: "price", label: "EK-Preis" },
       { key: "active", label: "Aktiv" },
     ],
     // number ist server-verwaltet (zentrale Stammnummer) → NICHT editierbar, nur als Spalte sichtbar.
@@ -165,6 +168,9 @@ export const RESOURCES: Record<string, Resource> = {
       { key: "category", label: "Kategorie", group: "Artikel", span: 8 },
       { key: "active", label: "Aktiv", type: "checkbox", group: "Artikel", span: 4 },
       { key: "description", label: "Beschreibung", type: "textarea", group: "Artikel" },
+      { key: "price", label: "Einkaufspreis (€)", type: "number", group: "Einkauf", span: 4 },
+      { key: "imageUrl", label: "Bild-URL", group: "Medien", span: 12 },
+      { key: "links", label: "Links (je Zeile eine URL)", type: "textarea", group: "Medien" },
     ],
   },
 };

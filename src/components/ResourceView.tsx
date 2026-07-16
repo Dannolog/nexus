@@ -30,6 +30,7 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<any | null>(null); // null=zu, {}=neu, {..}=bearbeiten
   const [deleting, setDeleting] = useState<any | null>(null);
+  const [viewing, setViewing] = useState<any | null>(null); // Detail-Vorschau (bei R.detail)
   const [msg, setMsg] = useState("");
 
   const load = useCallback(async () => {
@@ -92,7 +93,7 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+      <div className="rv-sticky-header" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, display: "flex", alignItems: "center", gap: 10 }}>
           <Icon name={R.icon} size={24} /> {R.title}
         </h1>
@@ -116,7 +117,8 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
             {loading && <tr><td colSpan={colCount} style={{ padding: 16 }} className="muted">Lädt…</td></tr>}
             {!loading && rows.length === 0 && <tr><td colSpan={colCount} style={{ padding: 16 }} className="muted">Keine Einträge.</td></tr>}
             {rows.map((row, i) => (
-              <tr key={row.id} style={{ borderBottom: "1px solid var(--border)" }}>
+              <tr key={row.id} onClick={R.detail ? () => setViewing(row) : undefined}
+                style={{ borderBottom: "1px solid var(--border)", cursor: R.detail ? "pointer" : "default" }}>
                 <td style={{ padding: "10px 12px", whiteSpace: "nowrap", color: "var(--muted)", fontVariantNumeric: "tabular-nums", fontSize: 13 }}>
                   {R.prefix}-{i + 1}
                 </td>
@@ -126,7 +128,7 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
                   </td>
                 )}
                 {R.columns.map((c) => <td key={c.key} style={{ padding: "10px 12px" }}>{cell(row[c.key])}</td>)}
-                <td style={{ padding: "8px 12px", whiteSpace: "nowrap", display: "flex", gap: 6 }}>
+                <td onClick={(e) => e.stopPropagation()} style={{ padding: "8px 12px", whiteSpace: "nowrap", display: "flex", gap: 6 }}>
                   <button className="btn btn-icon" title="Bearbeiten" aria-label="Bearbeiten" onClick={() => setEditing({ ...row })}><Icon name="pencil" /></button>
                   <Link className="btn btn-icon" title="Verlauf" aria-label="Verlauf" href={`/history?entity=${R.entity}&entityId=${row.id}`}><Icon name="history" /></Link>
                   <button className="btn btn-icon btn-danger" title="Löschen" aria-label="Löschen" onClick={() => setDeleting(row)}><Icon name="trash" /></button>
@@ -142,7 +144,8 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
         {loading && <div className="card muted" style={{ padding: 16 }}>Lädt…</div>}
         {!loading && rows.length === 0 && <div className="card muted" style={{ padding: 16 }}>Keine Einträge.</div>}
         {rows.map((row, i) => (
-          <div key={row.id} className="card" style={{ padding: 14, display: "grid", gap: 10 }}>
+          <div key={row.id} className="card" onClick={R.detail ? () => setViewing(row) : undefined}
+            style={{ padding: 14, display: "grid", gap: 10, cursor: R.detail ? "pointer" : "default" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               {hasLogo && <LogoThumb src={logos[row.id]} color={row.color} />}
               <div style={{ fontWeight: 600, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -158,7 +161,7 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
                 </div>
               ))}
             </div>
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", borderTop: "1px solid var(--border)", paddingTop: 10 }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 8, justifyContent: "flex-end", borderTop: "1px solid var(--border)", paddingTop: 10 }}>
               <button className="btn btn-icon" title="Bearbeiten" aria-label="Bearbeiten" onClick={() => setEditing({ ...row })}><Icon name="pencil" /></button>
               <Link className="btn btn-icon" title="Verlauf" aria-label="Verlauf" href={`/history?entity=${R.entity}&entityId=${row.id}`}><Icon name="history" /></Link>
               <button className="btn btn-icon btn-danger" title="Löschen" aria-label="Löschen" onClick={() => setDeleting(row)}><Icon name="trash" /></button>
@@ -166,6 +169,16 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
           </div>
         ))}
       </div>
+
+      {viewing && (
+        <DetailModal
+          resourceKey={resourceKey}
+          row={viewing}
+          onClose={() => setViewing(null)}
+          onEdit={() => { setEditing({ ...viewing }); setViewing(null); }}
+          onDelete={() => { setDeleting(viewing); setViewing(null); }}
+        />
+      )}
 
       {editing && (
         <EditModal
