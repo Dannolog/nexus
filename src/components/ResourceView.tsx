@@ -340,3 +340,66 @@ function EditModal({ resourceKey, hasLogo, initial, onClose, onSave }: {
     </div>
   );
 }
+
+// ── Detail-Vorschau (Klick auf eine Zeile) — Bild, Felder, Links, Preis ──
+function DetailModal({ resourceKey, row, onClose, onEdit, onDelete }: {
+  resourceKey: string; row: any; onClose: () => void; onEdit: () => void; onDelete: () => void;
+}) {
+  const R = RESOURCES[resourceKey];
+  const img = String(row.imageUrl || "").trim();
+  const links = String(row.links || "").split(/\n+/).map((s) => s.trim()).filter(Boolean);
+  const href = (u: string) => (/^https?:\/\//i.test(u) ? u : "https://" + u);
+  const title = cell(row[R.titleField]) === "–" ? "(ohne Bezeichnung)" : cell(row[R.titleField]);
+  const listFields = R.fields.filter((f) => !["imageUrl", "links"].includes(f.key) && f.key !== R.titleField);
+
+  const renderVal = (f: Field) => {
+    const v = row[f.key];
+    if (f.key === "price") return (Number(v) || 0).toLocaleString("de-DE", { style: "currency", currency: "EUR" });
+    if (f.type === "checkbox") return v ? "ja" : "nein";
+    if (f.type === "textarea") return <span style={{ whiteSpace: "pre-wrap" }}>{v || "–"}</span>;
+    return cell(v);
+  };
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "grid", placeItems: "center", padding: 16, zIndex: 55 }}>
+      <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: 560, maxWidth: "94vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</h2>
+            {row.number != null && <div className="muted" style={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}>{R.prefix}-{row.number}</div>}
+          </div>
+          <button className="btn btn-icon" aria-label="Schließen" onClick={onClose}><Icon name="x" /></button>
+        </div>
+
+        <div style={{ padding: 22, overflowY: "auto", display: "grid", gap: 16 }}>
+          {img && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={img} alt={title} style={{ width: "100%", maxHeight: 240, objectFit: "contain", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)" }} />
+          )}
+          <div style={{ display: "grid", gap: 8 }}>
+            {listFields.map((f) => (
+              <div key={f.key} style={{ display: "flex", gap: 12, fontSize: 14 }}>
+                <span className="muted" style={{ minWidth: 128, flexShrink: 0 }}>{f.label}</span>
+                <span style={{ flex: 1, minWidth: 0, wordBreak: "break-word" }}>{renderVal(f)}</span>
+              </div>
+            ))}
+          </div>
+          {links.length > 0 && (
+            <div style={{ display: "grid", gap: 6 }}>
+              <span className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".05em" }}>Links</span>
+              {links.map((u, i) => (
+                <a key={i} href={href(u)} target="_blank" rel="noreferrer" style={{ color: "var(--accent)", wordBreak: "break-all", fontSize: 14 }}>{u}</a>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div style={{ padding: "14px 22px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
+          <Link className="btn" href={`/history?entity=${R.entity}&entityId=${row.id}`}><Icon name="history" /> Verlauf</Link>
+          <button className="btn btn-danger" onClick={onDelete}><Icon name="trash" /> Löschen</button>
+          <button className="btn btn-primary" onClick={onEdit}><Icon name="pencil" /> Bearbeiten</button>
+        </div>
+      </div>
+    </div>
+  );
+}
