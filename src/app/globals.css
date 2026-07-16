@@ -59,8 +59,13 @@ textarea.input { line-height: 1.5; }
 /* ---- Responsive Helfer: Tabelle am Desktop, Karten am Handy ---- */
 .only-mobile { display: none; }
 
-/* Listen-Kopf (Titel + Neu + Suche) bleibt beim Scrollen sichtbar */
-.rv-sticky-header { position: sticky; top: 0; z-index: 20; background: var(--bg); padding: 4px 0 12px; }
+/* Listen-Kopf (Titel + Neu + Suche) bleibt beim Scrollen sichtbar und deckt den Bereich
+   darüber vollständig ab (negative Margins ziehen den Hintergrund bis an die .main-Ränder,
+   Padding stellt die innere Position wieder her) → keine Tabellenzeilen scheinen durch. */
+.rv-sticky-header {
+  position: sticky; top: 0; z-index: 20; background: var(--bg);
+  margin: -24px -24px 0; padding: 24px 24px 12px;
+}
 /* Arbeitsverträge: Formular + Vorschau nebeneinander (Desktop) */
 .contract-grid { display: grid; grid-template-columns: minmax(320px, 420px) 1fr; gap: 20px; align-items: start; }
 /* Grid-Felder dürfen NICHT mit dem Inhalt wachsen → Vorschau-Container behält seine Breite,
@@ -110,8 +115,8 @@ textarea.input { line-height: 1.5; }
   .btn-icon { padding: 0.55rem 0.6rem; }
   /* Größere Touch-Ziele in der Menü-Schublade */
   .sidebar a { padding: 11px 12px !important; font-size: 15px; }
-  /* sticky Listen-Kopf unter die fixe Topbar setzen */
-  .rv-sticky-header { top: calc(54px + env(safe-area-inset-top)); }
+  /* sticky Listen-Kopf unter die fixe Topbar setzen (Ränder an .main-Padding 16px anpassen) */
+  .rv-sticky-header { top: calc(54px + env(safe-area-inset-top)); margin: -16px -16px 0; padding: 16px 16px 12px; }
 
   /* Listen: Desktop-Tabelle aus, Handy-Karten an */
   .only-desktop { display: none !important; }
