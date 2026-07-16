@@ -22,6 +22,7 @@ function cell(v: any) {
 export default function ResourceView({ resourceKey }: { resourceKey: string }) {
   const R = RESOURCES[resourceKey];
   const hasLogo = LOGO_RESOURCES.includes(resourceKey);
+  const thumbField = R.thumbField; // Bild-URL-Feld → Thumbnail in Liste/Karten
   const [rows, setRows] = useState<any[]>([]);
   const [logos, setLogos] = useState<Record<string, string>>({});
   const [search, setSearch] = useState(() =>
@@ -89,7 +90,7 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
     }
   }
 
-  const colCount = R.columns.length + 2 + (hasLogo ? 1 : 0);
+  const colCount = R.columns.length + 2 + (hasLogo ? 1 : 0) + (thumbField ? 1 : 0);
 
   return (
     <div>
@@ -109,6 +110,7 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
             <tr style={{ textAlign: "left", borderBottom: "1px solid var(--border)" }}>
               <th style={{ padding: "10px 12px", width: 1, whiteSpace: "nowrap" }}>Nr.</th>
               {hasLogo && <th style={{ padding: "10px 12px", width: 44 }}></th>}
+              {thumbField && <th style={{ padding: "10px 12px", width: 48 }}></th>}
               {R.columns.map((c) => <th key={c.key} style={{ padding: "10px 12px" }}>{c.label}</th>)}
               <th style={{ padding: "10px 12px", width: 1 }}></th>
             </tr>
@@ -125,6 +127,11 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
                 {hasLogo && (
                   <td style={{ padding: "6px 12px" }}>
                     <LogoThumb src={logos[row.id]} color={row.color} />
+                  </td>
+                )}
+                {thumbField && (
+                  <td style={{ padding: "6px 12px" }}>
+                    <LogoThumb src={row[thumbField]} />
                   </td>
                 )}
                 {R.columns.map((c) => <td key={c.key} style={{ padding: "10px 12px" }}>{cell(row[c.key])}</td>)}
@@ -148,6 +155,7 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
             style={{ padding: 14, display: "grid", gap: 10, cursor: R.detail ? "pointer" : "default" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               {hasLogo && <LogoThumb src={logos[row.id]} color={row.color} />}
+              {thumbField && <LogoThumb src={row[thumbField]} />}
               <div style={{ fontWeight: 600, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
                 {cell(row[R.titleField]) === "–" ? `${R.prefix}-${i + 1}` : cell(row[R.titleField])}
               </div>

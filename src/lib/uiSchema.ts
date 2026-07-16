@@ -17,6 +17,7 @@ export type Resource = {
   columns: { key: string; label: string }[];
   fields: Field[];
   detail?: boolean; // true → Klick auf eine Zeile öffnet eine Detail-Vorschau
+  thumbField?: string; // Feld mit Bild-URL → als Thumbnail in Liste/Karten anzeigen
 };
 
 export const RESOURCES: Record<string, Resource> = {
@@ -153,6 +154,7 @@ export const RESOURCES: Record<string, Resource> = {
     prefix: "ART",
     titleField: "name",
     detail: true,
+    thumbField: "imageUrl",
     columns: [
       { key: "number", label: "Stammnr." },
       { key: "name", label: "Bezeichnung" },
