@@ -18,6 +18,7 @@ export type Resource = {
   fields: Field[];
   detail?: boolean; // true → Klick auf eine Zeile öffnet eine Detail-Vorschau
   thumbField?: string; // Feld mit Bild-URL → als Thumbnail in Liste/Karten anzeigen
+  thumbAfter?: string; // Spalten-Key, HINTER dem das Thumbnail steht (sonst führend)
 };
 
 export const RESOURCES: Record<string, Resource> = {
@@ -155,6 +156,7 @@ export const RESOURCES: Record<string, Resource> = {
     titleField: "name",
     detail: true,
     thumbField: "imageUrl",
+    thumbAfter: "number",
     columns: [
       { key: "number", label: "Stammnr." },
       { key: "name", label: "Bezeichnung" },
