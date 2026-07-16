@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Fragment } from "react";
 import Link from "next/link";
 import { api, ConflictError } from "@/lib/clientApi";
 import { RESOURCES, Field } from "@/lib/uiSchema";
@@ -110,8 +110,13 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
             <tr style={{ textAlign: "left", borderBottom: "1px solid var(--border)" }}>
               <th style={{ padding: "10px 12px", width: 1, whiteSpace: "nowrap" }}>Nr.</th>
               {hasLogo && <th style={{ padding: "10px 12px", width: 44 }}></th>}
-              {thumbField && <th style={{ padding: "10px 12px", width: 48 }}></th>}
-              {R.columns.map((c) => <th key={c.key} style={{ padding: "10px 12px" }}>{c.label}</th>)}
+              {thumbField && !R.thumbAfter && <th style={{ padding: "10px 12px", width: 48 }}></th>}
+              {R.columns.map((c) => (
+                <Fragment key={c.key}>
+                  <th style={{ padding: "10px 12px" }}>{c.label}</th>
+                  {thumbField && R.thumbAfter === c.key && <th style={{ padding: "10px 12px", width: 48 }}>Bild</th>}
+                </Fragment>
+              ))}
               <th style={{ padding: "10px 12px", width: 1 }}></th>
             </tr>
           </thead>
@@ -129,12 +134,19 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
                     <LogoThumb src={logos[row.id]} color={row.color} />
                   </td>
                 )}
-                {thumbField && (
+                {thumbField && !R.thumbAfter && (
                   <td style={{ padding: "6px 12px" }}>
                     <LogoThumb src={row[thumbField]} />
                   </td>
                 )}
-                {R.columns.map((c) => <td key={c.key} style={{ padding: "10px 12px" }}>{cell(row[c.key])}</td>)}
+                {R.columns.map((c) => (
+                  <Fragment key={c.key}>
+                    <td style={{ padding: "10px 12px" }}>{cell(row[c.key])}</td>
+                    {thumbField && R.thumbAfter === c.key && (
+                      <td style={{ padding: "6px 12px" }}><LogoThumb src={row[thumbField]} /></td>
+                    )}
+                  </Fragment>
+                ))}
                 <td onClick={(e) => e.stopPropagation()} style={{ padding: "8px 12px", whiteSpace: "nowrap", display: "flex", gap: 6 }}>
                   <button className="btn btn-icon" title="Bearbeiten" aria-label="Bearbeiten" onClick={() => setEditing({ ...row })}><Icon name="pencil" /></button>
                   <Link className="btn btn-icon" title="Verlauf" aria-label="Verlauf" href={`/history?entity=${R.entity}&entityId=${row.id}`}><Icon name="history" /></Link>
