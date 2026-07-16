@@ -11,6 +11,7 @@ const NAV = [
   { href: "/", label: "Übersicht", icon: "home" },
   { href: "/customers", label: "Kunden", icon: "users" },
   { href: "/projects", label: "Projekte", icon: "folder" },
+  { href: "/products", label: "Artikel", icon: "package" },
   { href: "/tasks", label: "Aufgaben", icon: "tasks" },
   { href: "/employees", label: "Mitarbeiter", icon: "user" },
   { href: "/contracts", label: "Arbeitsverträge", icon: "file-text" },

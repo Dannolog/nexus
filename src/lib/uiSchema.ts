@@ -144,4 +144,27 @@ export const RESOURCES: Record<string, Resource> = {
       { key: "ustId", label: "USt-IdNr.", group: "Steuer", span: 6 },
     ],
   },
+  products: {
+    key: "products",
+    entity: "Product",
+    title: "Artikel",
+    icon: "package",
+    prefix: "ART",
+    titleField: "name",
+    columns: [
+      { key: "number", label: "Stammnr." },
+      { key: "name", label: "Bezeichnung" },
+      { key: "unit", label: "Einheit" },
+      { key: "category", label: "Kategorie" },
+      { key: "active", label: "Aktiv" },
+    ],
+    // number ist server-verwaltet (zentrale Stammnummer) → NICHT editierbar, nur als Spalte sichtbar.
+    fields: [
+      { key: "name", label: "Bezeichnung", group: "Artikel", span: 8 },
+      { key: "unit", label: "Einheit", group: "Artikel", span: 4 },
+      { key: "category", label: "Kategorie", group: "Artikel", span: 8 },
+      { key: "active", label: "Aktiv", type: "checkbox", group: "Artikel", span: 4 },
+      { key: "description", label: "Beschreibung", type: "textarea", group: "Artikel" },
+    ],
+  },
 };
