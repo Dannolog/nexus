@@ -71,6 +71,9 @@ model Product {
   category    String    @default("")
   active      Boolean   @default(true)
   origin      String    @default("")
+  price       Float     @default(0)
+  imageUrl    String    @default("") @db.Text
+  links       String    @default("") @db.Text
   version     Int       @default(1)
   deletedAt   DateTime?
   createdAt   DateTime  @default(now())
