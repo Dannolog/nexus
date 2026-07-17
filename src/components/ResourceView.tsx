@@ -414,10 +414,10 @@ function DetailModal({ resourceKey, row, onClose, onEdit, onDelete }: {
           )}
         </div>
 
-        <div style={{ padding: "14px 22px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
-          <Link className="btn" href={`/history?entity=${R.entity}&entityId=${row.id}`}><Icon name="history" /> Verlauf</Link>
-          <button className="btn btn-danger" onClick={onDelete}><Icon name="trash" /> Löschen</button>
-          <button className="btn btn-primary" onClick={onEdit}><Icon name="pencil" /> Bearbeiten</button>
+        <div style={{ padding: "14px 22px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "flex-end", alignItems: "center" }}>
+          <Link className="btn" title="Verlauf" href={`/history?entity=${R.entity}&entityId=${row.id}`}><Icon name="history" /><span className="btn-label">&nbsp;Verlauf</span></Link>
+          <button className="btn btn-danger" onClick={onDelete}><Icon name="trash" />&nbsp;Löschen</button>
+          <button className="btn btn-primary" onClick={onEdit}><Icon name="pencil" />&nbsp;Bearbeiten</button>
         </div>
       </div>
     </div>

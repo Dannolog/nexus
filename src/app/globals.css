@@ -121,6 +121,8 @@ textarea.input { line-height: 1.5; }
   .sidebar a { padding: 11px 12px !important; font-size: 15px; }
   /* sticky Listen-Kopf unter die fixe Topbar setzen */
   .rv-sticky-header { top: calc(54px + env(safe-area-inset-top)); }
+  /* Button-Text ausblenden → Icon-only (z.B. „Verlauf" in der Vorschau) auf schmalen Screens */
+  .btn-label { display: none; }
 
   /* Listen: Desktop-Tabelle aus, Handy-Karten an */
   .only-desktop { display: none !important; }
