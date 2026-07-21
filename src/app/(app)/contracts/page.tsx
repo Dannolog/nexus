@@ -381,7 +381,7 @@ const bulletFrei = [
 function buildSections(form: Contract, befristet: boolean): { t: string; items: React.ReactNode[] }[] {
   const stnd = form.salaryPeriod === "stündlich";
   return [
-    { t: "§ 1 Beginn des Arbeitsverhältnisses, Tätigkeit und Probezeit", items: [
+    { t: "Beginn des Arbeitsverhältnisses, Tätigkeit und Probezeit", items: [
       <>Das Arbeitsverhältnis beginnt am <b>{fmtDate(form.startDate)}</b>. Der Arbeitnehmer wird als <b>{txt(form.jobTitle)}</b> eingestellt. {befristet
         ? <>Das Arbeitsverhältnis ist befristet und endet am <b>{fmtDate(form.endDate)}</b>, ohne dass es einer Kündigung bedarf.</>
         : <>Das Arbeitsverhältnis wird auf unbestimmte Zeit geschlossen.</>}</>,
@@ -392,28 +392,30 @@ function buildSections(form: Contract, befristet: boolean): { t: string; items: 
         : <>Eine Probezeit wird nicht vereinbart.</>,
       <>Eine ordentliche Kündigung vor Arbeitsantritt ist ausgeschlossen.</>,
     ]},
-    { t: "§ 2 Arbeitszeit", items: [
+    { t: "Arbeitszeit", items: [
       <>Die regelmäßige wöchentliche Arbeitszeit beträgt <b>{txt(form.weeklyHours)}</b> Stunden (ohne Pausen).</>,
       <>Beginn, Ende und Verteilung der täglichen Arbeitszeit richten sich nach den betrieblichen Erfordernissen und werden vom Arbeitgeber nach billigem Ermessen festgelegt.</>,
       <>Der Arbeitnehmer ist im gesetzlich zulässigen Rahmen zur Leistung von Mehrarbeit und Überstunden verpflichtet, soweit betriebliche Erfordernisse dies notwendig machen.</>,
+      <>Geleistete Überstunden werden grundsätzlich durch Freizeit ausgeglichen („abgefeiert") und nicht ausgezahlt. Eine Auszahlung erfolgt ausschließlich nach vorheriger ausdrücklicher Absprache im Einzelfall; ein Anspruch des Arbeitnehmers auf Auszahlung besteht nicht.</>,
+      <>Etwaige Zuschläge für Mehr-, Nacht-, Sonn- und Feiertagsarbeit richten sich nach den gesetzlichen sowie den jeweils geltenden betrieblichen Regelungen.</>,
     ]},
-    { t: "§ 3 Vergütung", items: [
+    { t: "Vergütung", items: [
       <>Der Arbeitnehmer erhält ein {stnd ? "Bruttostundenentgelt" : "monatliches Bruttoentgelt"} in Höhe von <b>{fmtMoney(form.salary)}</b>{stnd ? " je geleisteter Arbeitsstunde" : ""}.</>,
       <>Die Vergütung ist zum Ende eines Kalendermonats fällig und wird bargeldlos auf ein vom Arbeitnehmer benanntes Konto überwiesen.</>,
       <>Freiwillige Sonderleistungen (z. B. Gratifikationen, Prämien, Einmalzahlungen) begründen auch bei wiederholter Zahlung keinen Rechtsanspruch für die Zukunft, sofern sie nicht ausdrücklich als verbindlich zugesagt werden.</>,
       <>Zu viel gezahlte Bezüge hat der Arbeitnehmer unverzüglich anzuzeigen und zurückzuzahlen.</>,
     ]},
-    { t: "§ 4 Urlaub", items: [
+    { t: "Urlaub", items: [
       <>Der Arbeitnehmer hat Anspruch auf einen bezahlten Jahresurlaub von <b>{txt(form.vacationDays)}</b> Arbeitstagen bei einer Fünf-Tage-Woche. Bei abweichender Verteilung der Arbeitstage wird der Anspruch anteilig angepasst.</>,
       <>Im Ein- und Austrittsjahr besteht der Urlaubsanspruch anteilig (ein Zwölftel je vollem Beschäftigungsmonat), mindestens jedoch in Höhe des gesetzlichen Mindesturlaubs.</>,
       <>Urlaub ist rechtzeitig zu beantragen und vor Antritt vom Arbeitgeber zu genehmigen. Im Übrigen gelten die Vorschriften des Bundesurlaubsgesetzes.</>,
     ]},
-    { t: "§ 5 Arbeitsverhinderung und Arbeitsunfähigkeit", items: [
+    { t: "Arbeitsverhinderung und Arbeitsunfähigkeit", items: [
       <>Jede Arbeitsverhinderung ist dem Arbeitgeber unverzüglich – spätestens zu Beginn der Arbeitszeit – unter Angabe der Gründe und der voraussichtlichen Dauer mitzuteilen.</>,
       <>Bei krankheitsbedingter Arbeitsunfähigkeit ist spätestens am darauffolgenden Arbeitstag eine ärztliche Bescheinigung über deren Bestehen und voraussichtliche Dauer vorzulegen. Dauert die Arbeitsunfähigkeit länger als bescheinigt, ist eine Folgebescheinigung vorzulegen.</>,
       <>Arztbesuche sind grundsätzlich außerhalb der Arbeitszeit wahrzunehmen, soweit dies nicht aus akuten medizinischen Gründen unabdingbar ist. Die Entgeltfortzahlung im Krankheitsfall richtet sich nach den gesetzlichen Bestimmungen.</>,
     ]},
-    { t: "§ 6 Bezahlte Freistellung (§ 616 BGB)", items: [
+    { t: "Bezahlte Freistellung (§ 616 BGB)", items: [
       <>In folgenden Fällen wird unter Fortzahlung der Vergütung Freistellung von der Arbeit gewährt:
         <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
           {bulletFrei.map(([grund, tage]) => (
@@ -425,18 +427,24 @@ function buildSections(form: Contract, befristet: boolean): { t: string; items: 
       </>,
       <>Diese Aufzählung ist abschließend. Im Übrigen ist § 616 BGB abbedungen; eine Entgeltfortzahlung bei sonstiger vorübergehender Verhinderung findet nicht statt.</>,
     ]},
-    { t: "§ 7 Nebentätigkeit", items: [
+    { t: "Nebentätigkeit", items: [
       <>Jede entgeltliche oder die Interessen des Arbeitgebers berührende Nebentätigkeit ist vor ihrer Aufnahme in Textform anzuzeigen und bedarf der Zustimmung des Arbeitgebers.</>,
       <>Die Zustimmung kann versagt oder widerrufen werden, wenn die Nebentätigkeit berechtigte Interessen des Arbeitgebers beeinträchtigt oder die Arbeitskraft des Arbeitnehmers mindert. Ehrenamtliche Tätigkeiten bleiben unberührt, soweit sie die Interessen des Arbeitgebers nicht beeinträchtigen.</>,
     ]},
-    { t: "§ 8 Verschwiegenheit", items: [
+    { t: "Verschwiegenheit", items: [
       <>Der Arbeitnehmer bewahrt über alle ihm bekannt gewordenen Geschäfts- und Betriebsgeheimnisse sowie über als vertraulich gekennzeichnete Informationen sowohl gegenüber Außenstehenden als auch gegenüber unbefugten Mitarbeitern Stillschweigen.</>,
       <>Die Verschwiegenheitspflicht besteht auch nach Beendigung des Arbeitsverhältnisses fort. Geschäftsunterlagen und Arbeitsmittel sind bei Beendigung vollständig herauszugeben.</>,
     ]},
-    { t: "§ 9 Betriebliche Altersversorgung", items: [
+    { t: "Wettbewerbsverbot, Kunden- und Mitarbeiterschutz", items: [
+      <>Während des Arbeitsverhältnisses ist es dem Arbeitnehmer untersagt, für ein mit dem Arbeitgeber im Wettbewerb stehendes Unternehmen selbständig, unselbständig oder in sonstiger Weise tätig zu werden, sich an einem solchen Unternehmen unmittelbar oder mittelbar zu beteiligen oder ein solches zu errichten oder zu betreiben.</>,
+      <>Der Arbeitnehmer unterlässt es während des Arbeitsverhältnisses, Kunden, Interessenten, Lieferanten oder sonstige Geschäftspartner des Arbeitgebers für eigene oder fremde Zwecke abzuwerben oder abwerben zu lassen sowie Mitarbeiter des Arbeitgebers zur Beendigung ihres Arbeitsverhältnisses zu veranlassen.</>,
+      <>Für jeden Fall des schuldhaften Verstoßes gegen Ziffer 1 oder Ziffer 2 ist eine Vertragsstrafe in Höhe einer Bruttomonatsvergütung verwirkt; bei einem fortdauernden Verstoß gilt jeder angefangene Monat als eigenständiger Verstoß. Die Geltendmachung eines weitergehenden Schadens sowie Unterlassungsansprüche bleiben unberührt.</>,
+      <>Ein über das Ende des Arbeitsverhältnisses hinausreichendes Wettbewerbs- oder Kundenschutzverbot besteht nur, soweit es gesondert schriftlich und gegen Zahlung einer Karenzentschädigung nach §§ 74 ff. HGB vereinbart wird. Die Pflicht zur Verschwiegenheit bleibt hiervon unberührt.</>,
+    ]},
+    { t: "Betriebliche Altersversorgung", items: [
       <>Ein Anspruch auf eine vom Arbeitgeber finanzierte betriebliche Altersversorgung besteht nicht. Auf die Möglichkeit der Entgeltumwandlung nach den gesetzlichen Bestimmungen wird hingewiesen.</>,
     ]},
-    { t: "§ 10 Beendigung des Arbeitsverhältnisses", items: [
+    { t: "Beendigung des Arbeitsverhältnisses", items: [
       <>Nach Ablauf der Probezeit richtet sich die Kündigung nach <b>{txt(form.noticeText)}</b> (mindestens § 622 BGB). Eine für den Arbeitgeber geltende verlängerte Kündigungsfrist gilt auch für eine Kündigung durch den Arbeitnehmer.</>,
       <>Jede Kündigung bedarf zu ihrer Wirksamkeit der Schriftform; die elektronische Form ist ausgeschlossen (§ 623 BGB).</>,
       <>Der Arbeitgeber ist berechtigt, den Arbeitnehmer im Zusammenhang mit einer Kündigung unter Fortzahlung der Bezüge und unter Anrechnung auf Urlaubs- und Freistellungsansprüche von der Arbeitsleistung freizustellen.</>,
@@ -444,21 +452,21 @@ function buildSections(form: Contract, befristet: boolean): { t: string; items: 
         ? <>Bei einem befristeten Arbeitsverhältnis endet dieses mit Ablauf der Befristung, ohne dass es einer Kündigung bedarf.</>
         : <>Das Arbeitsverhältnis endet spätestens mit Ablauf des Monats, in dem der Arbeitnehmer die Regelaltersgrenze der gesetzlichen Rentenversicherung erreicht.</>,
     ]},
-    { t: "§ 11 Vertragsstrafe", items: [
+    { t: "Vertragsstrafe", items: [
       <>Nimmt der Arbeitnehmer die Arbeit schuldhaft nicht auf oder löst er das Arbeitsverhältnis vertragswidrig ohne Einhaltung der Kündigungsfrist, so ist eine Vertragsstrafe in Höhe einer Bruttomonatsvergütung verwirkt – höchstens begrenzt auf die bis zum Ablauf der maßgeblichen Kündigungsfrist geschuldete Vergütung.</>,
       <>Die Geltendmachung eines weitergehenden Schadens bleibt unberührt.</>,
     ]},
-    { t: "§ 12 Ausschlussfrist", items: [
+    { t: "Ausschlussfrist", items: [
       <>Alle beiderseitigen Ansprüche aus und im Zusammenhang mit dem Arbeitsverhältnis verfallen, wenn sie nicht innerhalb von drei Monaten nach Fälligkeit in Textform gegenüber der anderen Vertragspartei geltend gemacht werden.</>,
       <>Die Ausschlussfrist gilt nicht für Ansprüche aus vorsätzlichem oder grob fahrlässigem Handeln, aus der Verletzung von Leben, Körper oder Gesundheit sowie für Ansprüche, die kraft Gesetzes unabdingbar sind (insbesondere aus dem Mindestlohngesetz).</>,
     ]},
-    { t: "§ 13 Abtretung und Verpfändung", items: [
+    { t: "Abtretung und Verpfändung", items: [
       <>Die Abtretung oder Verpfändung von Entgeltansprüchen an Dritte ist dem Arbeitgeber unverzüglich anzuzeigen. Für die Bearbeitung einer Lohnpfändung oder -abtretung kann eine Bearbeitungspauschale von 10,00 € je Vorgang erhoben werden, soweit der unpfändbare Teil der Vergütung dadurch nicht verringert wird.</>,
     ]},
-    { t: "§ 14 Datenschutzrechtlicher Hinweis", items: [
+    { t: "Datenschutzrechtlicher Hinweis", items: [
       <>Der Arbeitnehmer wird darauf hingewiesen, dass seine personenbezogenen Daten gemäß § 26 BDSG bzw. Art. 6 DSGVO zum Zweck der Begründung, Durchführung und Beendigung des Beschäftigungsverhältnisses verarbeitet und gespeichert werden.</>,
     ]},
-    { t: "§ 15 Nebenabreden und Schriftform", items: [
+    { t: "Nebenabreden und Schriftform", items: [
       String(form.additionalTerms || "").trim()
         ? <>Ergänzend wird vereinbart: <span style={{ whiteSpace: "pre-wrap" }}>{form.additionalTerms}</span></>
         : <>Weitere Nebenabreden zu diesem Vertrag bestehen nicht.</>,
@@ -621,7 +629,7 @@ function VertragVorschau({ form, befristet }: { form: Contract; befristet: boole
     </div>
   )});
   sections.forEach((s, si) => {
-    flow.push({ key: `h${si}`, heading: true, node: <Kasten>{s.t}</Kasten> });
+    flow.push({ key: `h${si}`, heading: true, node: <Kasten>§ {si + 1} {s.t}</Kasten> });
     s.items.forEach((it, ii) => {
       flow.push({ key: `i${si}_${ii}`, heading: false, node: <Absatz n={s.items.length > 1 ? ii + 1 : null}>{it}</Absatz> });
     });
