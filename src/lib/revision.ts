@@ -16,6 +16,7 @@ function sanitize(entity: EntityName, data: Record<string, unknown>) {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(data)) {
     if (def.protectedFields.includes(k)) continue;
+    if (k.startsWith("_")) continue; // virtuelle Felder (z. B. _lock aus GET) nie persistieren
     out[k] = v;
   }
   return out;

@@ -241,6 +241,10 @@ export default function ContractsPage() {
                 {employees.map((e) => <option key={e.id} value={e.id}>{e.name}{e.employeeNumber ? ` (${e.employeeNumber})` : ""}</option>)}
               </select>
             </Feld>
+            <Feld label="Vertragsname (zur Zuordnung)">
+              <input className="input" placeholder={form.employeeName ? `Arbeitsvertrag – ${form.employeeName}` : "z. B. Arbeitsvertrag – Max Mustermann"}
+                value={form.title || ""} onChange={(e) => set("title", e.target.value)} />
+            </Feld>
 
             <Feld label="Name des Arbeitnehmers">
               <input className="input" value={form.employeeName || ""} onChange={(e) => set("employeeName", e.target.value)} />
