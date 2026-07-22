@@ -418,7 +418,7 @@ function buildSections(form: Contract, befristet: boolean): { t: string; items: 
     ]},
     { t: "Vergütung", items: [
       <>Der Arbeitnehmer erhält ein {stnd ? "Bruttostundenentgelt" : "monatliches Bruttoentgelt"} in Höhe von <b>{fmtMoney(form.salary)}</b>{stnd ? " je geleisteter Arbeitsstunde" : ""}.</>,
-      <>Die Vergütung ist zum Ende eines Kalendermonats fällig und wird bargeldlos auf ein vom Arbeitnehmer benanntes Konto überwiesen.</>,
+      <>Die Vergütung ist jeweils zum Monatsletzten fällig und wird bis spätestens am 10. des Folgemonats auf die vom Arbeitnehmer anzugebende Bankverbindung entrichtet.</>,
       <>Freiwillige Sonderleistungen (z. B. Gratifikationen, Prämien, Einmalzahlungen) begründen auch bei wiederholter Zahlung keinen Rechtsanspruch für die Zukunft, sofern sie nicht ausdrücklich als verbindlich zugesagt werden.</>,
       <>Zu viel gezahlte Bezüge hat der Arbeitnehmer unverzüglich anzuzeigen und zurückzuzahlen.</>,
     ]},
