@@ -417,7 +417,7 @@ function buildSections(form: Contract, befristet: boolean): { t: string; items: 
       <>Zu viel gezahlte Bezüge hat der Arbeitnehmer unverzüglich anzuzeigen und zurückzuzahlen.</>,
     ]},
     { t: "Urlaub", items: [
-      <>Der Arbeitnehmer hat Anspruch auf einen bezahlten Jahresurlaub von <b>{txt(form.vacationDays)}</b> Arbeitstagen bei einer Fünf-Tage-Woche. Bei abweichender Verteilung der Arbeitstage wird der Anspruch anteilig angepasst.</>,
+      <>Der Arbeitnehmer hat Anspruch auf einen Urlaub von <b>{txt(form.vacationDays)}</b> Werktagen bezogen auf eine 5-Tage-Woche pro Kalenderjahr. Bei weniger Arbeitstagen pro Woche erfolgt eine anteilige Reduzierung.</>,
       <>Im Ein- und Austrittsjahr besteht der Urlaubsanspruch anteilig (ein Zwölftel je vollem Beschäftigungsmonat), mindestens jedoch in Höhe des gesetzlichen Mindesturlaubs.</>,
       <>Urlaub ist rechtzeitig zu beantragen und vor Antritt vom Arbeitgeber zu genehmigen. Im Übrigen gelten die Vorschriften des Bundesurlaubsgesetzes.</>,
     ]},
