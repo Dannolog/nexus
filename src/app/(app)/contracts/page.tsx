@@ -227,6 +227,12 @@ export default function ContractsPage() {
           </div>
 
           <div className="card" style={{ padding: 16, display: "grid", gap: 12 }}>
+            <Feld label="Vorlage">
+              <select className="input" value={form.template || "vollstaendig"} onChange={(e) => set("template", e.target.value)}>
+                <option value="vollstaendig">Vollständig – alle rechtlichen Absicherungen</option>
+                <option value="standard">Standard – Grundvertrag</option>
+              </select>
+            </Feld>
             <Feld label="Mitarbeiter">
               <select className="input" value={form.employeeId || ""} onChange={(e) => onEmployee(e.target.value)}>
                 <option value="">— aus Nexus wählen —</option>
@@ -446,6 +452,22 @@ function buildSections(form: Contract, befristet: boolean): { t: string; items: 
       <>Für jeden Fall des schuldhaften Verstoßes gegen Ziffer 1 oder Ziffer 2 ist eine Vertragsstrafe in Höhe einer Bruttomonatsvergütung verwirkt; bei einem fortdauernden Verstoß gilt jeder angefangene Monat als eigenständiger Verstoß. Die Geltendmachung eines weitergehenden Schadens sowie Unterlassungsansprüche bleiben unberührt.</>,
       <>Ein über das Ende des Arbeitsverhältnisses hinausreichendes Wettbewerbs- oder Kundenschutzverbot besteht nur, soweit es gesondert schriftlich und gegen Zahlung einer Karenzentschädigung nach §§ 74 ff. HGB vereinbart wird. Die Pflicht zur Verschwiegenheit bleibt hiervon unberührt.</>,
     ]},
+    { t: "Arbeitsergebnisse, Schutzrechte und Arbeitnehmererfindungen", full: true, items: [
+      <>Alle Arbeitsergebnisse, die der Arbeitnehmer im Rahmen seiner Tätigkeit erstellt, stehen ausschließlich dem Arbeitgeber zu. An urheberrechtlich geschützten Werken räumt der Arbeitnehmer dem Arbeitgeber das ausschließliche, räumlich, zeitlich und inhaltlich unbeschränkte sowie übertragbare Nutzungsrecht für alle bekannten Nutzungsarten ein; die Übertragung ist mit der vereinbarten Vergütung abgegolten.</>,
+      <>Diensterfindungen und technische Verbesserungsvorschläge sind dem Arbeitgeber unverzüglich schriftlich zu melden. Es gelten die Vorschriften des Gesetzes über Arbeitnehmererfindungen (ArbnErfG).</>,
+    ]},
+    { t: "Fortbildung und Rückzahlung von Fortbildungskosten", full: true, items: [
+      <>Übernimmt der Arbeitgeber die Kosten einer über die betriebliche Einarbeitung hinausgehenden Fort- oder Weiterbildung, kann hierüber eine gesonderte schriftliche Rückzahlungsvereinbarung getroffen werden.</>,
+      <>Scheidet der Arbeitnehmer auf eigenen Wunsch oder aus einem von ihm zu vertretenden Grund innerhalb von 24 Monaten nach Abschluss einer solchen Maßnahme aus, sind die vom Arbeitgeber getragenen Kosten anteilig zurückzuzahlen; der Rückzahlungsbetrag verringert sich für je einen vollen Monat der Betriebszugehörigkeit nach Abschluss der Maßnahme um 1/24.</>,
+    ]},
+    { t: "Herausgabe von Arbeitsmitteln; Ausschluss des Zurückbehaltungsrechts", full: true, items: [
+      <>Sämtliche dem Arbeitnehmer überlassenen Arbeitsmittel, Unterlagen, Schlüssel, Zugangsdaten sowie deren Kopien sind bei Beendigung des Arbeitsverhältnisses – auf Verlangen auch schon vorher – unverzüglich und vollständig herauszugeben.</>,
+      <>Ein Zurückbehaltungsrecht an diesen Gegenständen ist ausgeschlossen. Bei nicht rechtzeitiger Rückgabe kann der Arbeitgeber die Herausgabe verlangen und ist zum Ersatz des entstehenden Schadens berechtigt.</>,
+    ]},
+    { t: "Nutzung betrieblicher IT und Datenschutz am Arbeitsplatz", full: true, items: [
+      <>Betriebliche IT-Systeme, E-Mail- und Internetzugänge sind grundsätzlich nur zu dienstlichen Zwecken zu nutzen. Der Arbeitnehmer beachtet die jeweils geltenden IT- und Datenschutzrichtlinien des Arbeitgebers.</>,
+      <>Eine Kontrolle der dienstlichen Nutzung erfolgt im gesetzlich zulässigen Rahmen. Zugangsdaten sind geheim zu halten und dürfen nicht an Dritte weitergegeben werden.</>,
+    ]},
     { t: "Betriebliche Altersversorgung", items: [
       <>Ein Anspruch auf eine vom Arbeitgeber finanzierte betriebliche Altersversorgung besteht nicht. Auf die Möglichkeit der Entgeltumwandlung nach den gesetzlichen Bestimmungen wird hingewiesen.</>,
     ]},
@@ -471,6 +493,16 @@ function buildSections(form: Contract, befristet: boolean): { t: string; items: 
     { t: "Datenschutzrechtlicher Hinweis", items: [
       <>Der Arbeitnehmer wird darauf hingewiesen, dass seine personenbezogenen Daten gemäß § 26 BDSG bzw. Art. 6 DSGVO zum Zweck der Begründung, Durchführung und Beendigung des Beschäftigungsverhältnisses verarbeitet und gespeichert werden.</>,
     ]},
+    { t: "Bild- und Nutzungsrechte", full: true, items: [
+      <>Der Arbeitnehmer willigt widerruflich ein, dass im Rahmen der Tätigkeit entstandene Foto- und Videoaufnahmen seiner Person für interne Zwecke sowie für die Außendarstellung des Arbeitgebers (z. B. Website, Social Media, Werbematerial) verwendet werden dürfen. Die Einwilligung kann für die Zukunft widerrufen werden.</>,
+    ]},
+    { t: "Vollständigkeit der Angaben, Anfechtung", full: true, items: [
+      <>Der Arbeitnehmer versichert, dass seine im Zusammenhang mit der Einstellung gemachten Angaben vollständig und richtig sind und dass keine vertraglichen Wettbewerbsverbote oder sonstigen Verpflichtungen gegenüber Dritten bestehen, die der Tätigkeit entgegenstehen.</>,
+      <>Erweisen sich diese Angaben als unrichtig, ist der Arbeitgeber berechtigt, den Vertrag anzufechten oder außerordentlich zu kündigen.</>,
+    ]},
+    { t: "Anwendbares Recht und Gerichtsstand", full: true, items: [
+      <>Es gilt ausschließlich das Recht der Bundesrepublik Deutschland. Soweit gesetzlich zulässig, ist Gerichtsstand für alle Streitigkeiten aus diesem Arbeitsverhältnis der Sitz des Arbeitgebers.</>,
+    ]},
     { t: "Nebenabreden und Schriftform", items: [
       String(form.additionalTerms || "").trim()
         ? <>Ergänzend wird vereinbart: <span style={{ whiteSpace: "pre-wrap" }}>{form.additionalTerms}</span></>
@@ -479,6 +511,8 @@ function buildSections(form: Contract, befristet: boolean): { t: string; items: 
       <>Sollte eine Bestimmung dieses Vertrages unwirksam sein oder werden, so bleibt die Wirksamkeit der übrigen Bestimmungen hiervon unberührt.</>,
     ]},
   ];
+  // Standard-Vorlage = ohne die zusätzlich abgesicherten §§; Vollständig = alle.
+  return form.template === "standard" ? all.filter((s) => !s.full) : all;
 }
 
 // ── einzelne Bausteine ──
