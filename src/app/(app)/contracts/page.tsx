@@ -220,7 +220,8 @@ export default function ContractsPage() {
                     display: "flex", justifyContent: "space-between", gap: 8,
                   }}>
                   <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {c.employeeName || c.title || "Ohne Namen"}
+                    {c.title || c.employeeName || "Ohne Namen"}
+                    {c.employeeName && c.title && c.title !== c.employeeName ? <span style={{ opacity: 0.6 }}> · {c.employeeName}</span> : null}
                   </span>
                   <span style={{ opacity: 0.7, flexShrink: 0 }}>{c.status}</span>
                 </button>
