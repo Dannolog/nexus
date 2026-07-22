@@ -31,6 +31,8 @@ const LEER: Contract = {
   endDate: null,
   probationMonths: 6,
   weeklyHours: 40,
+  weekHoursMin: 35,
+  weekHoursMax: 42,
   salary: 18.68,
   salaryPeriod: "stündlich",
   vacationDays: 30,
@@ -279,9 +281,15 @@ export default function ContractsPage() {
                 <input className="input" type="number" min={0} value={form.probationMonths ?? 0}
                   onChange={(e) => set("probationMonths", e.target.value === "" ? 0 : Number(e.target.value))} />
               </Feld>
-              <Feld label="Wochenstunden">
-                <input className="input" type="number" min={0} step="0.5" value={form.weeklyHours ?? 0}
-                  onChange={(e) => set("weeklyHours", e.target.value === "" ? 0 : Number(e.target.value))} />
+              <Feld label="Flexarbeitszeit von (Std./Woche)">
+                <input className="input" type="number" min={0} step="0.5" value={form.weekHoursMin ?? 35}
+                  onChange={(e) => set("weekHoursMin", e.target.value === "" ? 0 : Number(e.target.value))} />
+              </Feld>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <Feld label="Flexarbeitszeit bis (Std./Woche)">
+                <input className="input" type="number" min={0} step="0.5" value={form.weekHoursMax ?? 42}
+                  onChange={(e) => set("weekHoursMax", e.target.value === "" ? 0 : Number(e.target.value))} />
               </Feld>
             </div>
 
@@ -400,7 +408,7 @@ function buildSections(form: Contract, befristet: boolean): { t: string; items: 
       <>Eine ordentliche Kündigung vor Arbeitsantritt ist ausgeschlossen.</>,
     ]},
     { t: "Arbeitszeit", items: [
-      <>Es gilt eine flexible wöchentliche Arbeitszeit (Flexarbeitszeit) von <b>35 bis 42 Stunden</b> (ohne Pausen). Der konkrete Umfang richtet sich innerhalb dieses Rahmens nach dem betrieblichen Arbeitsanfall.</>,
+      <>Es gilt eine flexible wöchentliche Arbeitszeit (Flexarbeitszeit) von <b>{txt(form.weekHoursMin ?? 35)} bis {txt(form.weekHoursMax ?? 42)} Stunden</b> (ohne Pausen). Der konkrete Umfang richtet sich innerhalb dieses Rahmens nach dem betrieblichen Arbeitsanfall.</>,
       <>Die Lage (Beginn und Ende) sowie die Dauer der Pausen richten sich nach der jeweils gültigen betrieblichen Regelung zu Arbeitszeit und Arbeitszeitkonto.</>,
       <>Der Arbeitnehmer ist im gesetzlich zulässigen Rahmen zur Leistung von Mehrarbeit und Überstunden verpflichtet, soweit betriebliche Erfordernisse dies notwendig machen.</>,
       <>Geleistete Überstunden werden nach Wahl des Arbeitnehmers ausbezahlt oder durch Freizeit ausgeglichen („abgefeiert").</>,
@@ -420,6 +428,7 @@ function buildSections(form: Contract, befristet: boolean): { t: string; items: 
       <>Der Arbeitnehmer hat Anspruch auf einen Urlaub von <b>{txt(form.vacationDays)}</b> Werktagen bezogen auf eine 5-Tage-Woche pro Kalenderjahr. Bei weniger Arbeitstagen pro Woche erfolgt eine anteilige Reduzierung.</>,
       <>Im Ein- und Austrittsjahr besteht der Urlaubsanspruch anteilig (ein Zwölftel je vollem Beschäftigungsmonat), mindestens jedoch in Höhe des gesetzlichen Mindesturlaubs.</>,
       <>Urlaub ist rechtzeitig zu beantragen und vor Antritt vom Arbeitgeber zu genehmigen. Im Übrigen gelten die Vorschriften des Bundesurlaubsgesetzes.</>,
+      <>Der übergesetzliche Urlaubsanspruch erlischt mit der Beendigung des Arbeitsverhältnisses; er ist nicht abzugelten und ist nicht vererblich.</>,
     ]},
     { t: "Arbeitsverhinderung und Arbeitsunfähigkeit", items: [
       <>Jede Arbeitsverhinderung ist dem Arbeitgeber unverzüglich – spätestens zu Beginn der Arbeitszeit – unter Angabe der Gründe und der voraussichtlichen Dauer mitzuteilen.</>,
