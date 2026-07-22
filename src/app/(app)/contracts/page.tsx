@@ -369,9 +369,9 @@ const PAD_X = 62;
 const PAD_TOP = 50;
 const PAD_BOTTOM = 18;
 const FOOT_H = 34;
-const HEAD_FIRST = 152; // Briefkopf + Titel auf Seite 1
+const HEAD_FIRST = 172; // Briefkopf + Titel (mit Akzentlinie) auf Seite 1
 const HEAD_REST = 50;   // laufende Kopfzeile ab Seite 2
-const ITEM_GAP = 8;
+const ITEM_GAP = 9;
 const CONTENT_W = A4_W - PAD_X * 2;
 const usableHeight = (pageIndex: number) =>
   A4_H - PAD_TOP - PAD_BOTTOM - FOOT_H - (pageIndex === 0 ? HEAD_FIRST : HEAD_REST);
@@ -582,10 +582,13 @@ function A4Seite({ page, total, docRef, children }: { page: number; total: numbe
       {page === 1 ? (
         <>
           <Briefkopf />
-          <h2 style={{ textAlign: "center", fontSize: 24, fontWeight: 700, letterSpacing: ".16em", margin: "16px 0 4px", fontFamily: "var(--font-display), sans-serif" }}>ARBEITSVERTRAG</h2>
-          <p style={{ textAlign: "center", fontSize: 10, color: "#777", margin: "0 0 16px", fontStyle: "italic" }}>
-            Die Bezeichnung „Arbeitnehmer" dient ausschließlich der besseren Lesbarkeit und gilt für Beschäftigte jeglichen Geschlechts.
-          </p>
+          <div style={{ textAlign: "center", margin: "20px 0 18px" }}>
+            <h2 style={{ fontSize: 25, fontWeight: 700, letterSpacing: ".2em", margin: 0, color: "#14203a", fontFamily: "var(--font-display), sans-serif" }}>ARBEITSVERTRAG</h2>
+            <div style={{ width: 58, height: 3, background: "#0047b3", borderRadius: 2, margin: "9px auto 0" }} />
+            <p style={{ fontSize: 10, color: "#777", margin: "9px 0 0", fontStyle: "italic" }}>
+              Die Bezeichnung „Arbeitnehmer" dient ausschließlich der besseren Lesbarkeit und gilt für Beschäftigte jeglichen Geschlechts.
+            </p>
+          </div>
         </>
       ) : (
         <div style={{ marginBottom: 14 }}><LaufKopf /></div>
@@ -679,11 +682,17 @@ function VertragVorschau({ form, befristet }: { form: Contract; befristet: boole
     });
   });
   flow.push({ key: "sign", heading: false, node: (
-    <div style={{ marginTop: 18 }}>
-      <p style={{ margin: "0 0 34px" }}>{txt(form.signCity, "________")}, den {fmtDate(form.signDate)}</p>
-      <div style={{ display: "flex", gap: 44 }}>
-        <div style={{ flex: 1, borderTop: "1px solid #1a1a1a", paddingTop: 5, fontSize: 11.5 }}>Arbeitgeber<br />{ARBEITGEBER.name}</div>
-        <div style={{ flex: 1, borderTop: "1px solid #1a1a1a", paddingTop: 5, fontSize: 11.5 }}>Arbeitnehmer<br />{txt(form.employeeName, "")}</div>
+    <div style={{ marginTop: 22 }}>
+      <p style={{ margin: "0 0 42px" }}>{txt(form.signCity, "________")}, den {fmtDate(form.signDate)}</p>
+      <div style={{ display: "flex", gap: 48 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ borderTop: "1.5px solid #1a1a1a", paddingTop: 6, fontSize: 11.5, fontWeight: 600 }}>Arbeitgeber</div>
+          <div style={{ fontSize: 11, color: "#555" }}>{ARBEITGEBER.name}</div>
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ borderTop: "1.5px solid #1a1a1a", paddingTop: 6, fontSize: 11.5, fontWeight: 600 }}>Arbeitnehmer</div>
+          <div style={{ fontSize: 11, color: "#555" }}>{txt(form.employeeName, "")}</div>
+        </div>
       </div>
     </div>
   )});
