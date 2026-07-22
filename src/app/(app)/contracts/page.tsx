@@ -698,7 +698,8 @@ function VertragVorschau({ form, befristet }: { form: Contract; befristet: boole
   )});
 
   const measureRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const [pages, setPages] = useState<number[][] | null>(null);
+  // pages an die Signatur binden → bei Inhaltswechsel keine veralteten Indizes rendern.
+  const [pages, setPages] = useState<{ sig: string; groups: number[][] } | null>(null);
   const sig = JSON.stringify({ form, befristet });
 
   useEffect(() => {
@@ -715,11 +716,12 @@ function VertragVorschau({ form, befristet }: { form: Contract; befristet: boole
       used += h + ITEM_GAP;
     }
     if (cur.length) result.push(cur);
-    setPages(result);
+    setPages({ sig, groups: result });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sig]);
 
-  const laidOut = pages || [flow.map((_, k) => k)];
+  // Nur den zum aktuellen Stand passenden Umbruch verwenden; sonst alles auf einer Seite (Fallback).
+  const laidOut = pages && pages.sig === sig ? pages.groups : [flow.map((_, k) => k)];
   const total = laidOut.length;
 
   return (
@@ -733,7 +735,7 @@ function VertragVorschau({ form, befristet }: { form: Contract; befristet: boole
 
       {laidOut.map((idxs, pi) => (
         <A4Seite key={pi} page={pi + 1} total={total} docRef={docRef}>
-          {idxs.map((k) => <div key={flow[k].key}>{flow[k].node}</div>)}
+          {idxs.filter((k) => flow[k]).map((k) => <div key={flow[k].key}>{flow[k].node}</div>)}
         </A4Seite>
       ))}
     </div>
