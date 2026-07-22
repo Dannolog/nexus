@@ -379,9 +379,9 @@ const bulletFrei = [
 ];
 
 // ── Modernisierter Klauselsatz für Baier Maschinen (ohne Betriebsrat) ──
-function buildSections(form: Contract, befristet: boolean): { t: string; items: React.ReactNode[] }[] {
+function buildSections(form: Contract, befristet: boolean): { t: string; items: React.ReactNode[]; full?: boolean }[] {
   const stnd = form.salaryPeriod === "stündlich";
-  return [
+  const all: { t: string; items: React.ReactNode[]; full?: boolean }[] = [
     { t: "Beginn des Arbeitsverhältnisses, Tätigkeit und Probezeit", items: [
       <>Das Arbeitsverhältnis beginnt am <b>{fmtDate(form.startDate)}</b>. Der Arbeitnehmer wird als <b>{txt(form.jobTitle)}</b> eingestellt. {befristet
         ? <>Das Arbeitsverhältnis ist befristet und endet am <b>{fmtDate(form.endDate)}</b>, ohne dass es einer Kündigung bedarf.</>
