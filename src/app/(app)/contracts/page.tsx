@@ -403,7 +403,7 @@ function buildSections(form: Contract, befristet: boolean): { t: string; items: 
       <>Es gilt eine flexible wöchentliche Arbeitszeit (Flexarbeitszeit) von <b>35 bis 42 Stunden</b> (ohne Pausen). Der konkrete Umfang richtet sich innerhalb dieses Rahmens nach dem betrieblichen Arbeitsanfall.</>,
       <>Die Lage (Beginn und Ende) sowie die Dauer der Pausen richten sich nach der jeweils gültigen betrieblichen Regelung zu Arbeitszeit und Arbeitszeitkonto.</>,
       <>Der Arbeitnehmer ist im gesetzlich zulässigen Rahmen zur Leistung von Mehrarbeit und Überstunden verpflichtet, soweit betriebliche Erfordernisse dies notwendig machen.</>,
-      <>Geleistete Überstunden werden je nach Wunsch ausbezahlt oder können durch Freizeit ausgeglichen („abgefeiert") werden.</>,
+      <>Geleistete Überstunden werden nach Wahl des Arbeitnehmers ausbezahlt oder durch Freizeit ausgeglichen („abgefeiert").</>,
       <>Etwaige Zuschläge für Mehr-, Nacht-, Sonn- und Feiertagsarbeit richten sich nach den gesetzlichen sowie den jeweils geltenden betrieblichen Regelungen.</>,
     ]},
     { t: "Kurzarbeit", full: true, items: [
