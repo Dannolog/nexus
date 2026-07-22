@@ -20,6 +20,7 @@ type Contract = Record<string, any>;
 
 const LEER: Contract = {
   title: "",
+  template: "vollstaendig", // "standard" | "vollstaendig" (alle rechtlichen Absicherungen)
   employeeId: "",
   employeeName: "",
   employeeAddress: "",
