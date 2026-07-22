@@ -400,10 +400,10 @@ function buildSections(form: Contract, befristet: boolean): { t: string; items: 
       <>Eine ordentliche Kündigung vor Arbeitsantritt ist ausgeschlossen.</>,
     ]},
     { t: "Arbeitszeit", items: [
-      <>Die regelmäßige wöchentliche Arbeitszeit beträgt <b>{txt(form.weeklyHours)}</b> Stunden (ohne Pausen).</>,
+      <>Es gilt eine flexible wöchentliche Arbeitszeit (Flexarbeitszeit) von <b>35 bis 42 Stunden</b> (ohne Pausen). Der konkrete Umfang richtet sich innerhalb dieses Rahmens nach dem betrieblichen Arbeitsanfall.</>,
       <>Die Lage (Beginn und Ende) sowie die Dauer der Pausen richten sich nach der jeweils gültigen betrieblichen Regelung zu Arbeitszeit und Arbeitszeitkonto.</>,
       <>Der Arbeitnehmer ist im gesetzlich zulässigen Rahmen zur Leistung von Mehrarbeit und Überstunden verpflichtet, soweit betriebliche Erfordernisse dies notwendig machen.</>,
-      <>Geleistete Überstunden werden grundsätzlich durch Freizeit ausgeglichen („abgefeiert") und nicht ausgezahlt. Eine Auszahlung erfolgt ausschließlich nach vorheriger ausdrücklicher Absprache im Einzelfall; ein Anspruch des Arbeitnehmers auf Auszahlung besteht nicht.</>,
+      <>Geleistete Überstunden werden je nach Wunsch ausbezahlt oder können durch Freizeit ausgeglichen („abgefeiert") werden.</>,
       <>Etwaige Zuschläge für Mehr-, Nacht-, Sonn- und Feiertagsarbeit richten sich nach den gesetzlichen sowie den jeweils geltenden betrieblichen Regelungen.</>,
     ]},
     { t: "Kurzarbeit", full: true, items: [
