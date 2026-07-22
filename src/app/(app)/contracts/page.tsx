@@ -538,8 +538,8 @@ function Briefkopf() {
 function LaufKopf() {
   return (
     <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", borderBottom: "1px solid #ccc", paddingBottom: 6, color: "#666" }}>
-      <span style={{ fontStyle: "italic", fontWeight: 700, fontSize: 12, letterSpacing: ".04em", fontFamily: "var(--font-display), sans-serif" }}>ARBEITSVERTRAG</span>
-      <span style={{ fontSize: 11, color: "#0047b3", fontWeight: 700, fontFamily: "var(--font-display), sans-serif" }}>{ARBEITGEBER.name}</span>
+      <span style={{ fontWeight: 700, fontSize: 12, letterSpacing: ".02em" }}>Arbeitsvertrag</span>
+      <span style={{ fontSize: 11, color: "#444", fontWeight: 600 }}>{ARBEITGEBER.name}</span>
     </div>
   );
 }
