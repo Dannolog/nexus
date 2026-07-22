@@ -401,8 +401,7 @@ function buildSections(form: Contract, befristet: boolean): { t: string; items: 
     ]},
     { t: "Arbeitszeit", items: [
       <>Die regelmäßige wöchentliche Arbeitszeit beträgt <b>{txt(form.weeklyHours)}</b> Stunden (ohne Pausen).</>,
-      <>Beginn, Ende und Verteilung der täglichen Arbeitszeit richten sich nach den betrieblichen Erfordernissen und werden vom Arbeitgeber nach billigem Ermessen festgelegt.</>,
-      <>Die Lage (Beginn und Ende) sowie die Dauer der Pausen richten sich nach der jeweils gültigen Betriebsvereinbarung Arbeitszeit und Arbeitszeitkonto.</>,
+      <>Die Lage (Beginn und Ende) sowie die Dauer der Pausen richten sich nach der jeweils gültigen betrieblichen Regelung zu Arbeitszeit und Arbeitszeitkonto.</>,
       <>Der Arbeitnehmer ist im gesetzlich zulässigen Rahmen zur Leistung von Mehrarbeit und Überstunden verpflichtet, soweit betriebliche Erfordernisse dies notwendig machen.</>,
       <>Geleistete Überstunden werden grundsätzlich durch Freizeit ausgeglichen („abgefeiert") und nicht ausgezahlt. Eine Auszahlung erfolgt ausschließlich nach vorheriger ausdrücklicher Absprache im Einzelfall; ein Anspruch des Arbeitnehmers auf Auszahlung besteht nicht.</>,
       <>Etwaige Zuschläge für Mehr-, Nacht-, Sonn- und Feiertagsarbeit richten sich nach den gesetzlichen sowie den jeweils geltenden betrieblichen Regelungen.</>,
