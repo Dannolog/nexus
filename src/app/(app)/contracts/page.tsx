@@ -553,19 +553,20 @@ function Fuss({ page, total, docRef }: { page: number; total: number; docRef: st
   );
 }
 
-function Kasten({ children }: { children: React.ReactNode }) {
+function Kasten({ n, title }: { n: number; title: string }) {
   return (
-    <div style={{ border: "1px solid #333", borderRadius: 2, padding: "4px 9px", background: "#f4f6f9", fontWeight: 700, fontSize: 13, letterSpacing: ".005em", fontFamily: "var(--font-display), sans-serif", color: "#111" }}>
-      {children}
+    <div style={{ display: "flex", alignItems: "stretch", gap: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", background: "#0047b3", color: "#fff", fontWeight: 700, fontSize: 12, letterSpacing: ".02em", padding: "3px 10px", borderRadius: 5, whiteSpace: "nowrap", fontFamily: "var(--font-display), sans-serif" }}>§ {n}</div>
+      <div style={{ display: "flex", alignItems: "center", flex: 1, fontWeight: 700, fontSize: 13.5, letterSpacing: ".005em", color: "#14203a", fontFamily: "var(--font-display), sans-serif", borderBottom: "1.5px solid #dbe3f0", paddingBottom: 3 }}>{title}</div>
     </div>
   );
 }
 
 function Absatz({ n, children }: { n: number | null; children: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", gap: 8, textAlign: "justify" }}>
-      {n != null && <span style={{ minWidth: 20, flexShrink: 0, color: "#0047b3", fontWeight: 600 }}>{n}.</span>}
-      <div style={{ flex: 1 }}>{children}</div>
+    <div style={{ display: "flex", gap: 10, textAlign: "justify", paddingLeft: n != null ? 0 : 32 }}>
+      {n != null && <span style={{ minWidth: 22, flexShrink: 0, color: "#0047b3", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{n}.</span>}
+      <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
     </div>
   );
 }
@@ -655,20 +656,24 @@ function VertragVorschau({ form, befristet }: { form: Contract; befristet: boole
   const flow: Flow[] = [];
   flow.push({ key: "parties", heading: false, node: (
     <div>
-      <p style={{ margin: "0 0 3px" }}>Zwischen</p>
-      <p style={{ margin: "0 0 3px", paddingLeft: 16 }}><b>{ARBEITGEBER.name}</b>, {ARBEITGEBER.inhaber}, {ARBEITGEBER.strasse}, {ARBEITGEBER.ort}</p>
-      <p style={{ margin: "0 0 10px", fontStyle: "italic", color: "#666" }}>– nachfolgend „Arbeitgeber" –</p>
-      <p style={{ margin: "0 0 3px" }}>und</p>
-      <p style={{ margin: "0 0 3px", paddingLeft: 16 }}>
-        <b>{txt(form.employeeName)}</b>{form.employeeAddress ? <>, {txt(form.employeeAddress).split(/\n/).map((z: string, i: number) => <span key={i}>{i > 0 ? ", " : ""}{z}</span>)}</> : ""}
-        {form.employeeBirth ? <>, geboren am <b>{form.employeeBirth}</b></> : ""}
-      </p>
-      <p style={{ margin: "0 0 10px", fontStyle: "italic", color: "#666" }}>– nachfolgend „Arbeitnehmer" –</p>
-      <p style={{ margin: 0 }}>wird folgender {befristet ? "befristeter" : "unbefristeter"} Arbeitsvertrag geschlossen:</p>
+      <p style={{ margin: "0 0 7px" }}>Zwischen</p>
+      <div style={{ background: "#f6f8fc", border: "1px solid #e3e9f3", borderRadius: 6, padding: "9px 14px" }}>
+        <div><b>{ARBEITGEBER.name}</b>, {ARBEITGEBER.inhaber}, {ARBEITGEBER.strasse}, {ARBEITGEBER.ort}</div>
+        <div style={{ fontSize: 10.5, color: "#0047b3", fontWeight: 600, marginTop: 2 }}>— nachfolgend „Arbeitgeber" —</div>
+      </div>
+      <p style={{ margin: "7px 0", textAlign: "center" }}>und</p>
+      <div style={{ background: "#f6f8fc", border: "1px solid #e3e9f3", borderRadius: 6, padding: "9px 14px" }}>
+        <div>
+          <b>{txt(form.employeeName)}</b>{form.employeeAddress ? <>, {txt(form.employeeAddress).split(/\n/).map((z: string, i: number) => <span key={i}>{i > 0 ? ", " : ""}{z}</span>)}</> : ""}
+          {form.employeeBirth ? <>, geboren am <b>{form.employeeBirth}</b></> : ""}
+        </div>
+        <div style={{ fontSize: 10.5, color: "#0047b3", fontWeight: 600, marginTop: 2 }}>— nachfolgend „Arbeitnehmer" —</div>
+      </div>
+      <p style={{ margin: "11px 0 0" }}>wird folgender {befristet ? "befristeter" : "unbefristeter"} Arbeitsvertrag geschlossen:</p>
     </div>
   )});
   sections.forEach((s, si) => {
-    flow.push({ key: `h${si}`, heading: true, node: <Kasten>§ {si + 1} {s.t}</Kasten> });
+    flow.push({ key: `h${si}`, heading: true, node: <Kasten n={si + 1} title={s.t} /> });
     s.items.forEach((it, ii) => {
       flow.push({ key: `i${si}_${ii}`, heading: false, node: <Absatz n={s.items.length > 1 ? ii + 1 : null}>{it}</Absatz> });
     });
