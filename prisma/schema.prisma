@@ -243,7 +243,10 @@ model EmploymentContract {
   contractType    String   @default("unbefristet")      // unbefristet | befristet
   endDate         DateTime?                              // bei Befristung
   probationMonths Int      @default(6)                   // Probezeit in Monaten (0 = keine)
-  weeklyHours     Float    @default(40)                  // Wochenarbeitszeit
+  template        String   @default("vollstaendig")      // "standard" | "vollstaendig" (Klausel-Vorlage)
+  weeklyHours     Float    @default(40)                  // Wochenarbeitszeit (Legacy)
+  weekHoursMin    Float    @default(35)                  // Flexarbeitszeit-Korridor von
+  weekHoursMax    Float    @default(42)                  // Flexarbeitszeit-Korridor bis
   salary          Float    @default(0)                   // Bruttoentgelt
   salaryPeriod    String   @default("monatlich")         // monatlich | stündlich
   vacationDays    Int      @default(30)                  // Urlaubstage/Jahr
