@@ -554,18 +554,18 @@ function Fuss({ page, total, docRef }: { page: number; total: number; docRef: st
 }
 
 function Kasten({ n, title }: { n: number; title: string }) {
+  // Klassischer Stil: schlichte fette Überschrift „§ N Titel", mit Abstand darüber.
   return (
-    <div style={{ display: "flex", alignItems: "stretch", gap: 10 }}>
-      <div style={{ display: "flex", alignItems: "center", background: "#0047b3", color: "#fff", fontWeight: 700, fontSize: 12, letterSpacing: ".02em", padding: "3px 10px", borderRadius: 5, whiteSpace: "nowrap", fontFamily: "var(--font-display), sans-serif" }}>§ {n}</div>
-      <div style={{ display: "flex", alignItems: "center", flex: 1, fontWeight: 700, fontSize: 13.5, letterSpacing: ".005em", color: "#14203a", fontFamily: "var(--font-display), sans-serif", borderBottom: "1.5px solid #dbe3f0", paddingBottom: 3 }}>{title}</div>
+    <div style={{ paddingTop: 9, fontWeight: 700, fontSize: 13.5, color: "#000", fontFamily: "var(--font-sans), system-ui, sans-serif" }}>
+      § {n} {title}
     </div>
   );
 }
 
 function Absatz({ n, children }: { n: number | null; children: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", gap: 10, textAlign: "justify", paddingLeft: n != null ? 0 : 32 }}>
-      {n != null && <span style={{ minWidth: 22, flexShrink: 0, color: "#0047b3", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{n}.</span>}
+    <div style={{ display: "flex", gap: 8, textAlign: "justify", paddingLeft: n != null ? 12 : 24 }}>
+      {n != null && <span style={{ minWidth: 20, flexShrink: 0, color: "#000", fontVariantNumeric: "tabular-nums" }}>{n}.</span>}
       <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
     </div>
   );
@@ -582,11 +582,10 @@ function A4Seite({ page, total, docRef, children }: { page: number; total: numbe
       {page === 1 ? (
         <>
           <Briefkopf />
-          <div style={{ textAlign: "center", margin: "20px 0 18px" }}>
-            <h2 style={{ fontSize: 25, fontWeight: 700, letterSpacing: ".2em", margin: 0, color: "#14203a", fontFamily: "var(--font-display), sans-serif" }}>ARBEITSVERTRAG</h2>
-            <div style={{ width: 58, height: 3, background: "#0047b3", borderRadius: 2, margin: "9px auto 0" }} />
-            <p style={{ fontSize: 10, color: "#777", margin: "9px 0 0", fontStyle: "italic" }}>
-              Die Bezeichnung „Arbeitnehmer" dient ausschließlich der besseren Lesbarkeit und gilt für Beschäftigte jeglichen Geschlechts.
+          <div style={{ textAlign: "center", margin: "22px 0 18px" }}>
+            <h2 style={{ fontSize: 22, fontWeight: 700, letterSpacing: ".06em", margin: 0, color: "#000", fontFamily: "var(--font-sans), system-ui, sans-serif" }}>Arbeitsvertrag</h2>
+            <p style={{ fontSize: 10, color: "#666", margin: "6px 0 0", fontStyle: "italic" }}>
+              Die Bezeichnungen „Arbeitnehmer" / „Arbeitgeber" gelten für Beschäftigte jeglichen Geschlechts.
             </p>
           </div>
         </>
@@ -659,20 +658,16 @@ function VertragVorschau({ form, befristet }: { form: Contract; befristet: boole
   const flow: Flow[] = [];
   flow.push({ key: "parties", heading: false, node: (
     <div>
-      <p style={{ margin: "0 0 7px" }}>Zwischen</p>
-      <div style={{ background: "#f6f8fc", border: "1px solid #e3e9f3", borderRadius: 6, padding: "9px 14px" }}>
-        <div><b>{ARBEITGEBER.name}</b>, {ARBEITGEBER.inhaber}, {ARBEITGEBER.strasse}, {ARBEITGEBER.ort}</div>
-        <div style={{ fontSize: 10.5, color: "#0047b3", fontWeight: 600, marginTop: 2 }}>— nachfolgend „Arbeitgeber" —</div>
-      </div>
-      <p style={{ margin: "7px 0", textAlign: "center" }}>und</p>
-      <div style={{ background: "#f6f8fc", border: "1px solid #e3e9f3", borderRadius: 6, padding: "9px 14px" }}>
-        <div>
-          <b>{txt(form.employeeName)}</b>{form.employeeAddress ? <>, {txt(form.employeeAddress).split(/\n/).map((z: string, i: number) => <span key={i}>{i > 0 ? ", " : ""}{z}</span>)}</> : ""}
-          {form.employeeBirth ? <>, geboren am <b>{form.employeeBirth}</b></> : ""}
-        </div>
-        <div style={{ fontSize: 10.5, color: "#0047b3", fontWeight: 600, marginTop: 2 }}>— nachfolgend „Arbeitnehmer" —</div>
-      </div>
-      <p style={{ margin: "11px 0 0" }}>wird folgender {befristet ? "befristeter" : "unbefristeter"} Arbeitsvertrag geschlossen:</p>
+      <p style={{ margin: "0 0 4px" }}>Zwischen</p>
+      <p style={{ margin: "0 0 3px", paddingLeft: 24 }}><b>{ARBEITGEBER.name}</b>, {ARBEITGEBER.inhaber}, {ARBEITGEBER.strasse}, {ARBEITGEBER.ort}</p>
+      <p style={{ margin: "0 0 10px", paddingLeft: 24, fontStyle: "italic" }}>– nachfolgend „Arbeitgeber" –</p>
+      <p style={{ margin: "0 0 4px" }}>und</p>
+      <p style={{ margin: "0 0 3px", paddingLeft: 24 }}>
+        <b>{txt(form.employeeName)}</b>{form.employeeAddress ? <>, {txt(form.employeeAddress).split(/\n/).map((z: string, i: number) => <span key={i}>{i > 0 ? ", " : ""}{z}</span>)}</> : ""}
+        {form.employeeBirth ? <>, geboren am <b>{form.employeeBirth}</b></> : ""}
+      </p>
+      <p style={{ margin: "0 0 10px", paddingLeft: 24, fontStyle: "italic" }}>– nachfolgend „Arbeitnehmer" –</p>
+      <p style={{ margin: 0 }}>wird folgender {befristet ? "befristeter" : "unbefristeter"} Arbeitsvertrag geschlossen:</p>
     </div>
   )});
   sections.forEach((s, si) => {
