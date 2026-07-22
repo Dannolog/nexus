@@ -400,6 +400,10 @@ function buildSections(form: Contract, befristet: boolean): { t: string; items: 
       <>Geleistete Überstunden werden grundsätzlich durch Freizeit ausgeglichen („abgefeiert") und nicht ausgezahlt. Eine Auszahlung erfolgt ausschließlich nach vorheriger ausdrücklicher Absprache im Einzelfall; ein Anspruch des Arbeitnehmers auf Auszahlung besteht nicht.</>,
       <>Etwaige Zuschläge für Mehr-, Nacht-, Sonn- und Feiertagsarbeit richten sich nach den gesetzlichen sowie den jeweils geltenden betrieblichen Regelungen.</>,
     ]},
+    { t: "Kurzarbeit", full: true, items: [
+      <>Der Arbeitgeber ist berechtigt, bei einem erheblichen Arbeitsausfall aus wirtschaftlichen Gründen oder infolge eines unabwendbaren Ereignisses unter Wahrung der gesetzlichen Voraussetzungen (§§ 95 ff. SGB III) Kurzarbeit einzuführen, wenn dies dem Arbeitnehmer mit einer Ankündigungsfrist von drei Wochen angezeigt wird.</>,
+      <>Für die Dauer der Kurzarbeit verringert sich die Arbeitszeit entsprechend; die Vergütung wird für die ausgefallene Arbeitszeit anteilig reduziert. Der Arbeitnehmer erklärt sich mit der Einführung von Kurzarbeit – auch bis auf null („Kurzarbeit Null") – einverstanden.</>,
+    ]},
     { t: "Vergütung", items: [
       <>Der Arbeitnehmer erhält ein {stnd ? "Bruttostundenentgelt" : "monatliches Bruttoentgelt"} in Höhe von <b>{fmtMoney(form.salary)}</b>{stnd ? " je geleisteter Arbeitsstunde" : ""}.</>,
       <>Die Vergütung ist zum Ende eines Kalendermonats fällig und wird bargeldlos auf ein vom Arbeitnehmer benanntes Konto überwiesen.</>,
@@ -437,7 +441,7 @@ function buildSections(form: Contract, befristet: boolean): { t: string; items: 
       <>Die Verschwiegenheitspflicht besteht auch nach Beendigung des Arbeitsverhältnisses fort. Geschäftsunterlagen und Arbeitsmittel sind bei Beendigung vollständig herauszugeben.</>,
     ]},
     { t: "Wettbewerbsverbot, Kunden- und Mitarbeiterschutz", items: [
-      <>Während des Arbeitsverhältnisses ist es dem Arbeitnehmer untersagt, für ein mit dem Arbeitgeber im Wettbewerb stehendes Unternehmen selbständig, unselbständig oder in sonstiger Weise tätig zu werden, sich an einem solchen Unternehmen unmittelbar oder mittelbar zu beteiligen oder ein solches zu errichten oder zu betreiben.</>,
+      <>Während des Arbeitsverhältnisses ist es dem Arbeitnehmer untersagt, im Geschäftsbereich des Arbeitgebers – insbesondere in der <b>Servicetechnik und im Vertrieb</b> – für ein mit dem Arbeitgeber im Wettbewerb stehendes Unternehmen selbständig, unselbständig oder in sonstiger Weise tätig zu werden, sich an einem solchen Unternehmen unmittelbar oder mittelbar zu beteiligen oder ein solches zu errichten oder zu betreiben. Insbesondere ist es ihm untersagt, sich in diesem Bereich selbstständig zu machen.</>,
       <>Der Arbeitnehmer unterlässt es während des Arbeitsverhältnisses, Kunden, Interessenten, Lieferanten oder sonstige Geschäftspartner des Arbeitgebers für eigene oder fremde Zwecke abzuwerben oder abwerben zu lassen sowie Mitarbeiter des Arbeitgebers zur Beendigung ihres Arbeitsverhältnisses zu veranlassen.</>,
       <>Für jeden Fall des schuldhaften Verstoßes gegen Ziffer 1 oder Ziffer 2 ist eine Vertragsstrafe in Höhe einer Bruttomonatsvergütung verwirkt; bei einem fortdauernden Verstoß gilt jeder angefangene Monat als eigenständiger Verstoß. Die Geltendmachung eines weitergehenden Schadens sowie Unterlassungsansprüche bleiben unberührt.</>,
       <>Ein über das Ende des Arbeitsverhältnisses hinausreichendes Wettbewerbs- oder Kundenschutzverbot besteht nur, soweit es gesondert schriftlich und gegen Zahlung einer Karenzentschädigung nach §§ 74 ff. HGB vereinbart wird. Die Pflicht zur Verschwiegenheit bleibt hiervon unberührt.</>,
