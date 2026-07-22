@@ -276,18 +276,16 @@ export default function ContractsPage() {
               </Feld>
             )}
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
               <Feld label="Probezeit (Monate)">
                 <input className="input" type="number" min={0} value={form.probationMonths ?? 0}
                   onChange={(e) => set("probationMonths", e.target.value === "" ? 0 : Number(e.target.value))} />
               </Feld>
-              <Feld label="Flexarbeitszeit von (Std./Woche)">
+              <Feld label="Flexzeit von (Std.)">
                 <input className="input" type="number" min={0} step="0.5" value={form.weekHoursMin ?? 35}
                   onChange={(e) => set("weekHoursMin", e.target.value === "" ? 0 : Number(e.target.value))} />
               </Feld>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <Feld label="Flexarbeitszeit bis (Std./Woche)">
+              <Feld label="Flexzeit bis (Std.)">
                 <input className="input" type="number" min={0} step="0.5" value={form.weekHoursMax ?? 42}
                   onChange={(e) => set("weekHoursMax", e.target.value === "" ? 0 : Number(e.target.value))} />
               </Feld>
