@@ -55,7 +55,9 @@ export const ENTITIES: Record<EntityName, EntityDef> = {
   EmploymentContract: {
     delegate: "employmentContract",
     searchable: ["title", "employeeName", "jobTitle", "status"],
-    protectedFields: PROTECTED,
+    // number ist server-verwaltet (fortlaufende Vertragsnummer) → nie vom Client setzbar.
+    protectedFields: [...PROTECTED, "number"],
+    autoNumberField: "number",
   },
   Product: {
     delegate: "product",

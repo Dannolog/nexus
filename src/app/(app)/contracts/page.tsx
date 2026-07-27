@@ -31,8 +31,11 @@ const LEER: Contract = {
   endDate: null,
   probationMonths: 6,
   weeklyHours: 40,
-  weekHoursMin: 35,
+  weekHoursMin: 32,
   weekHoursMax: 42,
+  timeAccount: true,
+  coreTimeFrom: "07:00",
+  coreTimeTo: "17:00",
   salary: 18.68,
   salaryPeriod: "stündlich",
   vacationDays: 30,
@@ -57,6 +60,35 @@ function txt(v: any, ph = "________________") {
   const s = String(v ?? "").trim();
   return s.length ? s : ph;
 }
+// Vertragsnummer: fortlaufende Nummer aus Nexus → "AV-0001"
+function vertragsNr(n: any) {
+  const num = Number(n);
+  return Number.isFinite(num) && num > 0 ? `AV-${String(num).padStart(4, "0")}` : "";
+}
+// Kopieren – navigator.clipboard gibt es nur im Secure Context (https), sonst Fallback.
+async function copyText(s: string) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(s);
+      return true;
+    }
+  } catch {
+    /* fällt auf execCommand zurück */
+  }
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = s;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
+}
 
 export default function ContractsPage() {
   const [employees, setEmployees] = useState<any[]>([]);
@@ -65,6 +97,15 @@ export default function ContractsPage() {
   const [msg, setMsg] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [copied, setCopied] = useState("");
+
+  async function nrKopieren(nr: string) {
+    if (!nr) return;
+    const ok = await copyText(nr);
+    setCopied(ok ? nr : "");
+    setMsg(ok ? `Vertragsnummer ${nr} in die Zwischenablage kopiert.` : "Kopieren nicht möglich – Nummer bitte manuell übernehmen.");
+    if (ok) setTimeout(() => setCopied((c) => (c === nr ? "" : c)), 1500);
+  }
 
   const loadContracts = useCallback(async () => {
     try {
@@ -186,6 +227,18 @@ export default function ContractsPage() {
         <h1 style={{ fontSize: 24, fontWeight: 700, display: "flex", alignItems: "center", gap: 10 }}>
           <Icon name="file-text" size={24} /> Arbeitsverträge
         </h1>
+        {vertragsNr(form.number) && (
+          <button
+            type="button"
+            className="btn"
+            title="Vertragsnummer in die Zwischenablage kopieren"
+            onClick={() => nrKopieren(vertragsNr(form.number))}
+            style={{ fontVariantNumeric: "tabular-nums", fontWeight: 600, letterSpacing: ".02em" }}
+          >
+            <Icon name={copied === vertragsNr(form.number) ? "check" : "copy"} />
+            {vertragsNr(form.number)}
+          </button>
+        )}
         <button className="btn" onClick={neu}><Icon name="plus" /> Neu</button>
         <div style={{ display: "flex", gap: 8, marginLeft: "auto", flexWrap: "wrap" }}>
           <button className="btn btn-primary" onClick={speichern} disabled={saving}>
@@ -219,9 +272,28 @@ export default function ContractsPage() {
                     color: c.id === form.id ? "#fff" : "var(--fg)",
                     display: "flex", justifyContent: "space-between", gap: 8,
                   }}>
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {c.title || c.employeeName || "Ohne Namen"}
-                    {c.employeeName && c.title && c.title !== c.employeeName ? <span style={{ opacity: 0.6 }}> · {c.employeeName}</span> : null}
+                  <span style={{ display: "flex", alignItems: "center", gap: 7, overflow: "hidden" }}>
+                    {vertragsNr(c.number) && (
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        title="Vertragsnummer kopieren"
+                        onClick={(ev) => { ev.stopPropagation(); nrKopieren(vertragsNr(c.number)); }}
+                        onKeyDown={(ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); ev.stopPropagation(); nrKopieren(vertragsNr(c.number)); } }}
+                        style={{
+                          flexShrink: 0, fontSize: 11.5, fontWeight: 700, fontVariantNumeric: "tabular-nums",
+                          padding: "1px 6px", borderRadius: 6, cursor: "pointer",
+                          border: "1px solid " + (c.id === form.id ? "rgba(255,255,255,.5)" : "var(--border)"),
+                          background: c.id === form.id ? "rgba(255,255,255,.18)" : "var(--card, transparent)",
+                        }}
+                      >
+                        {copied === vertragsNr(c.number) ? "kopiert ✓" : vertragsNr(c.number)}
+                      </span>
+                    )}
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {c.title || c.employeeName || "Ohne Namen"}
+                      {c.employeeName && c.title && c.title !== c.employeeName ? <span style={{ opacity: 0.6 }}> · {c.employeeName}</span> : null}
+                    </span>
                   </span>
                   <span style={{ opacity: 0.7, flexShrink: 0 }}>{c.status}</span>
                 </button>
@@ -294,6 +366,22 @@ export default function ContractsPage() {
                 <input className="input" type="number" min={0} step="0.5" value={form.weekHoursMax ?? 42}
                   onChange={(e) => set("weekHoursMax", e.target.value === "" ? 0 : Number(e.target.value))} />
               </Feld>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, alignItems: "end" }}>
+              <Feld label="Regelarbeitszeit von">
+                <input className="input" type="time" value={form.coreTimeFrom || "07:00"}
+                  onChange={(e) => set("coreTimeFrom", e.target.value)} />
+              </Feld>
+              <Feld label="Regelarbeitszeit bis">
+                <input className="input" type="time" value={form.coreTimeTo || "17:00"}
+                  onChange={(e) => set("coreTimeTo", e.target.value)} />
+              </Feld>
+              <label style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 8, paddingBottom: 9 }}>
+                <input type="checkbox" checked={form.timeAccount !== false}
+                  onChange={(e) => set("timeAccount", e.target.checked)} />
+                <span>Arbeitszeitkonto</span>
+              </label>
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>

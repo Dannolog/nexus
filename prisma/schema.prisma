@@ -231,6 +231,7 @@ model EditLock {
 // ---- Arbeitsvertrag (HR-Dokument; Mitarbeiterdaten werden zum Vertragszeitpunkt eingefroren) ----
 model EmploymentContract {
   id              String   @id @default(cuid())
+  number          Int      @unique                       // fortlaufende Vertragsnummer (server-vergeben) → "AV-0001"
   title           String   @default("")                 // z. B. "Arbeitsvertrag – Max Mustermann"
   employeeId      String   @default("")                 // Referenz auf Employee (lose ID, wie Task.assigneeId)
   // Vertragsparteien (denormalisiert – Dokument bleibt eigenständig)
@@ -245,8 +246,12 @@ model EmploymentContract {
   probationMonths Int      @default(6)                   // Probezeit in Monaten (0 = keine)
   template        String   @default("vollstaendig")      // "standard" | "vollstaendig" (Klausel-Vorlage)
   weeklyHours     Float    @default(40)                  // Wochenarbeitszeit (Legacy)
-  weekHoursMin    Float    @default(35)                  // Flexarbeitszeit-Korridor von
+  weekHoursMin    Float    @default(32)                  // Flexarbeitszeit-Korridor von
   weekHoursMax    Float    @default(42)                  // Flexarbeitszeit-Korridor bis
+  // Arbeitszeitkonto & Regelarbeitszeit-Rahmen
+  timeAccount     Boolean  @default(true)                // Arbeitszeitkonto geführt (Plus-/Minusstunden)
+  coreTimeFrom    String   @default("07:00")             // Regelarbeitszeit von
+  coreTimeTo      String   @default("17:00")             // Regelarbeitszeit bis ("je nach Absprache")
   salary          Float    @default(0)                   // Bruttoentgelt
   salaryPeriod    String   @default("monatlich")         // monatlich | stündlich
   vacationDays    Int      @default(30)                  // Urlaubstage/Jahr
