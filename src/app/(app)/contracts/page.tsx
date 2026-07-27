@@ -398,8 +398,8 @@ export default function ContractsPage() {
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <Feld label="Urlaubstage / Jahr">
-                <input className="input" type="number" min={0} value={form.vacationDays ?? 0}
+              <Feld label="Urlaubstage / Jahr (max. 30)">
+                <input className="input" type="number" min={0} max={30} value={form.vacationDays ?? 0}
                   onChange={(e) => set("vacationDays", e.target.value === "" ? 0 : Number(e.target.value))} />
               </Feld>
               <Feld label="Arbeitsort">
@@ -498,9 +498,14 @@ function buildSections(form: Contract, befristet: boolean): { t: string; items: 
         : <>Eine Probezeit wird nicht vereinbart.</>,
       <>Eine ordentliche Kündigung vor Arbeitsantritt ist ausgeschlossen.</>,
     ]},
-    { t: "Arbeitszeit", items: [
-      <>Es gilt eine flexible wöchentliche Arbeitszeit (Flexarbeitszeit) von <b>{txt(form.weekHoursMin ?? 35)} bis {txt(form.weekHoursMax ?? 42)} Stunden</b> (ohne Pausen). Der konkrete Umfang richtet sich innerhalb dieses Rahmens nach dem betrieblichen Arbeitsanfall.</>,
-      <>Die Lage (Beginn und Ende) sowie die Dauer der Pausen richten sich nach der jeweils gültigen betrieblichen Regelung zu Arbeitszeit und Arbeitszeitkonto.</>,
+    { t: "Arbeitszeit und Arbeitszeitkonto", items: [
+      <>Es gilt eine flexible wöchentliche Arbeitszeit (Flexarbeitszeit) von <b>{txt(form.weekHoursMin ?? 32)} bis {txt(form.weekHoursMax ?? 42)} Stunden</b> (ohne Pausen). Der konkrete Umfang richtet sich innerhalb dieses Rahmens nach dem betrieblichen Arbeitsanfall.</>,
+      <>Die regelmäßige tägliche Arbeitszeit liegt im Rahmen von <b>{txt(form.coreTimeFrom || "07:00")} bis {txt(form.coreTimeTo || "17:00")} Uhr</b>. Beginn und Ende der täglichen Arbeitszeit werden innerhalb dieses Rahmens <b>nach Absprache</b> zwischen Arbeitgeber und Arbeitnehmer festgelegt und können bei betrieblichem Bedarf – insbesondere bei Montage-, Service- und Auswärtseinsätzen – abweichend vereinbart werden.</>,
+      <>Die Dauer und Lage der Pausen richten sich nach den gesetzlichen Vorgaben (Arbeitszeitgesetz) sowie der jeweils gültigen betrieblichen Regelung.</>,
+      ...(form.timeAccount !== false ? [
+        <>Für den Arbeitnehmer wird ein <b>Arbeitszeitkonto</b> geführt. Auf ihm werden die tatsächlich geleisteten Arbeitsstunden erfasst; Abweichungen von der vereinbarten Wochenarbeitszeit werden als Plus- oder Minusstunden fortgeschrieben. Der Arbeitnehmer ist verpflichtet, seine Arbeitszeiten arbeitstäglich vollständig und richtig zu erfassen.</>,
+        <>Guthaben auf dem Arbeitszeitkonto werden vorrangig durch bezahlte Freizeit ausgeglichen; die Lage des Freizeitausgleichs wird zwischen Arbeitgeber und Arbeitnehmer abgestimmt. Bei Beendigung des Arbeitsverhältnisses wird ein verbleibendes Guthaben ausgezahlt, ein Minussaldo, der vom Arbeitnehmer zu vertreten ist, mit der Schlussabrechnung verrechnet.</>,
+      ] : []),
       <>Der Arbeitnehmer ist im gesetzlich zulässigen Rahmen zur Leistung von Mehrarbeit und Überstunden verpflichtet, soweit betriebliche Erfordernisse dies notwendig machen.</>,
       <>Geleistete Überstunden werden nach Wahl des Arbeitnehmers ausbezahlt oder durch Freizeit ausgeglichen („abgefeiert").</>,
       <>Etwaige Zuschläge für Mehr-, Nacht-, Sonn- und Feiertagsarbeit richten sich nach den gesetzlichen sowie den jeweils geltenden betrieblichen Regelungen.</>,
@@ -516,7 +521,8 @@ function buildSections(form: Contract, befristet: boolean): { t: string; items: 
       <>Zu viel gezahlte Bezüge hat der Arbeitnehmer unverzüglich anzuzeigen und zurückzuzahlen.</>,
     ]},
     { t: "Urlaub", items: [
-      <>Der Arbeitnehmer hat Anspruch auf einen Urlaub von <b>{txt(form.vacationDays)}</b> Werktagen bezogen auf eine 5-Tage-Woche pro Kalenderjahr. Bei weniger Arbeitstagen pro Woche erfolgt eine anteilige Reduzierung.</>,
+      <>Der Urlaubsanspruch beträgt <b>höchstens {txt(form.vacationDays)} Urlaubstage</b> pro Kalenderjahr, bezogen auf eine Vollzeitbeschäftigung in der 5-Tage-Woche.</>,
+      <>Der tatsächliche Urlaubsanspruch <b>berechnet sich nach der erbrachten Wochenarbeitsleistung</b>: Maßgeblich ist die Zahl der Tage bzw. der Umfang der Arbeitszeit, die der Arbeitnehmer im jeweiligen Kalenderjahr durchschnittlich pro Woche tatsächlich leistet (Formel: {txt(form.vacationDays)} Urlaubstage × durchschnittliche Arbeitstage pro Woche ÷ 5). Bruchteile von Urlaubstagen werden auf halbe Tage aufgerundet. Der gesetzliche Mindesturlaub nach dem Bundesurlaubsgesetz bleibt in jedem Fall unberührt.</>,
       <>Im Ein- und Austrittsjahr besteht der Urlaubsanspruch anteilig (ein Zwölftel je vollem Beschäftigungsmonat), mindestens jedoch in Höhe des gesetzlichen Mindesturlaubs.</>,
       <>Urlaub ist rechtzeitig zu beantragen und vor Antritt vom Arbeitgeber zu genehmigen. Im Übrigen gelten die Vorschriften des Bundesurlaubsgesetzes.</>,
       <>Der übergesetzliche Urlaubsanspruch erlischt mit der Beendigung des Arbeitsverhältnisses; er ist nicht abzugelten und ist nicht vererblich.</>,
@@ -635,10 +641,10 @@ function Briefkopf() {
   );
 }
 
-function LaufKopf() {
+function LaufKopf({ nr }: { nr?: string }) {
   return (
     <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", borderBottom: "1px solid #ccc", paddingBottom: 6, color: "#666" }}>
-      <span style={{ fontWeight: 700, fontSize: 12, letterSpacing: ".02em" }}>Arbeitsvertrag</span>
+      <span style={{ fontWeight: 700, fontSize: 12, letterSpacing: ".02em" }}>Arbeitsvertrag{nr ? ` ${nr}` : ""}</span>
       <span style={{ fontSize: 11, color: "#444", fontWeight: 600 }}>{ARBEITGEBER.name}</span>
     </div>
   );
@@ -671,7 +677,7 @@ function Absatz({ n, children }: { n: number | null; children: React.ReactNode }
   );
 }
 
-function A4Seite({ page, total, docRef, children }: { page: number; total: number; docRef: string; children: React.ReactNode }) {
+function A4Seite({ page, total, docRef, nr, children }: { page: number; total: number; docRef: string; nr?: string; children: React.ReactNode }) {
   return (
     <div className="a4-page" style={{
       width: A4_W, minHeight: A4_H, background: "#fff", color: "#1a1a1a", position: "relative",
@@ -684,13 +690,18 @@ function A4Seite({ page, total, docRef, children }: { page: number; total: numbe
           <Briefkopf />
           <div style={{ textAlign: "center", margin: "22px 0 18px" }}>
             <h2 style={{ fontSize: 22, fontWeight: 700, letterSpacing: ".06em", margin: 0, color: "#000", fontFamily: "var(--font-sans), system-ui, sans-serif" }}>Arbeitsvertrag</h2>
+            {nr && (
+              <p style={{ fontSize: 11, color: "#0047b3", margin: "5px 0 0", fontWeight: 700, letterSpacing: ".06em", fontVariantNumeric: "tabular-nums" }}>
+                Vertragsnummer {nr}
+              </p>
+            )}
             <p style={{ fontSize: 10, color: "#666", margin: "6px 0 0", fontStyle: "italic" }}>
               Die Bezeichnungen „Arbeitnehmer" / „Arbeitgeber" gelten für Beschäftigte jeglichen Geschlechts.
             </p>
           </div>
         </>
       ) : (
-        <div style={{ marginBottom: 14 }}><LaufKopf /></div>
+        <div style={{ marginBottom: 14 }}><LaufKopf nr={nr} /></div>
       )}
       <div style={{ display: "grid", gap: ITEM_GAP }}>{children}</div>
       <Fuss page={page} total={total} docRef={docRef} />
@@ -751,7 +762,8 @@ function ZoomView({ children }: { children: React.ReactNode }) {
 // ── Vorschau mit automatischem Seitenumbruch ──
 function VertragVorschau({ form, befristet }: { form: Contract; befristet: boolean }) {
   const sections = buildSections(form, befristet);
-  const docRef = `Arbeitsvertrag · ${txt(form.employeeName, "—")}`;
+  const nr = vertragsNr(form.number);
+  const docRef = `Arbeitsvertrag${nr ? ` ${nr}` : ""} · ${txt(form.employeeName, "—")}`;
 
   // Flache Liste aller Fließ-Elemente (für die Umbruchrechnung)
   type Flow = { key: string; heading: boolean; node: React.ReactNode };
@@ -829,7 +841,7 @@ function VertragVorschau({ form, befristet }: { form: Contract; befristet: boole
       </div>
 
       {laidOut.map((idxs, pi) => (
-        <A4Seite key={pi} page={pi + 1} total={total} docRef={docRef}>
+        <A4Seite key={pi} page={pi + 1} total={total} docRef={docRef} nr={nr}>
           {idxs.filter((k) => flow[k]).map((k) => <div key={flow[k].key}>{flow[k].node}</div>)}
         </A4Seite>
       ))}
