@@ -584,15 +584,16 @@ function buildSections(form: Contract, befristet: boolean): { t: string; items: 
         ? <>Bei einem befristeten Arbeitsverhältnis endet dieses mit Ablauf der Befristung, ohne dass es einer Kündigung bedarf.</>
         : <>Das Arbeitsverhältnis endet spätestens mit Ablauf des Monats, in dem der Arbeitnehmer die Regelaltersgrenze der gesetzlichen Rentenversicherung erreicht.</>,
     ]},
-    // Die früheren §§ 17–24 (Vertragsstrafe, Ausschlussfrist, Abtretung/Verpfändung,
-    // Datenschutzhinweis, Bild-/Nutzungsrechte, Anfechtung, Gerichtsstand, Nebenabreden/
-    // Schriftform) wurden auf Wunsch entfernt. Die freien Zusatzvereinbarungen aus dem
-    // Formular bleiben als eigener § erhalten – aber nur, wenn tatsächlich etwas eingetragen ist.
-    ...(String(form.additionalTerms || "").trim()
-      ? [{ t: "Zusätzliche Vereinbarungen", items: [
-          <><span style={{ whiteSpace: "pre-wrap" }}>{form.additionalTerms}</span></>,
-        ] }]
-      : []),
+    // Die früheren §§ 17–23 (Vertragsstrafe, Ausschlussfrist, Abtretung/Verpfändung,
+    // Datenschutzhinweis, Bild-/Nutzungsrechte, Anfechtung, Gerichtsstand) wurden auf Wunsch
+    // entfernt. „Nebenabreden und Schriftform" bleibt als abschließender § erhalten.
+    { t: "Nebenabreden und Schriftform", items: [
+      String(form.additionalTerms || "").trim()
+        ? <>Ergänzend wird vereinbart: <span style={{ whiteSpace: "pre-wrap" }}>{form.additionalTerms}</span></>
+        : <>Weitere Nebenabreden zu diesem Vertrag bestehen nicht.</>,
+      <>Änderungen und Ergänzungen dieses Vertrages bedürfen der Schriftform; dies gilt auch für die Aufhebung des Schriftformerfordernisses. Ausdrücklich getroffene individuelle Vertragsabreden bleiben wirksam (§ 305b BGB).</>,
+      <>Sollte eine Bestimmung dieses Vertrages unwirksam sein oder werden, so bleibt die Wirksamkeit der übrigen Bestimmungen hiervon unberührt.</>,
+    ]},
   ];
   // Standard-Vorlage = ohne die zusätzlich abgesicherten §§; Vollständig = alle.
   return form.template === "standard" ? all.filter((s) => !s.full) : all;
