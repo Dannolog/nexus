@@ -552,10 +552,9 @@ function buildSections(form: Contract, befristet: boolean): { t: string; items: 
       <>Der Arbeitnehmer bewahrt über alle ihm bekannt gewordenen Geschäfts- und Betriebsgeheimnisse sowie über als vertraulich gekennzeichnete Informationen sowohl gegenüber Außenstehenden als auch gegenüber unbefugten Mitarbeitern Stillschweigen.</>,
       <>Die Verschwiegenheitspflicht besteht auch nach Beendigung des Arbeitsverhältnisses fort. Geschäftsunterlagen und Arbeitsmittel sind bei Beendigung vollständig herauszugeben.</>,
     ]},
-    { t: "Wettbewerbsverbot, Kunden- und Mitarbeiterschutz", items: [
-      <>Während des Arbeitsverhältnisses ist es dem Arbeitnehmer untersagt, im Geschäftsbereich des Arbeitgebers – insbesondere in der <b>Servicetechnik und im Vertrieb</b> – für ein mit dem Arbeitgeber im Wettbewerb stehendes Unternehmen selbständig, unselbständig oder in sonstiger Weise tätig zu werden, sich an einem solchen Unternehmen unmittelbar oder mittelbar zu beteiligen oder ein solches zu errichten oder zu betreiben. Insbesondere ist es ihm untersagt, sich in diesem Bereich selbstständig zu machen.</>,
+    { t: "Kunden- und Mitarbeiterschutz", items: [
       <>Der Arbeitnehmer unterlässt es während des Arbeitsverhältnisses, Kunden, Interessenten, Lieferanten oder sonstige Geschäftspartner des Arbeitgebers für eigene oder fremde Zwecke abzuwerben oder abwerben zu lassen sowie Mitarbeiter des Arbeitgebers zur Beendigung ihres Arbeitsverhältnisses zu veranlassen.</>,
-      <>Für jeden Fall des schuldhaften Verstoßes gegen Ziffer 1 oder Ziffer 2 ist eine Vertragsstrafe in Höhe einer Bruttomonatsvergütung verwirkt; bei einem fortdauernden Verstoß gilt jeder angefangene Monat als eigenständiger Verstoß. Die Geltendmachung eines weitergehenden Schadens sowie Unterlassungsansprüche bleiben unberührt.</>,
+      <>Für jeden Fall des schuldhaften Verstoßes gegen Ziffer 1 ist eine Vertragsstrafe in Höhe einer Bruttomonatsvergütung verwirkt; bei einem fortdauernden Verstoß gilt jeder angefangene Monat als eigenständiger Verstoß. Die Geltendmachung eines weitergehenden Schadens sowie Unterlassungsansprüche bleiben unberührt.</>,
       <>Ein über das Ende des Arbeitsverhältnisses hinausreichendes Wettbewerbs- oder Kundenschutzverbot besteht nur, soweit es gesondert schriftlich und gegen Zahlung einer Karenzentschädigung nach §§ 74 ff. HGB vereinbart wird. Die Pflicht zur Verschwiegenheit bleibt hiervon unberührt.</>,
     ]},
     { t: "Arbeitsergebnisse, Schutzrechte und Arbeitnehmererfindungen", full: true, items: [
@@ -585,37 +584,15 @@ function buildSections(form: Contract, befristet: boolean): { t: string; items: 
         ? <>Bei einem befristeten Arbeitsverhältnis endet dieses mit Ablauf der Befristung, ohne dass es einer Kündigung bedarf.</>
         : <>Das Arbeitsverhältnis endet spätestens mit Ablauf des Monats, in dem der Arbeitnehmer die Regelaltersgrenze der gesetzlichen Rentenversicherung erreicht.</>,
     ]},
-    { t: "Vertragsstrafe", items: [
-      <>Nimmt der Arbeitnehmer die Arbeit schuldhaft nicht auf oder löst er das Arbeitsverhältnis vertragswidrig ohne Einhaltung der Kündigungsfrist, so ist eine Vertragsstrafe in Höhe einer Bruttomonatsvergütung verwirkt – höchstens begrenzt auf die bis zum Ablauf der maßgeblichen Kündigungsfrist geschuldete Vergütung.</>,
-      <>Die Geltendmachung eines weitergehenden Schadens bleibt unberührt.</>,
-    ]},
-    { t: "Ausschlussfrist", items: [
-      <>Alle beiderseitigen Ansprüche aus und im Zusammenhang mit dem Arbeitsverhältnis verfallen, wenn sie nicht innerhalb von drei Monaten nach Fälligkeit in Textform gegenüber der anderen Vertragspartei geltend gemacht werden.</>,
-      <>Die Ausschlussfrist gilt nicht für Ansprüche aus vorsätzlichem oder grob fahrlässigem Handeln, aus der Verletzung von Leben, Körper oder Gesundheit sowie für Ansprüche, die kraft Gesetzes unabdingbar sind (insbesondere aus dem Mindestlohngesetz).</>,
-    ]},
-    { t: "Abtretung und Verpfändung", items: [
-      <>Die Abtretung oder Verpfändung von Entgeltansprüchen an Dritte ist dem Arbeitgeber unverzüglich anzuzeigen. Für die Bearbeitung einer Lohnpfändung oder -abtretung kann eine Bearbeitungspauschale von 10,00 € je Vorgang erhoben werden, soweit der unpfändbare Teil der Vergütung dadurch nicht verringert wird.</>,
-    ]},
-    { t: "Datenschutzrechtlicher Hinweis", items: [
-      <>Der Arbeitnehmer wird darauf hingewiesen, dass seine personenbezogenen Daten gemäß § 26 BDSG bzw. Art. 6 DSGVO zum Zweck der Begründung, Durchführung und Beendigung des Beschäftigungsverhältnisses verarbeitet und gespeichert werden.</>,
-    ]},
-    { t: "Bild- und Nutzungsrechte", full: true, items: [
-      <>Der Arbeitnehmer willigt widerruflich ein, dass im Rahmen der Tätigkeit entstandene Foto- und Videoaufnahmen seiner Person für interne Zwecke sowie für die Außendarstellung des Arbeitgebers (z. B. Website, Social Media, Werbematerial) verwendet werden dürfen. Die Einwilligung kann für die Zukunft widerrufen werden.</>,
-    ]},
-    { t: "Vollständigkeit der Angaben, Anfechtung", full: true, items: [
-      <>Der Arbeitnehmer versichert, dass seine im Zusammenhang mit der Einstellung gemachten Angaben vollständig und richtig sind und dass keine vertraglichen Wettbewerbsverbote oder sonstigen Verpflichtungen gegenüber Dritten bestehen, die der Tätigkeit entgegenstehen.</>,
-      <>Erweisen sich diese Angaben als unrichtig, ist der Arbeitgeber berechtigt, den Vertrag anzufechten oder außerordentlich zu kündigen.</>,
-    ]},
-    { t: "Anwendbares Recht und Gerichtsstand", full: true, items: [
-      <>Es gilt ausschließlich das Recht der Bundesrepublik Deutschland. Soweit gesetzlich zulässig, ist Gerichtsstand für alle Streitigkeiten aus diesem Arbeitsverhältnis der Sitz des Arbeitgebers.</>,
-    ]},
-    { t: "Nebenabreden und Schriftform", items: [
-      String(form.additionalTerms || "").trim()
-        ? <>Ergänzend wird vereinbart: <span style={{ whiteSpace: "pre-wrap" }}>{form.additionalTerms}</span></>
-        : <>Weitere Nebenabreden zu diesem Vertrag bestehen nicht.</>,
-      <>Änderungen und Ergänzungen dieses Vertrages bedürfen der Schriftform; dies gilt auch für die Aufhebung des Schriftformerfordernisses. Ausdrücklich getroffene individuelle Vertragsabreden bleiben wirksam (§ 305b BGB).</>,
-      <>Sollte eine Bestimmung dieses Vertrages unwirksam sein oder werden, so bleibt die Wirksamkeit der übrigen Bestimmungen hiervon unberührt.</>,
-    ]},
+    // Die früheren §§ 17–24 (Vertragsstrafe, Ausschlussfrist, Abtretung/Verpfändung,
+    // Datenschutzhinweis, Bild-/Nutzungsrechte, Anfechtung, Gerichtsstand, Nebenabreden/
+    // Schriftform) wurden auf Wunsch entfernt. Die freien Zusatzvereinbarungen aus dem
+    // Formular bleiben als eigener § erhalten – aber nur, wenn tatsächlich etwas eingetragen ist.
+    ...(String(form.additionalTerms || "").trim()
+      ? [{ t: "Zusätzliche Vereinbarungen", items: [
+          <><span style={{ whiteSpace: "pre-wrap" }}>{form.additionalTerms}</span></>,
+        ] }]
+      : []),
   ];
   // Standard-Vorlage = ohne die zusätzlich abgesicherten §§; Vollständig = alle.
   return form.template === "standard" ? all.filter((s) => !s.full) : all;
