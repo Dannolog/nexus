@@ -120,3 +120,13 @@
 - Test-/Demo-Artefakte (Test AG, Wegwerf, Mustermann-Seed, Demo-Projekt, seed-org) entfernt.
 - **Endstand (echte Daten):** Customer 21 · Organization 2 · Project 38 · Employee 25 · Identity 27. Über API verifiziert; Merge-Beispiel „Baier Maschinen (bm)" ok.
 - **Apps NICHT angebunden** (bewusst). Nächste mögliche Schritte: nginx/PW/Git (s.o.), dann Anbindung via INTEGRATION_HANDOFF Teil B (Trigger an kontor → clocker), oder weitere App-Daten zentralisieren (Langzeit-Ziel).
+
+### 2026-07-27 (Arbeitsverträge: Vertragsnummer + Arbeitszeit/Urlaub-Klauseln)
+- **Fortlaufende Vertragsnummer:** `EmploymentContract.number Int @unique` (Schema) + `entities.ts`: `autoNumberField: "number"`, `number` in `protectedFields` → Nexus vergibt zentral (max+1, P2002-Retry, Client-Wert wird ignoriert). Anzeige-Format `AV-0001` (`vertragsNr()` in `contracts/page.tsx`).
+- **Klick auf Nummer = Zwischenablage:** Badge in der Vertragsliste + Button in der Kopfzeile; `copyText()` nutzt `navigator.clipboard` (nur https/secure context) mit `execCommand`-Fallback für den Zugriff über `http://192.168.1.10:3050`. Rückmeldung „kopiert ✓" + Statuszeile. Neues Icon `copy` in `components/Icon.tsx`.
+- **Nummer im Dokument:** Titelblock Seite 1 („Vertragsnummer AV-0001"), laufende Kopfzeile ab Seite 2, Fußzeilen-`docRef`.
+- **Flexarbeitszeit 32–42 Std./Woche:** Default `weekHoursMin` 35 → **32** (Schema + Formular-Default `LEER`).
+- **Arbeitszeitkonto + Regelarbeitszeit:** neue Felder `timeAccount Boolean @default(true)`, `coreTimeFrom @default("07:00")`, `coreTimeTo @default("17:00")`; Formularfelder (2× time-Input + Checkbox). § „Arbeitszeit" heißt jetzt **„Arbeitszeit und Arbeitszeitkonto"**: Rahmen 07:00–17:00 Uhr „nach Absprache" (abweichend bei Montage/Service/Auswärts), Zeiterfassungspflicht, Plus-/Minusstunden, Freizeitausgleich, Abrechnung bei Vertragsende. Checkbox aus → Arbeitszeitkonto-Absätze entfallen.
+- **Urlaub:** max. `vacationDays` (30) bei Vollzeit/5-Tage-Woche; tatsächlicher Anspruch **nach erbrachter Wochenarbeitsleistung** (Formel: 30 × Ø Arbeitstage/Woche ÷ 5, Aufrundung auf halbe Tage, gesetzlicher Mindesturlaub unberührt). Feld-Label „Urlaubstage / Jahr (max. 30)", `max={30}`.
+- `db push --accept-data-loss` (Tabelle war leer → kein Datenverlust), `generate`, Build ✓, `pm2 restart nexus`.
+- **Verifiziert:** POST /api/contracts → `number` 1 und 2 fortlaufend, mitgeschickte `number: 999` ignoriert, neue Defaults gesetzt (32 / 07:00–17:00 / timeAccount true); Testverträge wieder entfernt (DB wieder 0 Verträge → nächster echter Vertrag = AV-0001). `GET /contracts` 200. `git-save.sh` gepusht.
