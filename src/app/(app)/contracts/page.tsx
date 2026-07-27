@@ -165,31 +165,31 @@ export default function ContractsPage() {
     }
   }
 
-  function drucken() {
-    window.print();
+  // Druck/PDF läuft über die eigene Seite /vertrag/[id] – dort gibt es keinen App-Rahmen,
+  // dadurch drucken Browser (und der PDF-Export) das Dokument sauber. Voraussetzung:
+  // der Vertrag ist gespeichert, denn die Seite lädt ihn aus der Datenbank.
+  async function pdfAnsicht() {
+    if (!form.id) {
+      setMsg("Bitte den Vertrag zuerst speichern – die PDF-Ansicht lädt ihn aus der Datenbank.");
+      return;
+    }
+    window.open(`/vertrag/${form.id}`, "_blank", "noopener");
   }
 
   const befristet = form.contractType === "befristet";
 
   return (
     <div>
-      {/* Print-CSS: nur die Vertragsvorschau drucken */}
+      {/* Gedruckt wird nicht aus dem Editor, sondern über /vertrag/[id]. Falls hier
+          trotzdem jemand Strg+P drückt, kommt statt der halben App ein klarer Hinweis. */}
       <style>{`
         @media print {
-          body * { visibility: hidden !important; }
-          #vertrag-druck, #vertrag-druck * { visibility: visible !important; }
-          #vertrag-druck { position: absolute; left: 0; top: 0; width: 100%; }
-          .vv-measure { display: none !important; }
-          .vv-toolbar { display: none !important; }
-          .vv-zoom-outer { overflow: visible !important; }
-          .vv-zoombox { width: auto !important; height: auto !important; margin: 0 !important; position: static !important; }
-          .vv-scale { transform: none !important; position: static !important; width: auto !important; }
-          .a4-page {
-            box-shadow: none !important; margin: 0 !important; border: 0 !important;
-            page-break-after: always; break-after: page; min-height: auto !important;
+          body > * { display: none !important; }
+          body::before {
+            content: "Zum Drucken bitte die PDF-Vorschau öffnen (Schaltfläche „PDF-Vorschau / Drucken").";
+            display: block; padding: 40px; font-family: system-ui, sans-serif; font-size: 14px;
           }
-          .a4-page:last-child { page-break-after: auto; break-after: auto; }
-          @page { size: A4; margin: 0; }
+          @page { size: A4; margin: 20mm; }
         }
       `}</style>
 
@@ -214,7 +214,9 @@ export default function ContractsPage() {
           <button className="btn btn-primary" onClick={speichern} disabled={saving}>
             <Icon name="save" /> {saving ? "Speichert…" : "Speichern"}
           </button>
-          <button className="btn" onClick={drucken}><Icon name="file-text" /> Drucken / PDF</button>
+          <button className="btn" onClick={pdfAnsicht} title={form.id ? "PDF-Vorschau öffnen – dort drucken oder als PDF speichern" : "Erst speichern, dann PDF-Ansicht"}>
+            <Icon name="file-text" /> PDF-Vorschau / Drucken
+          </button>
           {form.id && (
             <>
               <Link className="btn btn-icon" title="Verlauf" href={`/history?entity=EmploymentContract&entityId=${form.id}`}><Icon name="history" /></Link>
