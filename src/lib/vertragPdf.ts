@@ -19,21 +19,31 @@ const GAP = 2.6;          // Abstand zwischen Absätzen
 const NUM_W = 6;          // Spaltenbreite für "1."
 const BLAU = [0, 71, 179] as const;
 
-type Wort = { t: string; b: boolean };
+// Ein Wort kann aus mehreren Teilen bestehen – z. B. „01.08.2026." mit fettem Datum und
+// normalem Satzpunkt. Deshalb wird NICHT je Segment in Wörter zerlegt, sondern über die
+// Segmentgrenzen hinweg; sonst entstünde ein Leerzeichen vor dem Satzzeichen.
+type Teil = { t: string; b: boolean };
+type Wort = { teile: Teil[] };
 type Zeile = { woerter: Wort[]; breite: number };
 
-/** Zerlegt Segmente in Wörter mit Fett-Kennzeichnung (Zeilenumbrüche bleiben erhalten). */
+/** Zerlegt Segmente in Wörter mit Fett-Kennzeichnung (Zeilenumbrüche trennen Blöcke). */
 function zuWoertern(segs: Seg[]): Wort[][] {
   const bloecke: Wort[][] = [[]];
+  let akt: Teil[] = [];
+  const wortAbschliessen = () => {
+    if (akt.length) { bloecke[bloecke.length - 1].push({ teile: akt }); akt = []; }
+  };
   for (const s of segs) {
-    const teile = String(s.t).split("\n");
-    teile.forEach((teil, i) => {
-      if (i > 0) bloecke.push([]);
-      for (const w of teil.split(/\s+/)) {
-        if (w) bloecke[bloecke.length - 1].push({ t: w, b: !!s.b });
-      }
-    });
+    const b = !!s.b;
+    // an Whitespace und Zeilenumbrüchen trennen, Trenner behalten
+    for (const stueck of String(s.t).split(/(\s)/)) {
+      if (stueck === "") continue;
+      if (stueck === "\n") { wortAbschliessen(); bloecke.push([]); continue; }
+      if (/^\s$/.test(stueck)) { wortAbschliessen(); continue; }
+      akt.push({ t: stueck, b });
+    }
   }
+  wortAbschliessen();
   return bloecke.filter((b) => b.length > 0);
 }
 
@@ -43,12 +53,13 @@ function umbrechen(doc: any, woerter: Wort[], breite: number, size: number): Zei
   const zeilen: Zeile[] = [];
   let akt: Wort[] = [];
   let aktBreite = 0;
-  const wortBreite = (w: Wort) => {
-    doc.setFont("helvetica", w.b ? "bold" : "normal");
-    return doc.getTextWidth(w.t);
-  };
-  const leer = () => { doc.setFont("helvetica", "normal"); return doc.getTextWidth(" "); };
-  const sp = leer();
+  const wortBreite = (w: Wort) =>
+    w.teile.reduce((sum, t) => {
+      doc.setFont("helvetica", t.b ? "bold" : "normal");
+      return sum + doc.getTextWidth(t.t);
+    }, 0);
+  doc.setFont("helvetica", "normal");
+  const sp = doc.getTextWidth(" ");
   for (const w of woerter) {
     const bw = wortBreite(w);
     const neu = akt.length === 0 ? bw : aktBreite + sp + bw;
@@ -77,9 +88,12 @@ function zeileZeichnen(doc: any, z: Zeile, x: number, y: number, breite: number,
   const zusatz = extra > sp * 2.2 ? 0 : extra;
   let cx = x;
   z.woerter.forEach((w, i) => {
-    doc.setFont("helvetica", w.b ? "bold" : "normal");
-    doc.text(w.t, cx, y);
-    cx += doc.getTextWidth(w.t) + (i < luecken ? sp + zusatz : 0);
+    w.teile.forEach((t) => {
+      doc.setFont("helvetica", t.b ? "bold" : "normal");
+      doc.text(t.t, cx, y);
+      cx += doc.getTextWidth(t.t);
+    });
+    if (i < luecken) cx += sp + zusatz;
   });
 }
 
