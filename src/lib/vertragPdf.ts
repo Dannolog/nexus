@@ -126,7 +126,9 @@ export async function generateVertragPdf(form: Contract): Promise<Blob> {
   const befristet = form.contractType === "befristet";
   const nr = vertragsNr(form.number);
   const docRef = `Arbeitsvertrag${nr ? ` ${nr}` : ""} · ${txt(form.employeeName, "—")}`;
-  const logo = await logoPng("/baier-logo.svg", 420);
+  // PNG bevorzugt: SVG über ein Canvas zu rastern klappt nicht in jedem Browser
+  // zuverlässig; die PNG-Fassung liegt als Fallback-freier Weg in /public.
+  const logo = (await logoPng("/baier-logo.png", 520)) || (await logoPng("/baier-logo.svg", 420));
 
   let y = 0;
   let seite = 1;
