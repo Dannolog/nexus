@@ -321,11 +321,11 @@ export async function generateVertragPdf(form: Contract): Promise<Blob> {
     const breiteA = doc.getTextWidth(hinweisA);
     doc.setFont("helvetica", "bold");
     const breiteB = doc.getTextWidth(hinweisB);
-    const markW = nexusMark ? 3.1 : 0;
+    const markW = nexusMark ? 3.6 : 0;
     const gesamtB = markW + (markW ? 1.4 : 0) + breiteA + breiteB;
     let hx = PAGE_W / 2 - gesamtB / 2;
     if (nexusMark) {
-      try { doc.addImage(nexusMark.data, "PNG", hx, FOOT_Y - 2.7, markW, markW / nexusMark.ratio); } catch { /* ohne Signet weiter */ }
+      try { doc.addImage(nexusMark.data, "PNG", hx, FOOT_Y - 3, markW, markW / nexusMark.ratio); } catch { /* ohne Signet weiter */ }
       hx += markW + 1.4;
     }
     doc.setFont("helvetica", "normal"); doc.setTextColor(140);
