@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { getUser, clearSession } from "@/lib/clientApi";
@@ -24,6 +24,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [ready, setReady] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [updateVerfuegbar, setUpdateVerfuegbar] = useState(false);
+  const buildIdRef = useRef<string | null>(null);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -40,6 +42,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // Mobiles Menü bei Seitenwechsel schließen
   useEffect(() => { setMenuOpen(false); }, [pathname]);
 
+  // Neue App-Version erkennen: Build-Kennung regelmäßig abfragen; ändert sie sich,
+  // wurde neu ausgerollt → Hinweisleiste mit „Neu laden" (wie in kontor/ProjectEye).
+  useEffect(() => {
+    async function pruefen() {
+      try {
+        const res = await fetch("/api/version", { cache: "no-store" });
+        const { buildId } = await res.json();
+        if (!buildId || buildId === "unknown") return;
+        if (buildIdRef.current === null) buildIdRef.current = buildId;
+        else if (buildId !== buildIdRef.current) setUpdateVerfuegbar(true);
+      } catch { /* offline o. ä. – beim nächsten Durchlauf erneut versuchen */ }
+    }
+    pruefen();
+    const iv = setInterval(pruefen, 30_000);
+    const beiFokus = () => pruefen();
+    window.addEventListener("focus", beiFokus);
+    return () => { clearInterval(iv); window.removeEventListener("focus", beiFokus); };
+  }, []);
+
   function toggleTheme() {
     const el = document.documentElement;
     const dark = el.classList.toggle("dark");
@@ -50,6 +71,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="app-shell">
+      {/* Hinweis auf eine neu ausgerollte Version – ein Klick lädt sie */}
+      {updateVerfuegbar && (
+        <div className="update-leiste">
+          <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Icon name="redo" size={16} /> Neue Version von Nexus verfügbar
+          </span>
+          <button onClick={() => window.location.reload()}>Jetzt laden</button>
+        </div>
+      )}
+
       {/* Mobile Topbar mit Logo + Hamburger */}
       <header className="topbar">
         <button onClick={() => setMenuOpen(true)} aria-label="Menü öffnen"

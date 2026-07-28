@@ -88,6 +88,26 @@ textarea.input { line-height: 1.5; }
 .sidebar-overlay { display: none; }
 .sidebar-close { display: none; }
 
+/* Hinweis auf eine neue App-Version (unten eingeblendet, überlagert kein Layout) */
+.update-leiste {
+  position: fixed; z-index: 200;
+  left: 50%; transform: translateX(-50%);
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 12px 10px 16px; border-radius: 12px;
+  background: var(--accent); color: #fff;
+  box-shadow: 0 6px 24px rgba(0,0,0,.28);
+  font-size: 14px; font-weight: 500; max-width: calc(100vw - 24px);
+  animation: update-auf .25s ease-out;
+}
+.update-leiste button {
+  border: 0; border-radius: 8px; cursor: pointer;
+  background: rgba(255,255,255,.22); color: #fff;
+  padding: 6px 14px; font-size: 13px; font-weight: 600;
+}
+.update-leiste button:hover { background: rgba(255,255,255,.34); }
+@keyframes update-auf { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
 @media (max-width: 768px) {
   .app-shell { display: block; height: 100vh; overflow: auto; }
   .topbar {
