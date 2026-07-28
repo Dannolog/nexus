@@ -10,8 +10,8 @@ const PAGE_W = 210;
 const PAGE_H = 297;
 const MX = 20;            // Seitenrand links/rechts
 const TOP = 14;           // Seitenrand oben
-const FOOT_Y = PAGE_H - 12; // Grundlinie der Fußzeile
-const BODY_BOTTOM = FOOT_Y - 8;
+const FOOT_Y = PAGE_H - 13; // Grundlinie der ersten Fußzeilen-Zeile
+const BODY_BOTTOM = FOOT_Y - 11;
 const CONTENT_W = PAGE_W - MX * 2;
 const SIZE = 9.3;         // Fließtext
 const LH = 4.5;           // Zeilenhöhe Fließtext
@@ -129,8 +129,8 @@ export async function generateVertragPdf(form: Contract): Promise<Blob> {
   // PNG bevorzugt: SVG über ein Canvas zu rastern klappt nicht in jedem Browser
   // zuverlässig; die PNG-Fassung liegt als Fallback-freier Weg in /public.
   const logo = (await logoPng("/baier-logo.png", 520)) || (await logoPng("/baier-logo.svg", 420));
-  // Nexus-Signet für die Fußzeile („erstellt mit Nexus App")
-  const nexusMark = await logoPng("/nexus-mark.png", 192);
+  // Nexus-App-Symbol (blaue Kachel, weißes Zeichen) für die Fußzeile
+  const nexusMark = await logoPng("/nexus-badge.png", 256);
 
   let y = 0;
   let seite = 1;
@@ -139,7 +139,8 @@ export async function generateVertragPdf(form: Contract): Promise<Blob> {
   function kopfErsteSeite() {
     let ky = TOP;
     if (logo) {
-      const w = 26, h = w / logo.ratio;
+      // Höhe vorgeben (entspricht den 48 px der Bildschirm-Vorschau), Breite folgt dem Seitenverhältnis
+      const h = 12.7, w = h * logo.ratio;
       try { doc.addImage(logo.data, "PNG", MX, ky, w, h); } catch { /* ohne Logo weiter */ }
       doc.setFont("helvetica", "bold"); doc.setFontSize(14); doc.setTextColor(BLAU[0], BLAU[1], BLAU[2]);
       doc.text(ARBEITGEBER.name, MX + w + 5, ky + 6);
@@ -309,29 +310,30 @@ export async function generateVertragPdf(form: Contract): Promise<Blob> {
   for (let p = 1; p <= gesamt; p++) {
     doc.setPage(p);
     doc.setDrawColor(215); doc.setLineWidth(0.2);
-    doc.line(MX, FOOT_Y - 3.5, PAGE_W - MX, FOOT_Y - 3.5);
+    doc.line(MX, FOOT_Y - 6, PAGE_W - MX, FOOT_Y - 6);
     doc.setFont("helvetica", "normal"); doc.setFontSize(7.2); doc.setTextColor(140);
     doc.text(docRef, MX, FOOT_Y);
     doc.text(`Seite ${p} von ${gesamt}`, PAGE_W - MX, FOOT_Y, { align: "right" });
 
-    // Mittig: Signet + Hinweis, womit das Dokument erstellt wurde
-    const hinweisA = "erstellt mit ";
-    const hinweisB = "Nexus App";
-    doc.setFont("helvetica", "normal"); doc.setFontSize(7.2);
-    const breiteA = doc.getTextWidth(hinweisA);
-    doc.setFont("helvetica", "bold");
-    const breiteB = doc.getTextWidth(hinweisB);
-    const markW = nexusMark ? 3.6 : 0;
-    const gesamtB = markW + (markW ? 1.4 : 0) + breiteA + breiteB;
-    let hx = PAGE_W / 2 - gesamtB / 2;
+    // Mittig: App-Symbol (blaue Kachel) + zweizeilig „erstellt mit" / „Nexus"
+    const zeile1 = "erstellt mit";
+    const zeile2 = "Nexus";
+    doc.setFont("helvetica", "normal"); doc.setFontSize(6.8);
+    const breite1 = doc.getTextWidth(zeile1);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(8.4);
+    const breite2 = doc.getTextWidth(zeile2);
+    const textB = Math.max(breite1, breite2);
+    const markW = nexusMark ? 6.4 : 0;
+    const abstand = markW ? 2 : 0;
+    let hx = PAGE_W / 2 - (markW + abstand + textB) / 2;
     if (nexusMark) {
-      try { doc.addImage(nexusMark.data, "PNG", hx, FOOT_Y - 3, markW, markW / nexusMark.ratio); } catch { /* ohne Signet weiter */ }
-      hx += markW + 1.4;
+      try { doc.addImage(nexusMark.data, "PNG", hx, FOOT_Y - 4.6, markW, markW / nexusMark.ratio); } catch { /* ohne Symbol weiter */ }
+      hx += markW + abstand;
     }
-    doc.setFont("helvetica", "normal"); doc.setTextColor(140);
-    doc.text(hinweisA, hx, FOOT_Y);
-    doc.setFont("helvetica", "bold"); doc.setTextColor(BLAU[0], BLAU[1], BLAU[2]);
-    doc.text(hinweisB, hx + breiteA, FOOT_Y);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(6.8); doc.setTextColor(150);
+    doc.text(zeile1, hx, FOOT_Y - 2.2);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(8.4); doc.setTextColor(BLAU[0], BLAU[1], BLAU[2]);
+    doc.text(zeile2, hx, FOOT_Y + 1.6);
   }
 
   return doc.output("blob");

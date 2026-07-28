@@ -232,11 +232,14 @@ function Fuss({ page, total, docRef }: { page: number; total: number; docRef: st
   return (
     <div style={{ position: "absolute", left: PAD_X, right: PAD_X, bottom: PAD_BOTTOM, display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 9.5, color: "#888", borderTop: "1px solid #ddd", paddingTop: 5 }}>
       <span>{docRef}</span>
-      {/* Erstellt-mit-Hinweis samt Nexus-Signet */}
-      <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+      {/* Erstellt-mit-Hinweis samt Nexus-App-Symbol */}
+      <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/nexus-mark.svg" alt="" style={{ width: 9, height: 9 }} />
-        <span>erstellt mit <b style={{ fontWeight: 600, color: "#6b7280" }}>Nexus App</b></span>
+        <img src="/nexus-badge.svg" alt="" style={{ width: 18, height: 18, borderRadius: 5 }} />
+        <span style={{ display: "grid", lineHeight: 1.15 }}>
+          <span style={{ fontSize: 8 }}>erstellt mit</span>
+          <span style={{ fontSize: 10.5, fontWeight: 700, color: "#3b82f6" }}>Nexus</span>
+        </span>
       </span>
       <span>Seite {page} von {total}</span>
     </div>
