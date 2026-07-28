@@ -129,6 +129,8 @@ export async function generateVertragPdf(form: Contract): Promise<Blob> {
   // PNG bevorzugt: SVG über ein Canvas zu rastern klappt nicht in jedem Browser
   // zuverlässig; die PNG-Fassung liegt als Fallback-freier Weg in /public.
   const logo = (await logoPng("/baier-logo.png", 520)) || (await logoPng("/baier-logo.svg", 420));
+  // Nexus-Signet für die Fußzeile („erstellt mit Nexus App")
+  const nexusMark = await logoPng("/nexus-mark.png", 192);
 
   let y = 0;
   let seite = 1;
@@ -311,6 +313,25 @@ export async function generateVertragPdf(form: Contract): Promise<Blob> {
     doc.setFont("helvetica", "normal"); doc.setFontSize(7.2); doc.setTextColor(140);
     doc.text(docRef, MX, FOOT_Y);
     doc.text(`Seite ${p} von ${gesamt}`, PAGE_W - MX, FOOT_Y, { align: "right" });
+
+    // Mittig: Signet + Hinweis, womit das Dokument erstellt wurde
+    const hinweisA = "erstellt mit ";
+    const hinweisB = "Nexus App";
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7.2);
+    const breiteA = doc.getTextWidth(hinweisA);
+    doc.setFont("helvetica", "bold");
+    const breiteB = doc.getTextWidth(hinweisB);
+    const markW = nexusMark ? 3.1 : 0;
+    const gesamtB = markW + (markW ? 1.4 : 0) + breiteA + breiteB;
+    let hx = PAGE_W / 2 - gesamtB / 2;
+    if (nexusMark) {
+      try { doc.addImage(nexusMark.data, "PNG", hx, FOOT_Y - 2.7, markW, markW / nexusMark.ratio); } catch { /* ohne Signet weiter */ }
+      hx += markW + 1.4;
+    }
+    doc.setFont("helvetica", "normal"); doc.setTextColor(140);
+    doc.text(hinweisA, hx, FOOT_Y);
+    doc.setFont("helvetica", "bold"); doc.setTextColor(BLAU[0], BLAU[1], BLAU[2]);
+    doc.text(hinweisB, hx + breiteA, FOOT_Y);
   }
 
   return doc.output("blob");

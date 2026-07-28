@@ -14,7 +14,7 @@ export const ARBEITGEBER = {
   strasse: "Philipp-Reis-Straße 3",
   ort: "49661 Cloppenburg",
   tel: "01575 2421157",
-  email: "technik@baier-maschinen.de",
+  email: "d.baier@baier-maschinen.de",
   web: "www.baier-maschinen.de",
 };
 
@@ -232,6 +232,12 @@ function Fuss({ page, total, docRef }: { page: number; total: number; docRef: st
   return (
     <div style={{ position: "absolute", left: PAD_X, right: PAD_X, bottom: PAD_BOTTOM, display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 9.5, color: "#888", borderTop: "1px solid #ddd", paddingTop: 5 }}>
       <span>{docRef}</span>
+      {/* Erstellt-mit-Hinweis samt Nexus-Signet */}
+      <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/nexus-mark.svg" alt="" style={{ width: 9, height: 9 }} />
+        <span>erstellt mit <b style={{ fontWeight: 600, color: "#6b7280" }}>Nexus App</b></span>
+      </span>
       <span>Seite {page} von {total}</span>
     </div>
   );
