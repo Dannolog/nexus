@@ -47,7 +47,7 @@ const PAD_BOTTOM = 18;
 const FOOT_H = 34;
 const HEAD_FIRST = 172; // Briefkopf + Titel (mit Akzentlinie) auf Seite 1
 const HEAD_REST = 50;   // laufende Kopfzeile ab Seite 2
-const ITEM_GAP = 9;
+const ITEM_GAP = 13; // Abstand zwischen Absätzen (wie im PDF: klar getrennte Unterpunkte)
 const CONTENT_W = A4_W - PAD_X * 2;
 const usableHeight = (pageIndex: number) =>
   A4_H - PAD_TOP - PAD_BOTTOM - FOOT_H - (pageIndex === 0 ? HEAD_FIRST : HEAD_REST);
@@ -249,7 +249,7 @@ function Fuss({ page, total, docRef }: { page: number; total: number; docRef: st
 function Kasten({ n, title }: { n: number; title: string }) {
   // Klassischer Stil: schlichte fette Überschrift „§ N Titel", mit Abstand darüber.
   return (
-    <div style={{ paddingTop: 9, fontWeight: 700, fontSize: 13.5, color: "#000", fontFamily: "var(--font-sans), system-ui, sans-serif" }}>
+    <div style={{ paddingTop: 14, fontWeight: 700, fontSize: 13.5, color: "#000", fontFamily: "var(--font-sans), system-ui, sans-serif" }}>
       § {n} {title}
     </div>
   );

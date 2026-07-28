@@ -3,7 +3,7 @@
 // Gleiches Vorgehen wie in kontor: echtes Vektor-PDF, Text bleibt auswählbar/durchsuchbar,
 // keine Server-Abhängigkeit (kein Chrome nötig). Die Klauseltexte kommen aus derselben
 // Quelle wie die Bildschirm-Vorschau (buildSections in components/VertragDokument.tsx).
-import { ARBEITGEBER, buildSections, fmtDate, fmtMoney, txt, vertragsNr, type Contract, type Seg } from "@/components/VertragDokument";
+import { ARBEITGEBER, buildSections, fmtDate, fmtMoney, txt, vertragsNr, type Absatz, type Contract, type Seg } from "@/components/VertragDokument";
 
 // A4 in mm
 const PAGE_W = 210;
@@ -15,7 +15,8 @@ const BODY_BOTTOM = FOOT_Y - 11;
 const CONTENT_W = PAGE_W - MX * 2;
 const SIZE = 9.3;         // Fließtext
 const LH = 4.5;           // Zeilenhöhe Fließtext
-const GAP = 2.6;          // Abstand zwischen Absätzen
+const GAP = 4.2;          // Abstand zwischen Absätzen (Unterpunkten)
+const ABSTAND_UEBER_PARAGRAF = 4.5; // zusätzlicher Abstand vor jeder §-Überschrift
 const NUM_W = 6;          // Spaltenbreite für "1."
 const BLAU = [0, 71, 179] as const;
 
@@ -236,29 +237,46 @@ export async function generateVertragPdf(form: Contract): Promise<Blob> {
 
   // ── Paragraphen ──
   const sections = buildSections(form, befristet);
-  sections.forEach((s, si) => {
-    // Überschrift nicht allein am Seitenende stehen lassen: Höhe von Überschrift +
-    // erstem Absatz vorab prüfen.
-    const ueberschrift = `§ ${si + 1} ${s.t}`;
-    const erstBreite = CONTENT_W - (s.items.length > 1 ? NUM_W : 0) - 4;
-    const erstZeilen = s.items.length ? umbrechen(doc, zuWoertern(s.items[0].segs).flat(), erstBreite, SIZE).length : 0;
-    platz(6.5 + erstZeilen * LH);
+  // Nutzbare Texthöhe einer leeren Folgeseite – Maßstab dafür, ob ein Absatz überhaupt
+  // ungeteilt auf eine Seite passt.
+  const seitenHoehe = BODY_BOTTOM - (TOP + 11);
 
+  /** Zeilen und Gesamthöhe eines Absatzes vorab berechnen (für den Seitenumbruch). */
+  function absatzMessen(item: Absatz, breite: number) {
+    const zeilenProBlock = zuWoertern(item.segs).map((block) => umbrechen(doc, block, breite, SIZE));
+    const zeilen = zeilenProBlock.reduce((n, z) => n + z.length, 0);
+    const listenHoehe = item.list ? 1 + item.list.length * LH : 0;
+    return { zeilenProBlock, hoehe: zeilen * LH + listenHoehe };
+  }
+
+  sections.forEach((s, si) => {
+    const nummeriert = s.items.length > 1;
+    const xText = MX + (nummeriert ? NUM_W : 4);
+    const breite = PAGE_W - MX - xText;
+
+    // Überschrift nie allein am Seitenende: Überschrift + kompletter erster Absatz
+    // müssen zusammen passen, sonst beginnt der § auf der nächsten Seite.
+    const ueberschrift = `§ ${si + 1} ${s.t}`;
+    const erster = s.items.length ? absatzMessen(s.items[0], breite) : { hoehe: 0 };
+    platz(ABSTAND_UEBER_PARAGRAF + 6.5 + Math.min(erster.hoehe, seitenHoehe - 12));
+
+    y += ABSTAND_UEBER_PARAGRAF;
     doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.setTextColor(0);
     doc.text(ueberschrift, MX, y);
-    y += 5.6;
+    y += 6.4;
 
     s.items.forEach((item, ii) => {
-      const nummeriert = s.items.length > 1;
-      const xText = MX + (nummeriert ? NUM_W : 4);
-      const breite = PAGE_W - MX - xText;
-      const bloecke = zuWoertern(item.segs);
+      const { zeilenProBlock, hoehe } = absatzMessen(item, breite);
+      // Absätze werden nicht mitten durchgeschnitten: Passt der Absatz nicht mehr
+      // vollständig auf diese Seite, wandert er komplett auf die nächste. Nur Absätze,
+      // die länger als eine ganze Seite sind, dürfen umbrechen.
+      const ungeteilt = hoehe <= seitenHoehe;
+      if (ungeteilt) platz(hoehe);
 
       let ersteZeileDerNummer = true;
-      bloecke.forEach((block) => {
-        const zeilen = umbrechen(doc, block, breite, SIZE);
+      zeilenProBlock.forEach((zeilen) => {
         zeilen.forEach((z, zi) => {
-          platz(LH);
+          if (!ungeteilt) platz(LH);
           if (nummeriert && ersteZeileDerNummer) {
             doc.setFont("helvetica", "normal"); doc.setFontSize(SIZE); doc.setTextColor(20);
             doc.text(`${ii + 1}.`, MX, y);
@@ -275,7 +293,7 @@ export async function generateVertragPdf(form: Contract): Promise<Blob> {
       if (item.list) {
         y += 1;
         item.list.forEach(([grund, tage]) => {
-          platz(LH);
+          if (!ungeteilt) platz(LH);
           doc.setFont("helvetica", "normal"); doc.setFontSize(SIZE); doc.setTextColor(20);
           doc.text("• " + grund, xText + 3, y);
           doc.setFont("helvetica", "bold");
@@ -285,7 +303,6 @@ export async function generateVertragPdf(form: Contract): Promise<Blob> {
       }
       y += GAP;
     });
-    y += 1.5;
   });
 
   // ── Unterschriften ──
