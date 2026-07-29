@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, getToken } from "@/lib/clientApi";
 import Icon from "@/components/Icon";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import PdfViewerModal from "@/components/PdfViewerModal";
 
 // ── Dokumentenablage ──
 // Links: Vorlagen (z. B. Personalfragebogen) hochladen und versionieren.
@@ -30,6 +31,15 @@ function speichereBlob(blob: Blob, name: string) {
   a.click();
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+function blobZuBase64(b: Blob): Promise<string> {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result));
+    r.onerror = () => rej(new Error("Datei konnte nicht gelesen werden"));
+    r.readAsDataURL(b);
+  });
 }
 
 function dateiZuBase64(f: File): Promise<string> {
@@ -62,6 +72,8 @@ export default function DocumentsPage() {
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState("");
   const [loeschen, setLoeschen] = useState<Dokument | null>(null);
+  // PDF-Viewer (aus ProjectEye übernommen): zeigt Vorlagen und abgelegte Dokumente
+  const [viewer, setViewer] = useState<{ url: string; titel: string; dok?: Dokument } | null>(null);
   const [vorlageLoeschen, setVorlageLoeschen] = useState<Vorlage | null>(null);
 
   const ladeVorlagen = useCallback(async () => {
