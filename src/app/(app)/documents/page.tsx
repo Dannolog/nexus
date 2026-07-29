@@ -190,9 +190,43 @@ export default function DocumentsPage() {
     try {
       const { blob, name } = await ladeDatei(`/api/employee-documents/${d.id}/file`);
       if (speichern) speichereBlob(blob, name);
-      else window.open(URL.createObjectURL(blob), "_blank", "noopener");
+      else setViewer({ url: URL.createObjectURL(blob), titel: `${d.title || d.templateKey} · v${d.version} · ${name}`, dok: d });
     } catch (e: any) { setMsg("Fehler: " + e.message); }
     finally { setBusy(""); }
+  }
+
+  /** Vorlage im Viewer ansehen – leer oder mit den Daten des gewählten Mitarbeiters. */
+  async function vorlageAnsehen(v: Vorlage, mitDaten: boolean) {
+    setBusy("view" + v.id);
+    try {
+      const q = mitDaten && empId ? `?employeeId=${empId}${orgId ? `&orgId=${orgId}` : ""}` : "";
+      const { blob, name } = await ladeDatei(`/api/doc-templates/${v.id}/file${q}`);
+      setViewer({ url: URL.createObjectURL(blob), titel: `${v.name} (v${v.version})${mitDaten ? " · vorausgefüllt" : ""} · ${name}` });
+    } catch (e: any) { setMsg("Fehler: " + e.message); }
+    finally { setBusy(""); }
+  }
+
+  /**
+   * Aus dem Viewer heraus gespeicherte Seitenänderungen (umsortiert, Leerseiten,
+   * gelöschte oder doppelte Seiten) landen als **neue Version** in der Ablage – die
+   * bisherige Fassung bleibt erhalten.
+   */
+  async function ausViewerSpeichern(blob: Blob, dok?: Dokument) {
+    if (!dok) { setMsg("Bearbeiten ist nur bei abgelegten Dokumenten möglich."); return; }
+    try {
+      const base64 = await blobZuBase64(blob);
+      const neu = await api("/api/employee-documents", {
+        method: "POST",
+        body: JSON.stringify({
+          employeeId: dok.employeeId, orgId: dok.orgId || orgId, base64,
+          title: dok.title, templateKey: dok.templateKey, fill: false,
+          note: `Seiten bearbeitet aus Version ${dok.version}`,
+        }),
+      });
+      setMsg(`Als neue Version gespeichert: ${neu.fileName} (Version ${neu.version}).`);
+      ladeDokumente(dok.employeeId);
+      setViewer(null);
+    } catch (e: any) { setMsg("Fehler beim Speichern: " + e.message); }
   }
 
   async function dokumentEntfernen() {
@@ -254,6 +288,10 @@ export default function DocumentsPage() {
                   {" · "}{datum(v.updatedAt)}
                 </div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  <button className="btn" onClick={() => vorlageAnsehen(v, !!empId)} disabled={busy === "view" + v.id}
+                    title={empId ? "Im Viewer ansehen (mit den Daten des gewählten Mitarbeiters)" : "Im Viewer ansehen"}>
+                    <Icon name="eye" /> Ansehen
+                  </button>
                   <button className="btn" onClick={() => vorlageHerunterladen(v, false)} disabled={busy === "dl" + v.id}>
                     <Icon name="save" /> Leer
                   </button>
@@ -359,6 +397,15 @@ export default function DocumentsPage() {
           </div>
         </div>
       </div>
+
+      {viewer && (
+        <PdfViewerModal
+          url={viewer.url}
+          titel={viewer.titel}
+          onClose={() => { URL.revokeObjectURL(viewer.url); setViewer(null); }}
+          onSavePdf={viewer.dok ? (blob) => ausViewerSpeichern(blob, viewer.dok) : undefined}
+        />
+      )}
 
       <ConfirmDialog
         open={!!loeschen}
