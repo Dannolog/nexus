@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth";
-import { handle, error, ApiError } from "@/lib/http";
+import { ApiError, error } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import { bauDateiname, fuelleFormular, loesePlatzhalter, werteAusMitarbeiter } from "@/lib/documents";
 
@@ -12,8 +12,8 @@ export const dynamic = "force-dynamic";
  *   ?orgId=…       → Firma für Dateiname und Arbeitgeberfelder
  * Der Abruf läuft über fetch mit Bearer-Token; die UI reicht das Ergebnis als Download durch.
  */
-export const GET = (req: NextRequest, { params }: { params: { id: string } }) =>
-  handle(async () => {
+export const GET = async (req: NextRequest, { params }: { params: { id: string } }) => {
+  try {
     await requireAuth(req);
     const t = await prisma.documentTemplate.findFirst({ where: { id: params.id, deletedAt: null } });
     if (!t) throw new ApiError("Vorlage nicht gefunden", 404);
@@ -51,4 +51,8 @@ export const GET = (req: NextRequest, { params }: { params: { id: string } }) =>
         "Cache-Control": "no-store",
       },
     });
-  }).catch(() => error("Vorlage konnte nicht geladen werden", 500));
+  } catch (e: any) {
+    const status = e instanceof ApiError ? e.status : 500;
+    return error(e?.message || "Datei konnte nicht geladen werden", status);
+  }
+};
