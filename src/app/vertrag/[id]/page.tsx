@@ -19,7 +19,17 @@ export default function VertragPdfSeite() {
   const [url, setUrl] = useState("");
   const [fehler, setFehler] = useState("");
   const [laedt, setLaedt] = useState(true);
+  const [mobil, setMobil] = useState(false);
   const rahmen = useRef<HTMLIFrameElement>(null);
+
+  // Handys (besonders iOS) zeigen ein eingebettetes PDF im iframe oft gar nicht an –
+  // dort deshalb keine Einbettung, sondern große Schaltflächen zum Öffnen/Speichern.
+  useEffect(() => {
+    const messen = () => setMobil(window.innerWidth <= 768);
+    messen();
+    window.addEventListener("resize", messen);
+    return () => window.removeEventListener("resize", messen);
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -87,6 +97,18 @@ export default function VertragPdfSeite() {
         .pdf-info { margin-left: auto; font-size: 12.5px; opacity: .8; }
         .pdf-rahmen { flex: 1; width: 100%; border: 0; background: #4b5563; }
         .pdf-meldung { margin: 40px auto; text-align: center; color: #fff; font-size: 15px; }
+        .pdf-mobil { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 22px 14px; }
+        .pdf-karte {
+          width: 100%; max-width: 420px; background: var(--card, #fff); color: var(--fg, #111);
+          border-radius: 14px; padding: 18px; box-shadow: 0 6px 24px rgba(0,0,0,.25);
+        }
+        .pdf-karte .pb { border-color: rgba(0,0,0,.15); background: rgba(0,0,0,.06); color: inherit; padding: 12px 14px; font-size: 15px; }
+        .pdf-karte .pb.primary { background: #2563eb; border-color: #2563eb; color: #fff; }
+        @media (max-width: 768px) {
+          .pdf-leiste { padding: calc(10px + env(safe-area-inset-top)) 12px 10px; }
+          .pdf-leiste .pb { padding: 9px 12px; font-size: 13.5px; }
+          .pdf-info { display: none; }
+        }
       `}</style>
 
       <div className="pdf-leiste">
@@ -107,8 +129,31 @@ export default function VertragPdfSeite() {
       {fehler && <div className="pdf-meldung" style={{ color: "#fecaca" }}>{fehler}</div>}
       {!fehler && laedt && <div className="pdf-meldung">Vertrag wird geladen und als PDF aufbereitet…</div>}
 
-      {url && (
+      {url && !mobil && (
         <iframe ref={rahmen} className="pdf-rahmen" src={url} title="Arbeitsvertrag als PDF" />
+      )}
+
+      {url && mobil && (
+        <div className="pdf-mobil">
+          <div className="pdf-karte">
+            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>
+              Arbeitsvertrag {nr}
+            </div>
+            {contract?.employeeName && <div className="muted" style={{ marginBottom: 14 }}>{contract.employeeName}</div>}
+            <button type="button" className="pb primary" style={{ width: "100%", justifyContent: "center", marginBottom: 10 }} onClick={speichern}>
+              <Icon name="save" /> PDF speichern
+            </button>
+            <button type="button" className="pb" style={{ width: "100%", justifyContent: "center" }}
+              onClick={() => window.open(url, "_blank", "noopener")}>
+              <Icon name="file-text" /> PDF öffnen
+            </button>
+            <p className="muted" style={{ fontSize: 12.5, lineHeight: 1.5, marginTop: 14 }}>
+              Handy-Browser können PDFs nicht zuverlässig direkt in der Seite anzeigen.
+              „PDF öffnen" zeigt den Vertrag im PDF-Betrachter des Geräts – von dort lässt er sich
+              auch teilen oder drucken.
+            </p>
+          </div>
+        </div>
       )}
     </div>
   );

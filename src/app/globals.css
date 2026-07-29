@@ -154,6 +154,14 @@ textarea.input { line-height: 1.5; }
   .contract-grid { grid-template-columns: 1fr; }
 }
 
+/* Nur auf dem Handy bzw. nur am Desktop sichtbar (Vertragsseite) */
+.nur-handy { display: none !important; }
+@media (max-width: 768px) {
+  .nur-handy { display: inline-flex !important; }
+  .card.nur-handy { display: block !important; }
+  .nur-desktop { display: none !important; }
+}
+
 /* Feld-Reihen im Vertragsformular */
 .feld-zeile { display: grid; gap: 12px; }
 .feld-zeile-2 { grid-template-columns: 1fr 1fr; }

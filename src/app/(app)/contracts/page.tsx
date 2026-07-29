@@ -221,7 +221,9 @@ export default function ContractsPage() {
             <Icon name="save" /> {saving ? "Speichert…" : "Speichern"}
           </button>
           <button className="btn" onClick={pdfAnsicht} title={form.id ? "PDF-Vorschau öffnen – dort drucken oder als PDF speichern" : "Erst speichern, dann PDF-Ansicht"}>
-            <Icon name="file-text" /> PDF-Vorschau / Drucken
+            <Icon name="file-text" />
+            <span className="nur-desktop">PDF-Vorschau / Drucken</span>
+            <span className="nur-handy">PDF</span>
           </button>
           {form.id && (
             <>
@@ -414,9 +416,25 @@ export default function ContractsPage() {
         </div>
 
         {/* ── Rechte Spalte: Live-Vorschau (Papier), zoombar ── */}
-        <ZoomView>
-          <VertragDokument form={form} befristet={befristet} />
-        </ZoomView>
+        <div>
+          <button type="button" className="btn nur-handy" style={{ width: "100%", justifyContent: "center", marginBottom: 10 }}
+            onClick={() => setVorschauOffen((v) => !v)}>
+            <Icon name={vorschauOffen ? "eye-off" : "eye"} />
+            {vorschauOffen ? "Vorschau ausblenden" : "Vorschau anzeigen"}
+          </button>
+          {vorschauOffen ? (
+            <ZoomView>
+              <VertragDokument form={form} befristet={befristet} />
+            </ZoomView>
+          ) : (
+            <div className="card nur-handy" style={{ padding: 14, fontSize: 13.5, lineHeight: 1.5 }}>
+              <span className="muted">
+                Die Seitenvorschau ist auf dem Handy stark verkleinert. Zum Lesen und Weitergeben
+                besser <b>PDF-Vorschau</b> öffnen – dort lässt sich der Vertrag auch speichern oder drucken.
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       <ConfirmDialog
