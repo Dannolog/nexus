@@ -4,6 +4,7 @@ import { api, getToken } from "@/lib/clientApi";
 import Icon from "@/components/Icon";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import PdfViewerModal from "@/components/PdfViewerModal";
+import SuchSelect from "@/components/SuchSelect";
 
 // ── Dokumentenablage ──
 // Links: Vorlagen (z. B. Personalfragebogen) hochladen und versionieren.
@@ -319,19 +320,23 @@ export default function DocumentsPage() {
             <div className="feld-zeile feld-zeile-2">
               <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
                 <span className="muted">Mitarbeiter</span>
-                <select className="input" value={empId} onChange={(e) => setEmpId(e.target.value)}>
-                  <option value="">— wählen —</option>
-                  {mitarbeiter.map((m) => (
-                    <option key={m.id} value={m.id}>{m.name}{m.employeeNumber ? ` (${m.employeeNumber})` : ""}</option>
-                  ))}
-                </select>
+                <SuchSelect
+                  value={empId}
+                  onChange={setEmpId}
+                  platzhalter="— Mitarbeiter wählen —"
+                  suchePlatzhalter="Name oder Personalnummer…"
+                  options={mitarbeiter.map((m) => ({ value: m.id, label: m.name, hint: m.employeeNumber || m.email || "" }))}
+                />
               </label>
               <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
                 <span className="muted">Firma (Mandant)</span>
-                <select className="input" value={orgId} onChange={(e) => setOrgId(e.target.value)}>
-                  <option value="">— wählen —</option>
-                  {mandanten.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-                </select>
+                <SuchSelect
+                  value={orgId}
+                  onChange={setOrgId}
+                  platzhalter="— Firma wählen —"
+                  suchePlatzhalter="Firma suchen…"
+                  options={mandanten.map((o) => ({ value: o.id, label: o.name, hint: [o.zip, o.city].filter(Boolean).join(" ") }))}
+                />
               </label>
             </div>
 

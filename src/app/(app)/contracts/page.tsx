@@ -5,6 +5,7 @@ import { api, ConflictError } from "@/lib/clientApi";
 import Icon from "@/components/Icon";
 import VertragDokument, { A4_W, vertragsNr, type Contract } from "@/components/VertragDokument";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import SuchSelect from "@/components/SuchSelect";
 
 
 const LEER: Contract = {
@@ -290,10 +291,13 @@ export default function ContractsPage() {
               </select>
             </Feld>
             <Feld label="Mitarbeiter">
-              <select className="input" value={form.employeeId || ""} onChange={(e) => onEmployee(e.target.value)}>
-                <option value="">— aus Nexus wählen —</option>
-                {employees.map((e) => <option key={e.id} value={e.id}>{e.name}{e.employeeNumber ? ` (${e.employeeNumber})` : ""}</option>)}
-              </select>
+              <SuchSelect
+                value={form.employeeId || ""}
+                onChange={onEmployee}
+                platzhalter="— aus Nexus wählen —"
+                suchePlatzhalter="Name oder Personalnummer…"
+                options={employees.map((e) => ({ value: e.id, label: e.name, hint: e.employeeNumber || e.email || "" }))}
+              />
             </Feld>
             <Feld label="Vertragsname (zur Zuordnung)">
               <input className="input" placeholder={form.employeeName ? `Arbeitsvertrag – ${form.employeeName}` : "z. B. Arbeitsvertrag – Max Mustermann"}

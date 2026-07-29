@@ -154,6 +154,37 @@ textarea.input { line-height: 1.5; }
   .contract-grid { grid-template-columns: 1fr; }
 }
 
+/* ---- Auswahlfeld mit Suche (SuchSelect) ---- */
+.ss-feld {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  width: 100%; text-align: left; cursor: pointer;
+}
+.ss-feld:disabled { opacity: .55; cursor: default; }
+.ss-panel {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 120;
+  padding: 10px; box-shadow: 0 14px 38px rgba(0,0,0,.28);
+}
+.ss-eintrag {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; text-align: left; cursor: pointer;
+  border: 0; background: transparent; color: var(--fg);
+  padding: 10px 10px; border-radius: 9px; font-size: 14.5px;
+}
+.ss-eintrag:hover { background: var(--bg); }
+.ss-aktiv { background: var(--bg); font-weight: 600; }
+.ss-schatten { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 140; }
+.ss-blatt {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 150;
+  border-radius: 16px 16px 0 0; padding: 14px;
+  padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  box-shadow: 0 -8px 32px rgba(0,0,0,.35);
+  animation: ss-hoch .18s ease-out;
+}
+@keyframes ss-hoch { from { transform: translateY(14px); opacity: .7; } to { transform: translateY(0); opacity: 1; } }
+@media (max-width: 768px) {
+  .ss-eintrag { padding: 13px 10px; font-size: 15.5px; }
+}
+
 /* Nur auf dem Handy bzw. nur am Desktop sichtbar (Vertragsseite) */
 .nur-handy { display: none !important; }
 @media (max-width: 768px) {
