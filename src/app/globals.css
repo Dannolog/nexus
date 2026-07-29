@@ -153,3 +153,26 @@ textarea.input { line-height: 1.5; }
 @media (max-width: 900px) {
   .contract-grid { grid-template-columns: 1fr; }
 }
+
+/* Feld-Reihen im Vertragsformular */
+.feld-zeile { display: grid; gap: 12px; }
+.feld-zeile-2 { grid-template-columns: 1fr 1fr; }
+.feld-zeile-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+@media (max-width: 768px) {
+  /* Auf dem Handy nur noch zwei Spalten – drei sind für Eingabefelder zu schmal */
+  .feld-zeile-3 { grid-template-columns: 1fr 1fr; }
+  .feld-zeile-3 > *:last-child:nth-child(odd) { grid-column: 1 / -1; }
+
+  /* Kopfbereich: Aktionen greifbar über die volle Breite statt gequetscht nebeneinander */
+  .vertrag-kopf { gap: 8px; }
+  .vertrag-kopf h1 { font-size: 20px; }
+  .vertrag-aktionen { width: 100%; margin-left: 0 !important; }
+  .vertrag-aktionen .btn { flex: 1 1 auto; justify-content: center; }
+  .vertrag-aktionen .btn-icon { flex: 0 0 auto; }
+}
+
+@media (max-width: 430px) {
+  /* Sehr schmale Geräte: Eingaben untereinander */
+  .feld-zeile-2, .feld-zeile-3 { grid-template-columns: 1fr; }
+}

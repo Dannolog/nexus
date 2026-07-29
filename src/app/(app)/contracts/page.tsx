@@ -68,6 +68,12 @@ export default function ContractsPage() {
   const [deleting, setDeleting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState("");
+  // Auf dem Handy ist die A4-Vorschau stark verkleinert und damit kaum lesbar – dort
+  // startet sie eingeklappt; gelesen wird der Vertrag über die PDF-Ansicht.
+  const [vorschauOffen, setVorschauOffen] = useState(true);
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth <= 768) setVorschauOffen(false);
+  }, []);
 
   async function nrKopieren(nr: string) {
     if (!nr) return;
@@ -193,7 +199,7 @@ export default function ContractsPage() {
         }
       `}</style>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+      <div className="vertrag-kopf" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, display: "flex", alignItems: "center", gap: 10 }}>
           <Icon name="file-text" size={24} /> Arbeitsverträge
         </h1>
@@ -210,7 +216,7 @@ export default function ContractsPage() {
           </button>
         )}
         <button className="btn" onClick={neu}><Icon name="plus" /> Neu</button>
-        <div style={{ display: "flex", gap: 8, marginLeft: "auto", flexWrap: "wrap" }}>
+        <div className="vertrag-aktionen" style={{ display: "flex", gap: 8, marginLeft: "auto", flexWrap: "wrap" }}>
           <button className="btn btn-primary" onClick={speichern} disabled={saving}>
             <Icon name="save" /> {saving ? "Speichert…" : "Speichern"}
           </button>
@@ -305,7 +311,7 @@ export default function ContractsPage() {
               <input className="input" value={form.jobTitle || ""} onChange={(e) => set("jobTitle", e.target.value)} />
             </Feld>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div className="feld-zeile feld-zeile-2">
               <Feld label="Eintrittsdatum">
                 <input className="input" type="date" value={form.startDate ? String(form.startDate).slice(0, 10) : ""}
                   onChange={(e) => set("startDate", e.target.value ? new Date(e.target.value).toISOString() : null)} />
@@ -325,7 +331,7 @@ export default function ContractsPage() {
               </Feld>
             )}
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+            <div className="feld-zeile feld-zeile-3">
               <Feld label="Probezeit (Monate)">
                 <input className="input" type="number" min={0} value={form.probationMonths ?? 0}
                   onChange={(e) => set("probationMonths", e.target.value === "" ? 0 : Number(e.target.value))} />
@@ -340,7 +346,7 @@ export default function ContractsPage() {
               </Feld>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, alignItems: "end" }}>
+            <div className="feld-zeile feld-zeile-3" style={{ alignItems: "end" }}>
               <Feld label="Regelarbeitszeit von">
                 <input className="input" type="time" value={form.coreTimeFrom || "07:00"}
                   onChange={(e) => set("coreTimeFrom", e.target.value)} />
@@ -356,7 +362,7 @@ export default function ContractsPage() {
               </label>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div className="feld-zeile feld-zeile-2">
               <Feld label="Bruttoentgelt (€)">
                 <input className="input" type="number" min={0} step="0.01" value={form.salary ?? 0}
                   onChange={(e) => set("salary", e.target.value === "" ? 0 : Number(e.target.value))} />
@@ -369,7 +375,7 @@ export default function ContractsPage() {
               </Feld>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div className="feld-zeile feld-zeile-2">
               <Feld label="Urlaubstage / Jahr (max. 30)">
                 <input className="input" type="number" min={0} max={30} value={form.vacationDays ?? 0}
                   onChange={(e) => set("vacationDays", e.target.value === "" ? 0 : Number(e.target.value))} />
@@ -387,7 +393,7 @@ export default function ContractsPage() {
               <textarea className="input" rows={3} value={form.additionalTerms || ""} onChange={(e) => set("additionalTerms", e.target.value)} />
             </Feld>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div className="feld-zeile feld-zeile-2">
               <Feld label="Unterschriftsort">
                 <input className="input" value={form.signCity || ""} onChange={(e) => set("signCity", e.target.value)} />
               </Feld>
