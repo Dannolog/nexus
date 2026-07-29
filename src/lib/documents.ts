@@ -74,6 +74,11 @@ export async function fuelleFormular(pdf: Buffer | Uint8Array, daten: FuellDaten
  * Wert = Platzhalter, der aus den Nexus-Daten ersetzt wird.
  * Bewusst NUR Stammdaten – Bankverbindung, Steuer-ID und Sozialversicherungsnummer
  * trägt der Mitarbeiter selbst ein, die hält Nexus nicht vor.
+ *
+ * Hinweis: Einzelne Felder dieses Formulars (Seite 2/3, z. B. „Name des Arbeitnehmers")
+ * sind im PDF nicht am Formular angemeldet und lassen sich technisch nicht befüllen.
+ * `filtereAufVorhandene` sortiert solche Einträge beim Anlegen der Vorlage aus, damit
+ * die Anzeige „x automatisch befüllt" der Wirklichkeit entspricht.
  */
 export const STANDARD_FELDZUORDNUNG: Record<string, string> = {
   "Vorname (Minijob)": "{vorname}",
@@ -90,6 +95,15 @@ export const STANDARD_FELDZUORDNUNG: Record<string, string> = {
   "Name des Arbeitgebers": "{firma}",
   "Arbeitgeber 1 (Minijob)": "{firma}",
 };
+
+/** Behält nur Zuordnungen, deren Feld im PDF tatsächlich existiert und befüllbar ist. */
+export function filtereAufVorhandene(
+  zuordnung: Record<string, string>,
+  felder: { name: string }[]
+): Record<string, string> {
+  const vorhanden = new Set(felder.map((f) => f.name));
+  return Object.fromEntries(Object.entries(zuordnung).filter(([feld]) => vorhanden.has(feld)));
+}
 
 /** Ersetzt die Platzhalter einer Zuordnung durch die konkreten Werte. */
 export function loesePlatzhalter(zuordnung: Record<string, string>, werte: Record<string, string>): FuellDaten {

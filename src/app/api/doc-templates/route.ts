@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { handle, json, ApiError } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
-import { leseFormularfelder, slug, STANDARD_FELDZUORDNUNG } from "@/lib/documents";
+import { filtereAufVorhandene, leseFormularfelder, slug, STANDARD_FELDZUORDNUNG } from "@/lib/documents";
 
 export const dynamic = "force-dynamic";
 
@@ -58,9 +58,10 @@ export const POST = (req: NextRequest) =>
       return json({ ...t, ersetzt: true });
     }
 
-    // Für den bekannten Personalfragebogen gleich die Standard-Zuordnung hinterlegen
+    // Für den bekannten Personalfragebogen gleich die Standard-Zuordnung hinterlegen –
+    // beschränkt auf Felder, die im PDF wirklich befüllbar sind.
     const passendeZuordnung = felder.some((f) => f.name === "Vorname (Minijob)")
-      ? JSON.stringify(STANDARD_FELDZUORDNUNG)
+      ? JSON.stringify(filtereAufVorhandene(STANDARD_FELDZUORDNUNG, felder))
       : "{}";
 
     const t = await prisma.documentTemplate.create({
