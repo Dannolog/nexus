@@ -172,6 +172,9 @@ textarea.input { line-height: 1.5; }
   .feld-zeile-3 { grid-template-columns: 1fr 1fr; }
   .feld-zeile-3 > *:last-child:nth-child(odd) { grid-column: 1 / -1; }
 
+  /* Vertragsnummer in der Liste: größeres Antippfeld */
+  .nr-badge { padding: 5px 9px !important; font-size: 12.5px !important; }
+
   /* Kopfbereich: Aktionen greifbar über die volle Breite statt gequetscht nebeneinander */
   .vertrag-kopf { gap: 8px; }
   .vertrag-kopf h1 { font-size: 20px; }

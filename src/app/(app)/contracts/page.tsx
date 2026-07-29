@@ -257,6 +257,7 @@ export default function ContractsPage() {
                       <span
                         role="button"
                         tabIndex={0}
+                        className="nr-badge"
                         title="Vertragsnummer kopieren"
                         onClick={(ev) => { ev.stopPropagation(); nrKopieren(vertragsNr(c.number)); }}
                         onKeyDown={(ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); ev.stopPropagation(); nrKopieren(vertragsNr(c.number)); } }}
