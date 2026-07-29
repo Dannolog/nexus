@@ -259,15 +259,23 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
         }
       }
 
-      // 3) Seitenreihenfolge/Leerseiten anwenden
-      const zwischen = await PDFDocument.load(await src.save({ updateFieldAppearances: false }), { ignoreEncryption: true });
-      const out = await PDFDocument.create();
-      const first = zwischen.getPage(0).getSize();
-      const idxList = order.filter((s) => s.orig).map((s) => s.orig - 1);
-      const copied = idxList.length ? await out.copyPages(zwischen, idxList) : [];
-      let ci = 0;
-      for (const s of order) { if (s.orig) out.addPage(copied[ci++]); else out.addPage([first.width, first.height]); }
-      const bytes = await out.save();
+      // 3) Seitenreihenfolge/Leerseiten anwenden – aber nur, wenn wirklich etwas umsortiert
+      // wurde. Wichtig: Beim Kopieren der Seiten in ein neues Dokument gehen die
+      // ausfüllbaren Formularfelder verloren (die Inhalte bleiben sichtbar). Ohne
+      // Seitenänderung wird deshalb direkt gespeichert und das Formular bleibt erhalten.
+      let bytes;
+      if (!seitenGeaendert) {
+        bytes = await src.save();
+      } else {
+        const zwischen = await PDFDocument.load(await src.save({ updateFieldAppearances: false }), { ignoreEncryption: true });
+        const out = await PDFDocument.create();
+        const first = zwischen.getPage(0).getSize();
+        const idxList = order.filter((s) => s.orig).map((s) => s.orig - 1);
+        const copied = idxList.length ? await out.copyPages(zwischen, idxList) : [];
+        let ci = 0;
+        for (const s of order) { if (s.orig) out.addPage(copied[ci++]); else out.addPage([first.width, first.height]); }
+        bytes = await out.save();
+      }
       await onSavePdf(new Blob([bytes], { type: "application/pdf" }), { replace: !!replace });
       setEditMode(false); setTexts([]); setAktiverText(null); setTextMode(false);
       formWerteStart.current = { ...formWerte };
@@ -717,6 +725,13 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
           <Type size={15} />
           <span>Auf die Stelle im Dokument tippen, an der Text stehen soll. Zum Beenden erneut auf das Text-Symbol tippen.</span>
           <button onClick={() => setTextMode(false)} style={{ all: "unset", cursor: "pointer", marginLeft: "auto", padding: "3px 10px", borderRadius: 7, background: "rgba(255,255,255,.22)" }}>Fertig</button>
+        </div>
+      )}
+
+      {editMode && seitenGeaendert && formFelder.length > 0 && (
+        <div style={{ padding: "7px 12px", background: "#b45309", color: "#fff", font: `600 12px ${SANS}`, flexShrink: 0 }}>
+          Hinweis: Durch das Umsortieren der Seiten verliert das PDF seine ausfüllbaren Felder –
+          bereits eingetragene Inhalte bleiben sichtbar.
         </div>
       )}
 
