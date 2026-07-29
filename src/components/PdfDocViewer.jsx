@@ -7,7 +7,7 @@ if (typeof Promise.withResolvers !== "function") {
 import * as pdfjsLib from "pdfjs-dist";
 // Worker liegt als Kopie in /public (Next.js kennt Vites "?url"-Import nicht)
 const workerUrl = "/pdf.worker.min.mjs";
-import { Search, Minus, Plus, ChevronLeft, ChevronRight, ChevronDown, Columns2, X as XIcon, File as FileIcon, StretchVertical, StretchHorizontal, Pencil, Check, Trash2, GripVertical, FilePlus, MoreHorizontal, Copy, RotateCw } from "lucide-react";
+import { Search, Minus, Plus, ChevronLeft, ChevronRight, ChevronDown, Columns2, X as XIcon, File as FileIcon, StretchVertical, StretchHorizontal, Pencil, Check, Trash2, GripVertical, FilePlus, MoreHorizontal, Copy, RotateCw, Type, ListChecks } from "lucide-react";
 import RailInsert from "./RailInsert";
 import { usePeers, PeerBadge } from "./LivePeers";
 try { pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl; } catch (_) { /* ignore */ }
@@ -49,9 +49,20 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
   const [editMode, setEditMode] = useState(false);
   const [order, setOrder] = useState([]); // Arbeitsreihenfolge der Seiten: { k, orig?:1-basiert, blank?:true }
   const [savingPdf, setSavingPdf] = useState(false);
+  // ── Text ins PDF schreiben (Nexus-Ergänzung) ──
+  // textMode: Klick auf die Seite setzt ein Textfeld; beim Speichern werden die Texte
+  // mit pdf-lib fest ins PDF gezeichnet. Formularfelder (AcroForm) lassen sich in einer
+  // eigenen Leiste ausfüllen und bleiben danach weiter ausfüllbar.
+  const [textMode, setTextMode] = useState(false);
+  const [texts, setTexts] = useState([]);        // { key, page, x, y, size, value }
+  const [aktiverText, setAktiverText] = useState(null);
+  const [formPanel, setFormPanel] = useState(false);
+  const [formFelder, setFormFelder] = useState([]); // { name, type, value }
+  const [formWerte, setFormWerte] = useState({});
   const [saveMenu, setSaveMenu] = useState(false); // Dropdown „Speichern neu"
   const [dragSlot, setDragSlot] = useState(null); // Index in order während des Umsortierens
   const bytesRef = useRef(null); // Original-PDF-Bytes (für pdf-lib)
+  const formWerteStart = useRef({}); // Formularwerte beim Laden – Vergleich für „geändert?"
   // Anzeigemodus: einzelne Seite (mit Belegerfassung) | fortlaufend vertikal | fortlaufend horizontal
   // Standard beim reinen Ansehen: fortlaufend vertikal (durch alle Seiten scrollen); Belegerfassung bleibt Einzelseite
   const [flow, setFlow] = useState(regionMode ? "single" : "vert");
@@ -169,6 +180,21 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
         if (cancelled) return; setProgress(100);
         const doc = await pdfjsLib.getDocument({ data }).promise; if (cancelled) return;
         docRef.current = doc; bytesRef.current = data; setNumPages(doc.numPages); setPage(1); setBusy(false); setDocTick((t) => t + 1);
+        setTexts([]); setAktiverText(null); setTextMode(false);
+        // Vorhandene Formularfelder (AcroForm) einlesen – damit lassen sich Anträge direkt ausfüllen
+        (async () => {
+          try {
+            const { PDFDocument } = await import("pdf-lib");
+            const d2 = await PDFDocument.load(data, { ignoreEncryption: true });
+            const felder = d2.getForm().getFields().map((f) => ({ name: f.getName(), type: f.constructor.name }));
+            const werte = {};
+            for (const f of felder) {
+              if (f.type !== "PDFTextField") continue;
+              try { werte[f.name] = d2.getForm().getTextField(f.name).getText() || ""; } catch { werte[f.name] = ""; }
+            }
+            if (!cancelled) { setFormFelder(felder.filter((f) => f.type === "PDFTextField")); setFormWerte(werte); formWerteStart.current = { ...werte }; }
+          } catch { if (!cancelled) { setFormFelder([]); setFormWerte({}); formWerteStart.current = {}; } }
+        })();
         setEditMode(false); setOrder(Array.from({ length: doc.numPages }, (_, i) => ({ k: "p" + (i + 1) + "-" + Math.random().toString(36).slice(2, 6), orig: i + 1 })));
         // Volltext je Seite für die Suche (im Hintergrund)
         const texts = [];
@@ -190,22 +216,61 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
   // Vorhandene Seite duplizieren: gleicher orig-Verweis. copyPages kopiert denselben
   // Quellindex problemlos mehrfach, daher genügt ein zusätzlicher Slot.
   const duplicateSlot = (i) => setOrder((o) => { const a = [...o]; const s = a[i]; if (!s) return o; a.splice(i + 1, 0, { ...s, k: genKey("d") }); return a; });
-  const edited = editMode && (order.length !== numPages || order.some((s, i) => s.blank || s.orig !== i + 1));
+  const seitenGeaendert = editMode && (order.length !== numPages || order.some((s, i) => s.blank || s.orig !== i + 1));
+  const texteVorhanden = texts.some((t) => String(t.value || "").trim());
+  const formularGeaendert = Object.keys(formWerte).some((k) => (formWerte[k] || "") !== (formWerteStart.current[k] || ""));
+  const edited = seitenGeaendert || texteVorhanden || formularGeaendert;
   const savePdf = async (replace) => {
-    if (!bytesRef.current || !onSavePdf || !order.length) return;
+    if (!bytesRef.current || !onSavePdf || !order.length) return; // order wird beim Laden gefüllt
     setSaveMenu(false); setSavingPdf(true); setErr("");
     try {
-      const { PDFDocument } = await import("pdf-lib");
+      const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
       const src = await PDFDocument.load(bytesRef.current);
+
+      // 1) Formularfelder ausfüllen – direkt in der Quelle, damit das Formular erhalten bleibt
+      const formAenderungen = Object.keys(formWerte).filter((k) => (formWerte[k] || "") !== (formWerteStart.current[k] || ""));
+      if (formAenderungen.length) {
+        const f = src.getForm();
+        for (const name of formAenderungen) {
+          try { f.getTextField(name).setText(formWerte[name] || ""); } catch { /* Feld fehlt → überspringen */ }
+        }
+        try { f.updateFieldAppearances(); } catch { /* Aussehen bleibt wie gehabt */ }
+      }
+
+      // 2) Freie Texte fest ins PDF zeichnen (auf die jeweilige Originalseite)
+      const zuZeichnen = texts.filter((t) => String(t.value || "").trim());
+      if (zuZeichnen.length) {
+        const font = await src.embedFont(StandardFonts.Helvetica);
+        for (const t of zuZeichnen) {
+          const seite = src.getPages()[t.page - 1];
+          if (!seite) continue;
+          const { height } = seite.getSize();
+          const groesse = t.size || 11;
+          // Bildschirm-Koordinaten (oben links) → PDF-Koordinaten (unten links)
+          String(t.value).split("\n").forEach((zeile, i) => {
+            seite.drawText(zeile, {
+              x: t.x,
+              y: height - t.y - groesse - i * (groesse * 1.25),
+              size: groesse,
+              font,
+              color: rgb(0.06, 0.09, 0.16),
+            });
+          });
+        }
+      }
+
+      // 3) Seitenreihenfolge/Leerseiten anwenden
+      const zwischen = await PDFDocument.load(await src.save({ updateFieldAppearances: false }), { ignoreEncryption: true });
       const out = await PDFDocument.create();
-      const first = src.getPage(0).getSize();
+      const first = zwischen.getPage(0).getSize();
       const idxList = order.filter((s) => s.orig).map((s) => s.orig - 1);
-      const copied = idxList.length ? await out.copyPages(src, idxList) : [];
+      const copied = idxList.length ? await out.copyPages(zwischen, idxList) : [];
       let ci = 0;
       for (const s of order) { if (s.orig) out.addPage(copied[ci++]); else out.addPage([first.width, first.height]); }
       const bytes = await out.save();
       await onSavePdf(new Blob([bytes], { type: "application/pdf" }), { replace: !!replace });
-      setEditMode(false);
+      setEditMode(false); setTexts([]); setAktiverText(null); setTextMode(false);
+      formWerteStart.current = { ...formWerte };
     } catch (e) { setErr("Speichern fehlgeschlagen: " + (e.message || e)); }
     setSavingPdf(false);
   };
@@ -326,6 +391,15 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
   // Maus: armed → Rahmen aufziehen; sonst → Dokument verschieben (Linksklick-Pan).
   // mousemove/up an window, damit das Ziehen auch außerhalb des Canvas weiterläuft.
   const onMouseDown = (e) => {
+    // Textmodus: Linksklick setzt an dieser Stelle ein neues Textfeld
+    if (textMode && e.button === 0) {
+      e.preventDefault();
+      const p = canvasRel(e.clientX, e.clientY);
+      const key = "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+      setTexts((arr) => [...arr, { key, page, x: p.x / scale, y: p.y / scale, size: 11, value: "" }]);
+      setAktiverText(key);
+      return;
+    }
     if (e.button !== 0 && e.button !== 2) return; e.preventDefault();
     // Linksklick im Rahmen-Modus zeichnet; Rechtsklick (oder Linksklick ohne Rahmen-Modus) verschiebt immer
     const drawing = armed && e.button === 0;
@@ -486,6 +560,25 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
           </button>
         )}
 
+        {/* Text ins PDF schreiben + Formularfelder ausfüllen (Nexus-Ergänzung) */}
+        {onSavePdf && (!searchOpen || wide) && (
+          <button
+            onClick={() => { setTextMode((v) => !v); if (flow !== "single") setFlow("single"); }}
+            title="Text ins PDF schreiben: einschalten und auf die gewünschte Stelle tippen"
+            style={{ ...btn(T), flexShrink: 0, background: textMode ? T.accent : T.card, color: textMode ? "#fff" : T.ink, borderColor: textMode ? T.accent : T.line }}>
+            <Type size={16} />
+          </button>
+        )}
+        {onSavePdf && formFelder.length > 0 && (!searchOpen || wide) && (
+          <button
+            onClick={() => setFormPanel((v) => !v)}
+            title={`${formFelder.length} Formularfelder ausfüllen`}
+            style={{ ...btn(T), flexShrink: 0, position: "relative", background: formPanel ? T.accent : T.card, color: formPanel ? "#fff" : T.ink, borderColor: formPanel ? T.accent : T.line }}>
+            <ListChecks size={16} />
+            <span style={{ position: "absolute", top: -5, right: -5, minWidth: 15, height: 15, borderRadius: 99, background: T.accent, color: "#fff", font: `700 8px ${SANS}`, display: "grid", placeItems: "center", padding: "0 2px" }}>{formFelder.length}</span>
+          </button>
+        )}
+
         {/* Zoom – immer sichtbar: − | % | + */}
         {(!searchOpen || wide) && (
         <span style={{ display: "inline-flex", alignItems: "center", flexShrink: 0, height: 32, border: `1px solid ${T.line}`, borderRadius: 9, overflow: "hidden", background: T.card }}>
@@ -619,7 +712,38 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
           </div>
         )}
         {err && <div style={{ textAlign: "center", padding: "30px 0", font: `600 12.5px ${SANS}`, color: "#dc2626" }}>{err}</div>}
-        <div onMouseDown={onMouseDown} onContextMenu={(e) => e.preventDefault()}
+        {textMode && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", background: T.accent, color: "#fff", font: `600 12.5px ${SANS}`, flexShrink: 0 }}>
+          <Type size={15} />
+          <span>Auf die Stelle im Dokument tippen, an der Text stehen soll. Zum Beenden erneut auf das Text-Symbol tippen.</span>
+          <button onClick={() => setTextMode(false)} style={{ all: "unset", cursor: "pointer", marginLeft: "auto", padding: "3px 10px", borderRadius: 7, background: "rgba(255,255,255,.22)" }}>Fertig</button>
+        </div>
+      )}
+
+      {formPanel && formFelder.length > 0 && (
+        <div style={{ maxHeight: "42vh", overflowY: "auto", padding: "10px 12px", background: T.card, borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
+          <div style={{ font: `700 11.5px ${SANS}`, color: T.inkSoft, textTransform: "uppercase", letterSpacing: ".04em", marginBottom: 8 }}>
+            Formularfelder ausfüllen
+          </div>
+          <div style={{ display: "grid", gap: 8, gridTemplateColumns: wide ? "1fr 1fr" : "1fr" }}>
+            {formFelder.map((f) => (
+              <label key={f.name} style={{ display: "grid", gap: 3 }}>
+                <span style={{ font: `600 11px ${SANS}`, color: T.inkSoft }}>{f.name}</span>
+                <input
+                  value={formWerte[f.name] ?? ""}
+                  onChange={(e) => setFormWerte((w) => ({ ...w, [f.name]: e.target.value }))}
+                  style={{ font: `500 14px ${SANS}`, color: T.ink, background: T.bg, border: `1px solid ${T.line}`, borderRadius: 8, padding: "9px 10px", outline: "none" }}
+                />
+              </label>
+            ))}
+          </div>
+          <div style={{ font: `500 11.5px ${SANS}`, color: T.inkSoft, marginTop: 8 }}>
+            Die Eingaben werden beim Speichern ins Formular übernommen – das PDF bleibt danach weiter ausfüllbar.
+          </div>
+        </div>
+      )}
+
+      <div onMouseDown={onMouseDown} onContextMenu={(e) => e.preventDefault()}
           style={{ position: "relative", width: cw || "auto", flex: "0 0 auto", cursor: armed ? "crosshair" : "grab", display: busy || err ? "none" : "block", userSelect: "none", WebkitUserSelect: "none" }}>
           <canvas ref={canvasRef} style={{ display: "block", boxShadow: "0 2px 12px rgba(0,0,0,.4)", borderRadius: 4, background: "#fff" }} />
           {marks.filter((m) => m.page === page).map((m) => {
@@ -639,6 +763,31 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
           ); })}
           {hits.map((h, i) => <div key={"h" + i} style={{ position: "absolute", left: h.x, top: h.y, width: h.w, height: h.h, background: "rgba(230,57,70,.4)", pointerEvents: "none", borderRadius: 2 }} />)}
           {selRect && <div style={{ position: "absolute", left: selRect.x, top: selRect.y, width: selRect.w, height: selRect.h, border: `2px solid ${T.accent}`, background: "rgba(230,57,70,.15)", pointerEvents: "none", borderRadius: 2 }} />}
+
+          {/* Eingetragene Texte (Nexus): auf dieser Seite bearbeitbar, beim Speichern fest ins PDF */}
+          {texts.filter((t) => t.page === page).map((t) => (
+            <div key={t.key} style={{ position: "absolute", left: t.x * scale, top: t.y * scale, zIndex: 6 }}>
+              <textarea
+                autoFocus={aktiverText === t.key}
+                value={t.value}
+                placeholder="Text…"
+                onChange={(e) => setTexts((arr) => arr.map((x) => (x.key === t.key ? { ...x, value: e.target.value } : x)))}
+                onFocus={() => setAktiverText(t.key)}
+                rows={Math.max(1, String(t.value || "").split("\n").length)}
+                style={{
+                  font: `${t.size * scale}px ${SANS}`, lineHeight: 1.25, color: "#0f172a",
+                  background: aktiverText === t.key ? "rgba(59,130,246,.10)" : "transparent",
+                  border: `1px ${aktiverText === t.key ? "solid" : "dashed"} ${T.accent}`,
+                  borderRadius: 3, padding: "1px 3px", minWidth: 90, resize: "both", overflow: "hidden",
+                }}
+              />
+              <button onClick={() => { setTexts((arr) => arr.filter((x) => x.key !== t.key)); if (aktiverText === t.key) setAktiverText(null); }}
+                title="Text entfernen"
+                style={{ all: "unset", cursor: "pointer", position: "absolute", top: -9, right: -9, width: 18, height: 18, borderRadius: 99, background: "#dc2626", color: "#fff", display: "grid", placeItems: "center", boxShadow: "0 1px 4px rgba(0,0,0,.35)" }}>
+                <XIcon size={11} />
+              </button>
+            </div>
+          ))}
         </div>
       </div>
       )}
