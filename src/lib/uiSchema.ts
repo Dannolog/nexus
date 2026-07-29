@@ -119,6 +119,13 @@ export const RESOURCES: Record<string, Resource> = {
       { key: "name", label: "Name" },
       { key: "email", label: "E-Mail", type: "email" },
       { key: "employeeNumber", label: "Personalnummer" },
+      // Stammdaten für Personalunterlagen (werden in Formulare übernommen)
+      { key: "phone", label: "Telefon" },
+      { key: "street", label: "Straße und Hausnummer" },
+      { key: "zip", label: "PLZ" },
+      { key: "city", label: "Ort" },
+      { key: "birthDate", label: "Geburtsdatum", type: "date" },
+      { key: "nationality", label: "Staatsangehörigkeit" },
       { key: "color", label: "Farbe", type: "color" },
       { key: "identityId", label: "Identität-ID (SSO)" },
       { key: "archived", label: "Archiviert", type: "checkbox" },
