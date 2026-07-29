@@ -42,9 +42,9 @@ export default function ConfirmDialog({
   return (
     <div
       onClick={onCancel}
-      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", display: "grid", placeItems: "center", padding: 16, zIndex: 100 }}
+      className="cd-schatten"
     >
-      <div onClick={(e) => e.stopPropagation()} className="card" style={{ padding: 24, width: 420, maxWidth: "100%" }}>
+      <div onClick={(e) => e.stopPropagation()} className="card cd-fenster">
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
           <div
             style={{
@@ -57,8 +57,8 @@ export default function ConfirmDialog({
           </div>
           <h2 style={{ fontSize: 18, fontWeight: 700 }}>{title}</h2>
         </div>
-        {message && <div className="muted" style={{ fontSize: 14, marginBottom: 20, lineHeight: 1.5 }}>{message}</div>}
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+        {message && <div className="muted" style={{ fontSize: 14, marginBottom: 20, lineHeight: 1.5, overflowWrap: "anywhere" }}>{message}</div>}
+        <div className="cd-knoepfe">
           <button className="btn" onClick={onCancel} autoFocus><Icon name="x" /> {cancelLabel}</button>
           <button
             className="btn btn-primary"

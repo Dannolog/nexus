@@ -154,6 +154,27 @@ textarea.input { line-height: 1.5; }
   .contract-grid { grid-template-columns: 1fr; }
 }
 
+/* ---- Bestätigungsabfrage (Löschen o. ä.) ---- */
+.cd-schatten {
+  position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,.5);
+  display: grid; place-items: center; padding: 16px;
+}
+.cd-fenster { padding: 24px; width: 420px; max-width: 100%; }
+.cd-knoepfe { display: flex; gap: 8px; justify-content: flex-end; }
+
+@media (max-width: 768px) {
+  /* Auf dem Handy sitzt die Abfrage unten, über die volle Breite – gut erreichbar */
+  .cd-schatten { place-items: end stretch; padding: 0; }
+  .cd-fenster {
+    width: 100%; max-width: 100%; border-radius: 16px 16px 0 0;
+    padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+    animation: cd-hoch .18s ease-out;
+  }
+  .cd-knoepfe { flex-direction: column-reverse; }
+  .cd-knoepfe .btn { width: 100%; justify-content: center; padding: 12px 14px; font-size: 15px; }
+}
+@keyframes cd-hoch { from { transform: translateY(16px); } to { transform: translateY(0); } }
+
 /* ---- Auswahlfeld mit Suche (SuchSelect) ---- */
 .ss-feld {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
