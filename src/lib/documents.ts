@@ -124,7 +124,9 @@ export function werteAusMitarbeiter(emp: any, org: any | null): Record<string, s
     plz: emp?.zip || "",
     ort: emp?.city || "",
     staatsangehoerigkeit: emp?.nationality || "",
-    geburtsdatum: geb && !isNaN(geb.getTime()) ? geb.toLocaleDateString("de-DE") : "",
+    geburtsdatum: geb && !isNaN(geb.getTime())
+      ? geb.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" })
+      : "",
     firma: org?.name || "",
     firmaStrasse: org?.street || "",
     firmaOrt: [org?.zip, org?.city].filter(Boolean).join(" "),
