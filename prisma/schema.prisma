@@ -153,6 +153,13 @@ model Employee {
   name           String
   email          String  @default("")
   employeeNumber String  @default("")
+  // Stammdaten für Personalunterlagen (Vorausfüllen von Formularen)
+  phone          String  @default("")
+  street         String  @default("")
+  zip            String  @default("")
+  city           String  @default("")
+  birthDate      DateTime?
+  nationality    String  @default("")
   color          String  @default("#7c3cc0")
   identityId     String?
   archived       Boolean @default(false)
@@ -269,4 +276,46 @@ model EmploymentContract {
 
   @@index([employeeId])
   @@index([status])
+}
+
+// ---- Dokumentenablage: Vorlagen (z. B. Personalfragebogen) ----
+model DocumentTemplate {
+  id        String   @id @default(cuid())
+  key       String   @unique                  // technischer Schlüssel, z. B. "personalfragebogen-minijob"
+  name      String                             // Anzeigename
+  fileName  String                             // Original-Dateiname
+  mimeType  String   @default("application/pdf")
+  data      Bytes                              // die Vorlagendatei selbst
+  version   Int      @default(1)               // erhöht sich bei jedem Ersetzen der Datei
+  formFields String  @default("[]") @db.Text   // erkannte PDF-Formularfelder (JSON)
+  fieldMap  String   @default("{}") @db.Text   // Zuordnung PDF-Feld → Nexus-Feld (JSON)
+  note      String   @default("") @db.Text
+  archived  Boolean  @default(false)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---- Dokumentenablage: abgelegte Dokumente je Mitarbeiter ----
+model EmployeeDocument {
+  id          String   @id @default(cuid())
+  employeeId  String
+  orgId       String   @default("")            // Firma/Mandant, zu der das Dokument gehört
+  orgName     String   @default("")            // eingefroren für den Dateinamen
+  templateId  String   @default("")
+  templateKey String   @default("")
+  title       String   @default("")
+  fileName    String                            // erzeugter Name: Firma_ID_Dokument_Datum_vN.pdf
+  mimeType    String   @default("application/pdf")
+  data        Bytes
+  size        Int      @default(0)
+  version     Int      @default(1)              // laufende Version je Mitarbeiter + Vorlage
+  filled      Boolean  @default(false)          // aus Nexus-Daten vorausgefüllt?
+  note        String   @default("") @db.Text
+  deletedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([employeeId])
+  @@index([templateKey])
 }
