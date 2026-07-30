@@ -871,7 +871,7 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
           {!flowMode && feldBoxen.map((f, i) => {
             const gemeinsam = {
               position: "absolute", left: f.x, top: f.y, width: f.w, height: f.h,
-              boxSizing: "border-box", zIndex: 5,
+              boxSizing: "border-box", zIndex: 8, touchAction: "auto",
             };
             const stopp = (e) => e.stopPropagation();
             if (f.art === "text") {
@@ -880,6 +880,7 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
               return (
                 <Feld
                   key={f.name + i}
+                  data-eingabe="1"
                   value={formWerte[f.name] ?? ""}
                   readOnly={f.readOnly}
                   onMouseDown={stopp}
@@ -903,6 +904,7 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
             return (
               <button
                 key={f.name + i}
+                data-eingabe="1"
                 type="button"
                 title={f.name}
                 onMouseDown={stopp}
