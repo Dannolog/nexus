@@ -74,7 +74,7 @@ export default function DocumentsPage() {
   const [busy, setBusy] = useState("");
   const [loeschen, setLoeschen] = useState<Dokument | null>(null);
   // PDF-Viewer (aus ProjectEye übernommen): zeigt Vorlagen und abgelegte Dokumente
-  const [viewer, setViewer] = useState<{ url: string; titel: string; dok?: Dokument } | null>(null);
+  const [viewer, setViewer] = useState<{ url: string; titel: string; dok?: Dokument; vorlage?: Vorlage } | null>(null);
   const [vorlageLoeschen, setVorlageLoeschen] = useState<Vorlage | null>(null);
 
   const ladeVorlagen = useCallback(async () => {
@@ -202,7 +202,7 @@ export default function DocumentsPage() {
     try {
       const q = mitDaten && empId ? `?employeeId=${empId}${orgId ? `&orgId=${orgId}` : ""}` : "";
       const { blob, name } = await ladeDatei(`/api/doc-templates/${v.id}/file${q}`);
-      setViewer({ url: URL.createObjectURL(blob), titel: `${v.name} (v${v.version})${mitDaten ? " · vorausgefüllt" : ""} · ${name}` });
+      setViewer({ url: URL.createObjectURL(blob), titel: `${v.name} (v${v.version})${mitDaten ? " · vorausgefüllt" : ""} · ${name}`, vorlage: v });
     } catch (e: any) { setMsg("Fehler: " + e.message); }
     finally { setBusy(""); }
   }
@@ -212,20 +212,27 @@ export default function DocumentsPage() {
    * gelöschte oder doppelte Seiten) landen als **neue Version** in der Ablage – die
    * bisherige Fassung bleibt erhalten.
    */
-  async function ausViewerSpeichern(blob: Blob, dok?: Dokument) {
-    if (!dok) { setMsg("Bearbeiten ist nur bei abgelegten Dokumenten möglich."); return; }
+  async function ausViewerSpeichern(blob: Blob, dok?: Dokument, vorlage?: Vorlage) {
+    // Zwei Fälle: bereits abgelegtes Dokument → neue Version; oder eine Vorlage, die
+    // gerade für den gewählten Mitarbeiter ausgefüllt wurde → erste Ablage.
+    const employeeId = dok?.employeeId || empId;
+    if (!employeeId) { setMsg("Bitte zuerst einen Mitarbeiter wählen – dann kann das ausgefüllte Formular abgelegt werden."); return; }
     try {
       const base64 = await blobZuBase64(blob);
       const neu = await api("/api/employee-documents", {
         method: "POST",
         body: JSON.stringify({
-          employeeId: dok.employeeId, orgId: dok.orgId || orgId, base64,
-          title: dok.title, templateKey: dok.templateKey, fill: false,
-          note: `Seiten bearbeitet aus Version ${dok.version}`,
+          employeeId,
+          orgId: dok?.orgId || orgId,
+          base64,
+          title: dok?.title || vorlage?.name || "Dokument",
+          templateKey: dok?.templateKey || vorlage?.key || "upload",
+          fill: false,
+          note: dok ? `in der App bearbeitet (aus Version ${dok.version})` : "in der App ausgefüllt",
         }),
       });
-      setMsg(`Als neue Version gespeichert: ${neu.fileName} (Version ${neu.version}).`);
-      ladeDokumente(dok.employeeId);
+      setMsg(`Gespeichert als ${neu.fileName} (Version ${neu.version}).`);
+      ladeDokumente(employeeId);
       setViewer(null);
     } catch (e: any) { setMsg("Fehler beim Speichern: " + e.message); }
   }
@@ -362,8 +369,10 @@ export default function DocumentsPage() {
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) dokumentHochladen(f); e.target.value = ""; }} />
               </label>
             </div>
-            <div className="muted" style={{ fontSize: 12 }}>
-              Dateiname wird automatisch vergeben: <b>Firma_Mitarbeiter_Dokument_Datum_Version.pdf</b>
+            <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
+              Dateiname wird automatisch vergeben: <b>Firma_Mitarbeiter_Dokument_Datum_Version.pdf</b><br />
+              Zum <b>Ausfüllen in der App</b>: Mitarbeiter wählen, bei der Vorlage auf <b>Ansehen</b> tippen –
+              im Betrachter alle Formularfelder ausfüllen oder Text einsetzen und speichern.
             </div>
           </div>
 
@@ -408,7 +417,7 @@ export default function DocumentsPage() {
           url={viewer.url}
           titel={viewer.titel}
           onClose={() => { URL.revokeObjectURL(viewer.url); setViewer(null); }}
-          onSavePdf={viewer.dok ? (blob) => ausViewerSpeichern(blob, viewer.dok) : undefined}
+          onSavePdf={(viewer.dok || (viewer.vorlage && empId)) ? (blob) => ausViewerSpeichern(blob, viewer.dok, viewer.vorlage) : undefined}
         />
       )}
 
