@@ -22,6 +22,7 @@ const path = require("path");
 const NEXUS = "/mnt/devip3/nexus";
 const CLOCKER_URL = process.env.CLOCKER_DATABASE_URL || "postgresql://clocker:clocker_pw@localhost:5432/clocker";
 const NEXUS_URL = process.env.NEXUS_DATABASE_URL || "postgresql://clocker:clocker_pw@localhost:5432/nexus";
+const KONTOR_URL = process.env.KONTOR_DATABASE_URL || "postgresql://clocker:clocker_pw@localhost:5432/kontor";
 const PE_DATEI = process.env.PROJECTEYE_DATA || "/mnt/devip3/ProjectEye/server/data/projecteye.json";
 const SAMMELZEIT = Number(process.env.SYNC_SAMMELZEIT_MS || 4000);
 const RUHE = Number(process.env.SYNC_MIN_ABSTAND_MS || 15000); // Mindestabstand zwischen zwei Läufen derselben Art
@@ -30,11 +31,13 @@ const log = (...a) => console.log(new Date().toLocaleString("de-DE"), "·", ...a
 
 const SKRIPTE = {
   clocker: ["prisma/sync-clocker-employees.ts", "prisma/sync-clocker-stammdaten.ts"],
+  kontor: ["prisma/sync-kontor-stammdaten.ts"],
   projecteye: ["prisma/sync-projecteye-suppliers.ts"],
 };
 
 const zustand = {
   clocker: { timer: null, laeuft: false, nachlauf: false, zuletzt: 0 },
+  kontor: { timer: null, laeuft: false, nachlauf: false, zuletzt: 0 },
   projecteye: { timer: null, laeuft: false, nachlauf: false, zuletzt: 0 },
 };
 
@@ -85,8 +88,9 @@ function hoeren(name, url, art) {
   const verbinden = () => {
     c = new Client({ connectionString: url });
     c.on("notification", (n) => {
-      log(`Signal aus ${name}: ${n.payload || "(ohne Angabe)"} → Abgleich geplant`);
-      planen(art);
+      const arten = Array.isArray(art) ? art : [art];
+      log(`Signal aus ${name}: ${n.payload || "(ohne Angabe)"} → Abgleich geplant (${arten.join(", ")})`);
+      arten.forEach((a) => planen(a));
     });
     c.on("error", (e) => { log(`! Verbindung ${name}: ${e.message} – neuer Versuch in 10 s`); try { c.end(); } catch {} setTimeout(verbinden, 10000); });
     c.connect()
@@ -97,9 +101,11 @@ function hoeren(name, url, art) {
   verbinden();
 }
 
-// clocker-Änderungen → clocker-Abgleiche; Nexus-Änderungen → ebenfalls (Gegenrichtung)
+// clocker- und kontor-Änderungen lösen den jeweiligen Abgleich aus.
+// Änderungen in Nexus lösen beide aus, damit sie in beide Fachanwendungen wandern.
 hoeren("clocker", CLOCKER_URL, "clocker");
-hoeren("nexus", NEXUS_URL, "clocker");
+hoeren("kontor", KONTOR_URL, "kontor");
+hoeren("nexus", NEXUS_URL, ["clocker", "kontor"]);
 
 // ProjectEye speichert in einer JSON-Datei → Dateiänderung beobachten
 try {
