@@ -10,9 +10,10 @@ datasource db {
 
 // ---- Mandant (eigene Firma) ----
 model Organization {
-  id        String  @id @default(cuid())
-  name      String
-  shortCode String  @default("")
+  id           String  @id @default(cuid())
+  name         String
+  nameAddition String  @default("")   // Namenszusatz, z. B. "Inh. David Baier"
+  shortCode    String  @default("")
   street    String  @default("")
   zip       String  @default("")
   city      String  @default("")
