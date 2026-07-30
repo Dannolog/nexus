@@ -59,6 +59,8 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
   const [formPanel, setFormPanel] = useState(false);
   const [formFelder, setFormFelder] = useState([]); // { name, type, value }
   const [formWerte, setFormWerte] = useState({});
+  // Positionen der Formularfelder auf der angezeigten Seite → direkt im Dokument ausfüllbar
+  const [feldBoxen, setFeldBoxen] = useState([]); // { name, art, x, y, w, h, mehrzeilig, optionen, anStatus }
   const [saveMenu, setSaveMenu] = useState(false); // Dropdown „Speichern neu"
   const [dragSlot, setDragSlot] = useState(null); // Index in order während des Umsortierens
   const bytesRef = useRef(null); // Original-PDF-Bytes (für pdf-lib)
@@ -186,11 +188,15 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
           try {
             const { PDFDocument } = await import("pdf-lib");
             const d2 = await PDFDocument.load(data, { ignoreEncryption: true });
-            const felder = d2.getForm().getFields().map((f) => ({ name: f.getName(), type: f.constructor.name }));
+            const form2 = d2.getForm();
+            const felder = form2.getFields().map((f) => ({ name: f.getName(), type: f.constructor.name }));
             const werte = {};
             for (const f of felder) {
-              if (f.type !== "PDFTextField") continue;
-              try { werte[f.name] = d2.getForm().getTextField(f.name).getText() || ""; } catch { werte[f.name] = ""; }
+              try {
+                if (f.type === "PDFTextField") werte[f.name] = form2.getTextField(f.name).getText() || "";
+                else if (f.type === "PDFCheckBox") werte[f.name] = form2.getCheckBox(f.name).isChecked() ? "Ja" : "";
+                else if (f.type === "PDFRadioGroup") werte[f.name] = form2.getRadioGroup(f.name).getSelected() || "";
+              } catch { werte[f.name] = ""; }
             }
             if (!cancelled) { setFormFelder(felder.filter((f) => f.type === "PDFTextField")); setFormWerte(werte); formWerteStart.current = { ...werte }; }
           } catch { if (!cancelled) { setFormFelder([]); setFormWerte({}); formWerteStart.current = {}; } }
@@ -232,7 +238,21 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
       if (formAenderungen.length) {
         const f = src.getForm();
         for (const name of formAenderungen) {
-          try { f.getTextField(name).setText(formWerte[name] || ""); } catch { /* Feld fehlt → überspringen */ }
+          const wert = formWerte[name] || "";
+          try {
+            f.getTextField(name).setText(wert);
+            continue;
+          } catch { /* kein Textfeld → weiter probieren */ }
+          try {
+            const k = f.getCheckBox(name);
+            if (wert) k.check(); else k.uncheck();
+            continue;
+          } catch { /* kein Kästchen → weiter probieren */ }
+          try {
+            const g = f.getRadioGroup(name);
+            if (wert) g.select(wert);
+            else if (typeof g.clear === "function") g.clear();
+          } catch { /* Feld fehlt → überspringen */ }
         }
         try { f.updateFieldAppearances(); } catch { /* Aussehen bleibt wie gehabt */ }
       }
@@ -318,6 +338,30 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
           its.push({ str: it.str, x: cx, y: cy - h, w: it.width * scale, h: h + 2 });
         }
         if (!cancelled) setItems(its);
+
+        // Formularfelder (AcroForm-Widgets) der Seite einmessen – daraus werden echte
+        // Eingabefelder über dem Dokument, sodass man direkt hineinschreiben kann.
+        try {
+          const annos = await pg.getAnnotations({ intent: "display" });
+          const boxen = [];
+          for (const a of annos) {
+            if (a.subtype !== "Widget" || !a.fieldName) continue;
+            const [x1, y1, x2, y2] = viewport.convertToViewportRectangle(a.rect);
+            const x = Math.min(x1, x2), y = Math.min(y1, y2);
+            const w = Math.abs(x2 - x1), h = Math.abs(y2 - y1);
+            if (w < 4 || h < 4) continue;
+            const art = a.fieldType === "Tx" ? "text" : a.fieldType === "Btn" ? (a.radioButton ? "radio" : "check") : a.fieldType === "Ch" ? "auswahl" : "";
+            if (!art) continue;
+            boxen.push({
+              name: a.fieldName, art, x, y, w, h,
+              mehrzeilig: !!a.multiLine,
+              readOnly: !!a.readOnly,
+              optionen: (a.options || []).map((o) => (typeof o === "string" ? o : o.exportValue ?? o.displayValue)),
+              anStatus: a.buttonValue ?? a.exportValue ?? "",
+            });
+          }
+          if (!cancelled) setFeldBoxen(boxen);
+        } catch { if (!cancelled) setFeldBoxen([]); }
       } catch (_) { /* RenderingCancelled o. Ä. ignorieren */ }
     })();
     return () => { cancelled = true; if (renderTaskRef.current) { try { renderTaskRef.current.cancel(); } catch (_) {} renderTaskRef.current = null; } };
@@ -778,6 +822,65 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
           ); })}
           {hits.map((h, i) => <div key={"h" + i} style={{ position: "absolute", left: h.x, top: h.y, width: h.w, height: h.h, background: "rgba(230,57,70,.4)", pointerEvents: "none", borderRadius: 2 }} />)}
           {selRect && <div style={{ position: "absolute", left: selRect.x, top: selRect.y, width: selRect.w, height: selRect.h, border: `2px solid ${T.accent}`, background: "rgba(230,57,70,.15)", pointerEvents: "none", borderRadius: 2 }} />}
+
+          {/* Formularfelder des PDFs: echte Eingabefelder an ihrer Position im Dokument.
+              Damit lässt sich ein Antrag direkt im Betrachter ausfüllen. */}
+          {onSavePdf && !flowMode && feldBoxen.map((f, i) => {
+            const gemeinsam = {
+              position: "absolute", left: f.x, top: f.y, width: f.w, height: f.h,
+              boxSizing: "border-box", zIndex: 5,
+            };
+            const stopp = (e) => e.stopPropagation();
+            if (f.art === "text") {
+              const schrift = Math.max(8, Math.min(f.mehrzeilig ? 13 : f.h * 0.68, 15));
+              const Feld = f.mehrzeilig ? "textarea" : "input";
+              return (
+                <Feld
+                  key={f.name + i}
+                  value={formWerte[f.name] ?? ""}
+                  readOnly={f.readOnly}
+                  onMouseDown={stopp}
+                  onTouchStart={stopp}
+                  onChange={(e) => setFormWerte((w) => ({ ...w, [f.name]: e.target.value }))}
+                  title={f.name}
+                  style={{
+                    ...gemeinsam,
+                    font: `${schrift}px ${SANS}`, color: "#0f172a", lineHeight: 1.15,
+                    padding: f.mehrzeilig ? "2px 3px" : "0 3px",
+                    background: (formWerte[f.name] ?? "") ? "rgba(59,130,246,.06)" : "rgba(59,130,246,.13)",
+                    border: `1px solid ${T.accent}`, borderRadius: 2, outline: "none", resize: "none",
+                  }}
+                />
+              );
+            }
+            // Kästchen und Auswahlknöpfe: antippen setzt/entfernt den Haken
+            const an = f.art === "radio"
+              ? String(formWerte[f.name] ?? "") === String(f.anStatus)
+              : !!formWerte[f.name];
+            return (
+              <button
+                key={f.name + i}
+                type="button"
+                title={f.name}
+                onMouseDown={stopp}
+                onTouchStart={stopp}
+                onClick={() => setFormWerte((w) => ({
+                  ...w,
+                  [f.name]: f.art === "radio"
+                    ? (String(w[f.name] ?? "") === String(f.anStatus) ? "" : String(f.anStatus))
+                    : (w[f.name] ? "" : "Ja"),
+                }))}
+                style={{
+                  ...gemeinsam, cursor: "pointer", display: "grid", placeItems: "center",
+                  background: an ? "rgba(59,130,246,.22)" : "rgba(59,130,246,.10)",
+                  border: `1px solid ${T.accent}`, borderRadius: f.art === "radio" ? "50%" : 2,
+                  color: T.accent, font: `700 ${Math.max(9, Math.min(f.h * 0.8, 14))}px ${SANS}`,
+                }}
+              >
+                {an ? "✓" : ""}
+              </button>
+            );
+          })}
 
           {/* Eingetragene Texte (Nexus): auf dieser Seite bearbeitbar, beim Speichern fest ins PDF */}
           {texts.filter((t) => t.page === page).map((t) => (
