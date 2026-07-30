@@ -154,6 +154,15 @@ textarea.input { line-height: 1.5; }
   .contract-grid { grid-template-columns: 1fr; }
 }
 
+/* Detailfenster (Klick auf einen Datensatz) – auf dem Handy bildschirmfüllend */
+@media (max-width: 768px) {
+  .dm-fenster {
+    width: 100% !important; max-width: 100% !important;
+    max-height: 100% !important; height: 100%;
+    border-radius: 0 !important;
+  }
+}
+
 /* Gefundener Text in Suchergebnissen */
 mark.treffer {
   background: rgba(250, 204, 21, .45);

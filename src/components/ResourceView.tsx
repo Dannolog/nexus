@@ -6,6 +6,7 @@ import { RESOURCES, Field } from "@/lib/uiSchema";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import SearchInput from "@/components/SearchInput";
 import Hervorheben from "@/components/Hervorheben";
+import AnsprechpartnerListe from "@/components/AnsprechpartnerListe";
 import Toggle from "@/components/Toggle";
 import Icon from "@/components/Icon";
 import ColorPicker from "@/components/ColorPicker";
@@ -384,7 +385,7 @@ function DetailModal({ resourceKey, row, suche, onClose, onEdit, onDelete }: {
 
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "grid", placeItems: "center", padding: 16, zIndex: 55 }}>
-      <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: 560, maxWidth: "94vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div onClick={(e) => e.stopPropagation()} className="card dm-fenster" style={{ width: R.entity === "Supplier" ? 640 : 560, maxWidth: "94vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h2 style={{ fontSize: 18, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><Hervorheben text={title} suche={suche} /></h2>
@@ -406,6 +407,12 @@ function DetailModal({ resourceKey, row, suche, onClose, onEdit, onDelete }: {
               </div>
             ))}
           </div>
+          {/* Lieferanten: alle Ansprechpartner mit eigener Suche */}
+          {R.entity === "Supplier" && (
+            <div style={{ borderTop: "1px solid var(--border)", paddingTop: 14 }}>
+              <AnsprechpartnerListe supplierId={row.id} vorgabeSuche={suche} />
+            </div>
+          )}
           {links.length > 0 && (
             <div style={{ display: "grid", gap: 6 }}>
               <span className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".05em" }}>Links</span>

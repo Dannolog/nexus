@@ -109,6 +109,7 @@ export const RESOURCES: Record<string, Resource> = {
     icon: "truck",
     prefix: "LI",
     titleField: "name",
+    detail: true,
     columns: [
       { key: "number", label: "Nr." },
       { key: "name", label: "Firma" },
