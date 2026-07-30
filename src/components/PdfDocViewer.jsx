@@ -203,7 +203,14 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
                 else if (f.type === "PDFRadioGroup") werte[f.name] = form2.getRadioGroup(f.name).getSelected() || "";
               } catch { werte[f.name] = ""; }
             }
-            if (!cancelled) { setFormFelder(felder.filter((f) => f.type === "PDFTextField")); setFormWerte(werte); formWerteStart.current = { ...werte }; }
+            if (!cancelled) {
+              setFormFelder(felder.filter((f) => f.type === "PDFTextField"));
+              setFormWerte(werte);
+              formWerteStart.current = { ...werte };
+              // Ausfüllbares Formular + Bearbeitung erlaubt → Einzelseite, denn nur dort
+              // liegen die Eingabefelder passend über dem Dokument.
+              if (felder.length > 0 && onSavePdf) setFlow("single");
+            }
           } catch { if (!cancelled) { setFormFelder([]); setFormWerte({}); formWerteStart.current = {}; } }
         })();
         setEditMode(false); setOrder(Array.from({ length: doc.numPages }, (_, i) => ({ k: "p" + (i + 1) + "-" + Math.random().toString(36).slice(2, 6), orig: i + 1 })));
@@ -781,7 +788,17 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
           </div>
         )}
         {err && <div style={{ textAlign: "center", padding: "30px 0", font: `600 12.5px ${SANS}`, color: "#dc2626" }}>{err}</div>}
-        {textMode && (
+        {onSavePdf && flowMode && formFelder.length > 0 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", background: T.card, borderBottom: `1px solid ${T.line}`, color: T.inkSoft, font: `600 12.5px ${SANS}`, flexShrink: 0 }}>
+          <ListChecks size={15} />
+          <span>Dieses Dokument ist ausfüllbar – zum Eintragen in die Einzelseiten-Ansicht wechseln.</span>
+          <button onClick={() => setFlow("single")} style={{ all: "unset", cursor: "pointer", marginLeft: "auto", padding: "3px 10px", borderRadius: 7, background: T.accent, color: "#fff" }}>
+            Jetzt ausfüllen
+          </button>
+        </div>
+      )}
+
+      {textMode && (
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", background: T.accent, color: "#fff", font: `600 12.5px ${SANS}`, flexShrink: 0 }}>
           <Type size={15} />
           <span>Auf die Stelle im Dokument tippen, an der Text stehen soll. Zum Beenden erneut auf das Text-Symbol tippen.</span>
