@@ -467,6 +467,8 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
   // Maus: armed → Rahmen aufziehen; sonst → Dokument verschieben (Linksklick-Pan).
   // mousemove/up an window, damit das Ziehen auch außerhalb des Canvas weiterläuft.
   const onMouseDown = (e) => {
+    // Klick in ein Eingabefeld gehört dem Feld – nicht dem Verschieben des Dokuments
+    if (e.target && e.target.closest && e.target.closest("input, textarea, select, button, [data-eingabe]")) return;
     // Textmodus: Linksklick setzt an dieser Stelle ein neues Textfeld
     if (textMode && e.button === 0) {
       e.preventDefault();
@@ -523,11 +525,18 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
       let pinch = null, pan = null;
       const dist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
       const mid = (t) => ({ x: (t[0].clientX + t[1].clientX) / 2, y: (t[0].clientY + t[1].clientY) / 2 });
+      // Eingabefelder (Formular, freier Text) dürfen die Berührung selbst behalten
+      const aufEingabe = (e) => {
+        const t = e.target;
+        return !!(t && t.closest && t.closest("input, textarea, select, button, [data-eingabe]"));
+      };
       const onTS = (e) => {
+        if (aufEingabe(e)) { pinch = null; pan = null; return; }
         if (e.touches.length === 2) { selStartRef.current = null; setRect(null); pan = null; const m = mid(e.touches); pinch = { d: dist(e.touches), s: scaleRef.current, x: m.x, y: m.y }; }
         else if (e.touches.length === 1) { pinch = null; if (armedRef.current) { beginSel(e.touches[0].clientX, e.touches[0].clientY); } else { pan = { x: e.touches[0].clientX, y: e.touches[0].clientY }; } }
       };
       const onTM = (e) => {
+        if (aufEingabe(e)) return;
         if (e.touches.length === 2 && pinch) {
           e.preventDefault();
           const d = dist(e.touches), m = mid(e.touches);
@@ -782,7 +791,7 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
         </div>
       )}
       {!flowMode && (
-      <div ref={scrollRef} className="pe-scrollbar" style={{ flex: 1, overflow: "auto", padding: 12, background: T.bg !== "#F5F5F7" ? "#0e0f12" : "#e9e9ee", minHeight: 0, minWidth: 0, touchAction: "none", scrollbarColor: `${T.accent} transparent`, scrollbarWidth: "thin", display: "flex", flexDirection: "column", alignItems: "safe center" }}>
+      <div ref={scrollRef} className="pe-scrollbar" style={{ flex: 1, overflow: "auto", padding: 12, background: T.bg !== "#F5F5F7" ? "#0e0f12" : "#e9e9ee", minHeight: 0, minWidth: 0, touchAction: "pan-x pan-y", scrollbarColor: `${T.accent} transparent`, scrollbarWidth: "thin", display: "flex", flexDirection: "column", alignItems: "safe center" }}>
         {busy && (
           <div style={{ position: "fixed", inset: 0, display: "grid", placeItems: "center", zIndex: 60, pointerEvents: "none" }}>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, background: T.card, borderRadius: 16, padding: "26px 30px", boxShadow: "0 18px 50px rgba(0,0,0,.35)" }}>
@@ -837,7 +846,7 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
       )}
 
       <div onMouseDown={onMouseDown} onContextMenu={(e) => e.preventDefault()}
-          style={{ position: "relative", width: cw || "auto", flex: "0 0 auto", cursor: armed ? "crosshair" : "grab", display: busy || err ? "none" : "block", userSelect: "none", WebkitUserSelect: "none" }}>
+          style={{ position: "relative", width: cw || "auto", flex: "0 0 auto", cursor: armed ? "crosshair" : "grab", display: busy || err ? "none" : "block" }}>
           <canvas ref={canvasRef} style={{ display: "block", boxShadow: "0 2px 12px rgba(0,0,0,.4)", borderRadius: 4, background: "#fff" }} />
           {marks.filter((m) => m.page === page).map((m) => {
             // Aktives Feld hervorheben, alle anderen ausgrauen → bessere Auswahl/Texterkennung
