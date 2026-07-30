@@ -186,7 +186,7 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
         // Vorhandene Formularfelder (AcroForm) einlesen – damit lassen sich Anträge direkt ausfüllen
         (async () => {
           try {
-            const { PDFDocument } = await import("pdf-lib");
+            const { PDFDocument, PDFName } = await import("pdf-lib");
             const d2 = await PDFDocument.load(data, { ignoreEncryption: true });
             const form2 = d2.getForm();
             const felder = form2.getFields().map((f) => ({ name: f.getName(), type: f.constructor.name }));
@@ -194,7 +194,12 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
             for (const f of felder) {
               try {
                 if (f.type === "PDFTextField") werte[f.name] = form2.getTextField(f.name).getText() || "";
-                else if (f.type === "PDFCheckBox") werte[f.name] = form2.getCheckBox(f.name).isChecked() ? "Ja" : "";
+                else if (f.type === "PDFCheckBox") {
+                  const cb = form2.getCheckBox(f.name);
+                  const v = cb.acroField.dict.get(PDFName.of("V"));
+                  const zustand = v ? String(v).replace(/^\//, "") : "";
+                  werte[f.name] = zustand && zustand !== "Off" ? zustand : "";
+                }
                 else if (f.type === "PDFRadioGroup") werte[f.name] = form2.getRadioGroup(f.name).getSelected() || "";
               } catch { werte[f.name] = ""; }
             }
@@ -230,7 +235,7 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
     if (!bytesRef.current || !onSavePdf || !order.length) return; // order wird beim Laden gefüllt
     setSaveMenu(false); setSavingPdf(true); setErr("");
     try {
-      const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
+      const { PDFDocument, StandardFonts, rgb, PDFName } = await import("pdf-lib");
       const src = await PDFDocument.load(bytesRef.current);
 
       // 1) Formularfelder ausfüllen – direkt in der Quelle, damit das Formular erhalten bleibt
@@ -245,7 +250,19 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
           } catch { /* kein Textfeld → weiter probieren */ }
           try {
             const k = f.getCheckBox(name);
-            if (wert) k.check(); else k.uncheck();
+            // Diese Formulare nutzen Kästchen-Gruppen wie Auswahlknöpfe: jedes Widget hat
+            // einen eigenen „An"-Zustand (/0, /1, …). Deshalb den Zustand direkt setzen
+            // und die sichtbare Markierung (/AS) je Widget nachziehen.
+            const ziel = wert || "Off";
+            k.acroField.dict.set(PDFName.of("V"), PDFName.of(ziel));
+            for (const widget of k.acroField.getWidgets()) {
+              let zustaende = [];
+              try {
+                const normal = widget.getAppearances()?.normal;
+                zustaende = normal?.dict ? [...normal.dict.keys()].map((x) => String(x).replace(/^\//, "")) : [];
+              } catch { zustaende = []; }
+              widget.dict.set(PDFName.of("AS"), PDFName.of(zustaende.includes(ziel) ? ziel : "Off"));
+            }
             continue;
           } catch { /* kein Kästchen → weiter probieren */ }
           try {
