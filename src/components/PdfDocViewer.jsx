@@ -209,7 +209,7 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
               formWerteStart.current = { ...werte };
               // Ausfüllbares Formular + Bearbeitung erlaubt → Einzelseite, denn nur dort
               // liegen die Eingabefelder passend über dem Dokument.
-              if (felder.length > 0 && onSavePdf) setFlow("single");
+              if (felder.length > 0) setFlow("single");
             }
           } catch { if (!cancelled) { setFormFelder([]); setFormWerte({}); formWerteStart.current = {}; } }
         })();
@@ -764,6 +764,15 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
               </>}
         </div>
       )}
+      {flowMode && formFelder.length > 0 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: T.accent, color: "#fff", font: `600 12.5px ${SANS}`, flexShrink: 0 }}>
+          <ListChecks size={15} />
+          <span>Dieses Dokument lässt sich ausfüllen – dafür in die Einzelseiten-Ansicht wechseln.</span>
+          <button onClick={() => setFlow("single")} style={{ all: "unset", cursor: "pointer", marginLeft: "auto", padding: "4px 12px", borderRadius: 7, background: "rgba(255,255,255,.24)" }}>
+            Jetzt ausfüllen
+          </button>
+        </div>
+      )}
       {flowMode && (
         <div ref={flowRef} onScroll={onFlowScroll} className="pe-scrollbar" style={{ flex: 1, overflow: "auto", padding: flow === "horiz" ? 12 : (wide ? 12 : "6px 0"), background: T.bg !== "#F5F5F7" ? "#0e0f12" : "#e9e9ee", minHeight: 0, minWidth: 0, scrollbarColor: `${T.accent} transparent`, scrollbarWidth: "thin", display: "flex", flexDirection: flow === "horiz" ? "row" : "column", alignItems: "safe center", justifyContent: numPages <= 1 ? "safe center" : "flex-start", gap: wide ? 14 : 8 }}>
           {docTick > 0 && docRef.current && Array.from({ length: numPages }, (_, i) => i + 1).map((p) => (
@@ -788,15 +797,6 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
           </div>
         )}
         {err && <div style={{ textAlign: "center", padding: "30px 0", font: `600 12.5px ${SANS}`, color: "#dc2626" }}>{err}</div>}
-        {onSavePdf && flowMode && formFelder.length > 0 && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", background: T.card, borderBottom: `1px solid ${T.line}`, color: T.inkSoft, font: `600 12.5px ${SANS}`, flexShrink: 0 }}>
-          <ListChecks size={15} />
-          <span>Dieses Dokument ist ausfüllbar – zum Eintragen in die Einzelseiten-Ansicht wechseln.</span>
-          <button onClick={() => setFlow("single")} style={{ all: "unset", cursor: "pointer", marginLeft: "auto", padding: "3px 10px", borderRadius: 7, background: T.accent, color: "#fff" }}>
-            Jetzt ausfüllen
-          </button>
-        </div>
-      )}
 
       {textMode && (
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", background: T.accent, color: "#fff", font: `600 12.5px ${SANS}`, flexShrink: 0 }}>
@@ -859,7 +859,7 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
 
           {/* Formularfelder des PDFs: echte Eingabefelder an ihrer Position im Dokument.
               Damit lässt sich ein Antrag direkt im Betrachter ausfüllen. */}
-          {onSavePdf && !flowMode && feldBoxen.map((f, i) => {
+          {!flowMode && feldBoxen.map((f, i) => {
             const gemeinsam = {
               position: "absolute", left: f.x, top: f.y, width: f.w, height: f.h,
               boxSizing: "border-box", zIndex: 5,

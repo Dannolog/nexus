@@ -163,6 +163,21 @@ textarea.input { line-height: 1.5; }
   }
 }
 
+/* ---- PDF-Betrachter (aus ProjectEye übernommen) ----
+   Die Textebene von pdf.js MUSS unsichtbar und absolut positioniert sein – sonst
+   erscheint der Dokumenttext zusätzlich im Seitenfluss und schiebt das Layout auseinander. */
+.pe-textlayer { line-height: 1; text-align: initial; text-size-adjust: none; forced-color-adjust: none; transform-origin: 0 0; overflow: hidden; }
+.pe-textlayer span, .pe-textlayer br { color: transparent; position: absolute; white-space: pre; cursor: text; transform-origin: 0 0; }
+.pe-textlayer span::selection { background: rgba(59,130,246,.35); }
+.pe-scrollbar { -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; scrollbar-width: thin; }
+.pe-scrollbar::-webkit-scrollbar { width: 11px; height: 11px; }
+.pe-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.pe-scrollbar::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 8px; border: 3px solid transparent; background-clip: content-box; }
+@keyframes pe-spin { to { transform: rotate(360deg); } }
+@keyframes pe-indet { 0% { left: -40%; } 100% { left: 100%; } }
+@keyframes pe-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pe-slideup { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
 /* Gefundener Text in Suchergebnissen */
 mark.treffer {
   background: rgba(250, 204, 21, .45);
