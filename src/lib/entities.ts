@@ -8,7 +8,8 @@ export type EntityName =
   | "Organization"
   | "Identity"
   | "EmploymentContract"
-  | "Product";
+  | "Product"
+  | "Supplier";
 
 export type EntityDef = {
   delegate: string;
@@ -56,6 +57,13 @@ export const ENTITIES: Record<EntityName, EntityDef> = {
     delegate: "employmentContract",
     searchable: ["title", "employeeName", "jobTitle", "status"],
     // number ist server-verwaltet (fortlaufende Vertragsnummer) → nie vom Client setzbar.
+    protectedFields: [...PROTECTED, "number"],
+    autoNumberField: "number",
+  },
+  Supplier: {
+    delegate: "supplier",
+    searchable: ["name", "shortCode", "email", "customerNumber", "category"],
+    // number ist server-verwaltet (zentrale Lieferantennummer) → nie vom Client setzbar.
     protectedFields: [...PROTECTED, "number"],
     autoNumberField: "number",
   },

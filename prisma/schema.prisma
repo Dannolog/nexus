@@ -319,3 +319,35 @@ model EmployeeDocument {
   @@index([employeeId])
   @@index([templateKey])
 }
+
+// ---- Lieferant (zentral; Quelle bisher ProjectEye) ----
+model Supplier {
+  id            String   @id @default(cuid())
+  number        Int      @unique                 // zentrale, fortlaufende Lieferantennummer (Nexus vergibt sie)
+  name          String                            // Firmenname (ProjectEye: "firma")
+  shortCode     String   @default("")             // Kürzel (ProjectEye: "kuerzel")
+  contactName   String   @default("")             // Ansprechpartner
+  email         String   @default("")
+  phone         String   @default("")
+  web           String   @default("")
+  customerNumber String  @default("")             // unsere Kundennummer beim Lieferanten
+  street        String   @default("")
+  zip           String   @default("")
+  city          String   @default("")
+  country       String   @default("Deutschland")
+  addressFree   String   @default("")             // unstrukturierte Anschrift (aus ProjectEye übernommen)
+  taxNumber     String   @default("")
+  ustId         String   @default("")
+  category      String   @default("")
+  notes         String   @default("") @db.Text
+  projecteyeId  Int?                              // Verknüpfung zur ProjectEye-ID (Abgleich)
+  archived      Boolean  @default(false)
+  version       Int      @default(1)
+  deletedAt     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([name])
+  @@index([shortCode])
+  @@index([projecteyeId])
+}
