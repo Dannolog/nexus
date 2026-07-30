@@ -5,6 +5,7 @@ import { api, ConflictError } from "@/lib/clientApi";
 import { RESOURCES, Field } from "@/lib/uiSchema";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import SearchInput from "@/components/SearchInput";
+import Hervorheben from "@/components/Hervorheben";
 import Toggle from "@/components/Toggle";
 import Icon from "@/components/Icon";
 import ColorPicker from "@/components/ColorPicker";
@@ -141,7 +142,7 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
                 )}
                 {R.columns.map((c) => (
                   <Fragment key={c.key}>
-                    <td style={{ padding: "10px 12px" }}>{cell(row[c.key])}</td>
+                    <td style={{ padding: "10px 12px" }}><Hervorheben text={cell(row[c.key])} suche={search} /></td>
                     {thumbField && R.thumbAfter === c.key && (
                       <td style={{ padding: "6px 12px" }}><LogoThumb src={row[thumbField]} /></td>
                     )}
@@ -169,7 +170,7 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
               {hasLogo && <LogoThumb src={logos[row.id]} color={row.color} />}
               {thumbField && <LogoThumb src={row[thumbField]} />}
               <div style={{ fontWeight: 600, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
-                {cell(row[R.titleField]) === "–" ? `${R.prefix}-${i + 1}` : cell(row[R.titleField])}
+                {cell(row[R.titleField]) === "–" ? `${R.prefix}-${i + 1}` : <Hervorheben text={cell(row[R.titleField])} suche={search} />}
               </div>
               <span className="muted" style={{ fontSize: 12, flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{R.prefix}-{i + 1}</span>
             </div>
@@ -177,7 +178,7 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
               {R.columns.filter((c) => c.key !== R.titleField).map((c) => (
                 <div key={c.key} style={{ display: "flex", gap: 10 }}>
                   <span className="muted" style={{ minWidth: 96, flexShrink: 0 }}>{c.label}</span>
-                  <span style={{ flex: 1, minWidth: 0, wordBreak: "break-word" }}>{cell(row[c.key])}</span>
+                  <span style={{ flex: 1, minWidth: 0, wordBreak: "break-word" }}><Hervorheben text={cell(row[c.key])} suche={search} /></span>
                 </div>
               ))}
             </div>
@@ -193,6 +194,7 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
       {viewing && (
         <DetailModal
           resourceKey={resourceKey}
+          suche={search}
           row={viewing}
           onClose={() => setViewing(null)}
           onEdit={() => { setEditing({ ...viewing }); setViewing(null); }}
@@ -362,8 +364,8 @@ function EditModal({ resourceKey, hasLogo, initial, onClose, onSave }: {
 }
 
 // ── Detail-Vorschau (Klick auf eine Zeile) — Bild, Felder, Links, Preis ──
-function DetailModal({ resourceKey, row, onClose, onEdit, onDelete }: {
-  resourceKey: string; row: any; onClose: () => void; onEdit: () => void; onDelete: () => void;
+function DetailModal({ resourceKey, row, suche, onClose, onEdit, onDelete }: {
+  resourceKey: string; row: any; suche?: string; onClose: () => void; onEdit: () => void; onDelete: () => void;
 }) {
   const R = RESOURCES[resourceKey];
   const img = String(row.imageUrl || "").trim();
@@ -376,8 +378,8 @@ function DetailModal({ resourceKey, row, onClose, onEdit, onDelete }: {
     const v = row[f.key];
     if (f.key === "price") return (Number(v) || 0).toLocaleString("de-DE", { style: "currency", currency: "EUR" });
     if (f.type === "checkbox") return v ? "ja" : "nein";
-    if (f.type === "textarea") return <span style={{ whiteSpace: "pre-wrap" }}>{v || "–"}</span>;
-    return cell(v);
+    if (f.type === "textarea") return <span style={{ whiteSpace: "pre-wrap" }}><Hervorheben text={v || "–"} suche={suche} /></span>;
+    return <Hervorheben text={cell(v)} suche={suche} />;
   };
 
   return (
@@ -385,7 +387,7 @@ function DetailModal({ resourceKey, row, onClose, onEdit, onDelete }: {
       <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: 560, maxWidth: "94vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</h2>
+            <h2 style={{ fontSize: 18, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><Hervorheben text={title} suche={suche} /></h2>
             {row.number != null && <div className="muted" style={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}>{R.prefix}-{row.number}</div>}
           </div>
           <button className="btn btn-icon" aria-label="Schließen" onClick={onClose}><Icon name="x" /></button>

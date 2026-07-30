@@ -18,6 +18,11 @@ export type EntityDef = {
   protectedFields: string[];
   // Optional: Feld, das Nexus beim Anlegen fortlaufend zentral vergibt (höchste + 1).
   autoNumberField?: string;
+  // Optional: Suche schließt verknüpfte Datensätze ein, z. B. Ansprechpartner eines
+  // Lieferanten ({ relation: "contacts", fields: ["name", "email", …] }).
+  searchRelations?: { relation: string; fields: string[] }[];
+  // Optional: verknüpfte Datensätze mit der Liste ausliefern (z. B. Ansprechpartner).
+  includeRelations?: string[];
 };
 
 const PROTECTED = ["id", "version", "createdAt", "updatedAt", "deletedAt"];
@@ -62,7 +67,10 @@ export const ENTITIES: Record<EntityName, EntityDef> = {
   },
   Supplier: {
     delegate: "supplier",
-    searchable: ["name", "shortCode", "email", "customerNumber", "category"],
+    searchable: ["name", "shortCode", "email", "customerNumber", "category", "phone", "web", "city", "notes"],
+    // Die Lieferantensuche findet auch Ansprechpartner (Name, Rolle, E-Mail, Telefon).
+    searchRelations: [{ relation: "contacts", fields: ["name", "role", "email", "phone", "mobile"] }],
+    includeRelations: ["contacts"],
     // number ist server-verwaltet (zentrale Lieferantennummer) → nie vom Client setzbar.
     protectedFields: [...PROTECTED, "number"],
     autoNumberField: "number",

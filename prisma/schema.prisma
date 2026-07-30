@@ -341,6 +341,7 @@ model Supplier {
   category      String   @default("")
   notes         String   @default("") @db.Text
   projecteyeId  Int?                              // Verknüpfung zur ProjectEye-ID (Abgleich)
+  contacts      SupplierContact[]
   archived      Boolean  @default(false)
   version       Int      @default(1)
   deletedAt     DateTime?
@@ -350,4 +351,22 @@ model Supplier {
   @@index([name])
   @@index([shortCode])
   @@index([projecteyeId])
+}
+
+// ---- Ansprechpartner eines Lieferanten ----
+model SupplierContact {
+  id         String   @id @default(cuid())
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  name       String
+  role       String   @default("")
+  email      String   @default("")
+  phone      String   @default("")
+  mobile     String   @default("")
+  notes      String   @default("")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([supplierId])
+  @@index([name])
 }

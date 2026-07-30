@@ -20,8 +20,17 @@ export function makeList(entity: EntityName) {
 
       const where: any = {};
       if (!includeDeleted) where.deletedAt = null;
-      if (search)
-        where.OR = def.searchable.map((f) => ({ [f]: { contains: search, mode: "insensitive" } }));
+      if (search) {
+        where.OR = [
+          ...def.searchable.map((f) => ({ [f]: { contains: search, mode: "insensitive" } })),
+          // z. B. Lieferanten über ihre Ansprechpartner finden
+          ...(def.searchRelations || []).map((r) => ({
+            [r.relation]: {
+              some: { OR: r.fields.map((f) => ({ [f]: { contains: search, mode: "insensitive" } })) },
+            },
+          })),
+        ];
+      }
       if (archived === "0") where.archived = false;
       if (archived === "1") where.archived = true;
 
@@ -29,6 +38,9 @@ export function makeList(entity: EntityName) {
         where,
         take,
         orderBy: { updatedAt: "desc" },
+        ...(def.includeRelations?.length
+          ? { include: Object.fromEntries(def.includeRelations.map((r) => [r, true])) }
+          : {}),
       });
       // Logos NICHT in der Liste mitsenden (Transfer schlank halten) — werden
       // über /api/<entity>/:id/logo asynchron nachgeladen.

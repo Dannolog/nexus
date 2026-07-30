@@ -154,6 +154,14 @@ textarea.input { line-height: 1.5; }
   .contract-grid { grid-template-columns: 1fr; }
 }
 
+/* Gefundener Text in Suchergebnissen */
+mark.treffer {
+  background: rgba(250, 204, 21, .45);
+  color: inherit; border-radius: 3px; padding: 0 1px;
+  box-shadow: 0 0 0 1px rgba(250, 204, 21, .55);
+}
+.dark mark.treffer { background: rgba(250, 204, 21, .32); box-shadow: 0 0 0 1px rgba(250, 204, 21, .35); }
+
 /* ---- Bestätigungsabfrage (Löschen o. ä.) ---- */
 .cd-schatten {
   position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,.5);
