@@ -417,7 +417,7 @@ export default function DocumentsPage() {
           url={viewer.url}
           titel={viewer.titel}
           onClose={() => { URL.revokeObjectURL(viewer.url); setViewer(null); }}
-          onSavePdf={(viewer.dok || (viewer.vorlage && empId)) ? (blob) => ausViewerSpeichern(blob, viewer.dok, viewer.vorlage) : undefined}
+          onSavePdf={(blob) => ausViewerSpeichern(blob, viewer.dok, viewer.vorlage)}
         />
       )}
 
