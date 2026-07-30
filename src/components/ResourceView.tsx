@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback, Fragment } from "react";
+import { useEffect, useState, useCallback, useRef, Fragment } from "react";
 import Link from "next/link";
 import { api, ConflictError } from "@/lib/clientApi";
 import { RESOURCES, Field } from "@/lib/uiSchema";
@@ -43,6 +43,7 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
   const [editing, setEditing] = useState<any | null>(null); // null=zu, {}=neu, {..}=bearbeiten
   const [deleting, setDeleting] = useState<any | null>(null);
   const [viewing, setViewing] = useState<any | null>(null); // Detail-Vorschau (bei R.detail)
+  const klickTimer = useRef<ReturnType<typeof setTimeout> | null>(null); // trennt Einzel- von Doppelklick
   const [msg, setMsg] = useState("");
 
   const load = useCallback(async () => {
@@ -135,8 +136,21 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
             {loading && <tr><td colSpan={colCount} style={{ padding: 16 }} className="muted">Lädt…</td></tr>}
             {!loading && rows.length === 0 && <tr><td colSpan={colCount} style={{ padding: 16 }} className="muted">Keine Einträge.</td></tr>}
             {rows.map((row, i) => (
-              <tr key={row.id} onClick={R.detail ? () => setViewing(row) : undefined}
-                style={{ borderBottom: "1px solid var(--border)", cursor: R.detail ? "pointer" : "default" }}>
+              <tr key={row.id}
+                // Einfacher Klick öffnet die Vorschau (sofern vorhanden), Doppelklick immer
+                // das Bearbeiten-Fenster. Der Einzelklick wartet kurz, damit ein Doppelklick
+                // nicht zuerst die Vorschau aufzieht.
+                onClick={R.detail ? () => {
+                  if (klickTimer.current) return;
+                  klickTimer.current = setTimeout(() => { klickTimer.current = null; setViewing(row); }, 220);
+                } : undefined}
+                onDoubleClick={() => {
+                  if (klickTimer.current) { clearTimeout(klickTimer.current); klickTimer.current = null; }
+                  setViewing(null);
+                  setEditing({ ...row });
+                }}
+                style={{ borderBottom: "1px solid var(--border)", cursor: "pointer" }}
+                title="Doppelklick zum Bearbeiten">
                 <td style={{ padding: "10px 12px", whiteSpace: "nowrap", color: "var(--muted)", fontVariantNumeric: "tabular-nums", fontSize: 13 }}>
                   {R.prefix}-{i + 1}
                 </td>

@@ -183,7 +183,7 @@ export const RESOURCES: Record<string, Resource> = {
     fields: [
       { key: "name", label: "Name", group: "Stammdaten", span: 8 },
       { key: "shortCode", label: "Kürzel", group: "Stammdaten", span: 4 },
-      { key: "nameAddition", label: "Namenszusatz (z. B. „Inh. David Baier")", group: "Stammdaten", span: 12 },
+      { key: "nameAddition", label: "Namenszusatz (z. B. Inh. David Baier)", group: "Stammdaten", span: 12 },
       { key: "street", label: "Straße", group: "Adresse", span: 8 },
       { key: "zip", label: "PLZ", group: "Adresse", span: 4 },
       { key: "city", label: "Ort", group: "Adresse", span: 8 },
