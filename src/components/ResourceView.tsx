@@ -14,6 +14,15 @@ import TextField from "@/components/TextField";
 
 const LOGO_RESOURCES = ["customers", "organizations"];
 
+/** Ansprechpartner eines Datensatzes, die zum Suchbegriff passen (für die Trefferanzeige). */
+function passendeKontakte(row: any, suche: string) {
+  const s = String(suche || "").trim().toLowerCase();
+  if (!s || !Array.isArray(row?.contacts)) return [];
+  return row.contacts.filter((k: any) =>
+    ["name", "role", "email", "phone", "mobile"].some((f) => String(k?.[f] || "").toLowerCase().includes(s))
+  );
+}
+
 function cell(v: any) {
   if (typeof v === "boolean") return v ? "ja" : "–";
   if (v == null || v === "") return "–";
@@ -141,9 +150,22 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
                     <LogoThumb src={row[thumbField]} />
                   </td>
                 )}
-                {R.columns.map((c) => (
+                {R.columns.map((c, ci) => (
                   <Fragment key={c.key}>
-                    <td style={{ padding: "10px 12px" }}><Hervorheben text={cell(row[c.key])} suche={search} /></td>
+                    <td style={{ padding: "10px 12px" }}>
+                      <Hervorheben text={cell(row[c.key])} suche={search} />
+                      {/* Treffer bei einem Ansprechpartner sichtbar machen */}
+                      {ci === 0 && passendeKontakte(row, search).length > 0 && (
+                        <div className="muted" style={{ fontSize: 12, marginTop: 3, display: "grid", gap: 1 }}>
+                          {passendeKontakte(row, search).map((k: any) => (
+                            <span key={k.id}>
+                              <Icon name="user" size={11} />{" "}
+                              <Hervorheben text={[k.name, k.role, k.email, k.phone, k.mobile].filter(Boolean).join(" · ")} suche={search} />
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </td>
                     {thumbField && R.thumbAfter === c.key && (
                       <td style={{ padding: "6px 12px" }}><LogoThumb src={row[thumbField]} /></td>
                     )}
@@ -172,6 +194,16 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
               {thumbField && <LogoThumb src={row[thumbField]} />}
               <div style={{ fontWeight: 600, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
                 {cell(row[R.titleField]) === "–" ? `${R.prefix}-${i + 1}` : <Hervorheben text={cell(row[R.titleField])} suche={search} />}
+                {passendeKontakte(row, search).length > 0 && (
+                  <div className="muted" style={{ fontSize: 12, marginTop: 3, fontWeight: 400, display: "grid", gap: 1 }}>
+                    {passendeKontakte(row, search).map((k: any) => (
+                      <span key={k.id}>
+                        <Icon name="user" size={11} />{" "}
+                        <Hervorheben text={[k.name, k.role, k.email, k.phone, k.mobile].filter(Boolean).join(" · ")} suche={search} />
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
               <span className="muted" style={{ fontSize: 12, flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{R.prefix}-{i + 1}</span>
             </div>
