@@ -1,4 +1,6 @@
 import "./globals.css";
+// Formular-Ebene von pdf.js (Eingabefelder im Dokument) – wie im normalen PDF-Betrachter
+import "pdfjs-dist/web/pdf_viewer.css";
 import type { Metadata, Viewport } from "next";
 import { Space_Grotesk, Inter } from "next/font/google";
 

@@ -22,6 +22,7 @@ const clampScale = (v) => Math.max(0.5, Math.min(4, v));
 
 export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, armedKey, marks: marksProp, onMarksChange, onMarkActivate, tableMode, onTableRegion, onOcrRegion, onSavePdf }) {
   const canvasRef = useRef(null);
+  const annoRef = useRef(null); // Formular-Ebene (pdf.js AnnotationLayer)
   const scrollRef = useRef(null);
   const rootRef = useRef(null); // ganzer Viewer – fängt Strg+Rad überall ab (nicht nur im Scrollbereich)
   const docRef = useRef(null);
@@ -363,29 +364,49 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
         }
         if (!cancelled) setItems(its);
 
-        // Formularfelder (AcroForm-Widgets) der Seite einmessen – daraus werden echte
-        // Eingabefelder über dem Dokument, sodass man direkt hineinschreiben kann.
+        // Formular-Ebene von pdf.js aufbauen: erzeugt echte Eingabefelder an der Stelle
+        // der PDF-Felder – dasselbe Verfahren wie in einem gewöhnlichen PDF-Betrachter.
+        // Die Eingaben landen in doc.annotationStorage und werden beim Speichern
+        // von pdf.js selbst ins Dokument geschrieben (saveDocument).
         try {
-          const annos = await pg.getAnnotations({ intent: "display" });
-          const boxen = [];
-          for (const a of annos) {
-            if (a.subtype !== "Widget" || !a.fieldName) continue;
-            const [x1, y1, x2, y2] = viewport.convertToViewportRectangle(a.rect);
-            const x = Math.min(x1, x2), y = Math.min(y1, y2);
-            const w = Math.abs(x2 - x1), h = Math.abs(y2 - y1);
-            if (w < 4 || h < 4) continue;
-            const art = a.fieldType === "Tx" ? "text" : a.fieldType === "Btn" ? (a.radioButton ? "radio" : "check") : a.fieldType === "Ch" ? "auswahl" : "";
-            if (!art) continue;
-            boxen.push({
-              name: a.fieldName, art, x, y, w, h,
-              mehrzeilig: !!a.multiLine,
-              readOnly: !!a.readOnly,
-              optionen: (a.options || []).map((o) => (typeof o === "string" ? o : o.exportValue ?? o.displayValue)),
-              anStatus: a.buttonValue ?? a.exportValue ?? "",
-            });
+          const schicht = annoRef.current;
+          if (schicht) {
+            schicht.innerHTML = "";
+            const annos = await pg.getAnnotations({ intent: "display" });
+            const felderDa = annos.some((a) => a.subtype === "Widget" && a.fieldName);
+            schicht.style.display = felderDa ? "block" : "none";
+            if (felderDa) {
+              const vp = viewport.clone({ dontFlip: true });
+              schicht.style.setProperty("--scale-factor", String(viewport.scale));
+              schicht.style.width = Math.floor(viewport.width) + "px";
+              schicht.style.height = Math.floor(viewport.height) + "px";
+              const layer = new pdfjsLib.AnnotationLayer({
+                div: schicht,
+                page: pg,
+                viewport: vp,
+                accessibilityManager: null,
+                annotationCanvasMap: null,
+                annotationEditorUIManager: null,
+                structTreeLayer: null,
+              });
+              await layer.render({
+                viewport: vp,
+                div: schicht,
+                annotations: annos,
+                page: pg,
+                renderForms: true,
+                annotationStorage: doc.annotationStorage,
+                linkService: { getDestinationHash: () => "#", getAnchorUrl: () => "#", addLinkAttributes: () => {}, externalLinkTarget: 2, eventBus: { dispatch() {}, on() {}, off() {} } },
+                downloadManager: null,
+                imageResourcesPath: "",
+              });
+            }
+            if (!cancelled) setFeldBoxen(annos.filter((a) => a.subtype === "Widget" && a.fieldName));
           }
-          if (!cancelled) setFeldBoxen(boxen);
-        } catch { if (!cancelled) setFeldBoxen([]); }
+        } catch (e) {
+          if (!cancelled) setFeldBoxen([]);
+          console.warn("[pdf] Formular-Ebene:", e?.message || e);
+        }
       } catch (_) { /* RenderingCancelled o. Ä. ignorieren */ }
     })();
     return () => { cancelled = true; if (renderTaskRef.current) { try { renderTaskRef.current.cancel(); } catch (_) {} renderTaskRef.current = null; } };
@@ -848,6 +869,8 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
       <div onMouseDown={onMouseDown} onContextMenu={(e) => e.preventDefault()}
           style={{ position: "relative", width: cw || "auto", flex: "0 0 auto", cursor: armed ? "crosshair" : "grab", display: busy || err ? "none" : "block" }}>
           <canvas ref={canvasRef} style={{ display: "block", boxShadow: "0 2px 12px rgba(0,0,0,.4)", borderRadius: 4, background: "#fff" }} />
+          {/* Formular-Ebene von pdf.js: echte Eingabefelder an der Stelle der PDF-Felder */}
+          <div ref={annoRef} className="annotationLayer" data-eingabe="1" />
           {marks.filter((m) => m.page === page).map((m) => {
             // Aktives Feld hervorheben, alle anderen ausgrauen → bessere Auswahl/Texterkennung
             const dim = armed && armedKey && m.key !== armedKey;
@@ -865,67 +888,6 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
           ); })}
           {hits.map((h, i) => <div key={"h" + i} style={{ position: "absolute", left: h.x, top: h.y, width: h.w, height: h.h, background: "rgba(230,57,70,.4)", pointerEvents: "none", borderRadius: 2 }} />)}
           {selRect && <div style={{ position: "absolute", left: selRect.x, top: selRect.y, width: selRect.w, height: selRect.h, border: `2px solid ${T.accent}`, background: "rgba(230,57,70,.15)", pointerEvents: "none", borderRadius: 2 }} />}
-
-          {/* Formularfelder des PDFs: echte Eingabefelder an ihrer Position im Dokument.
-              Damit lässt sich ein Antrag direkt im Betrachter ausfüllen. */}
-          {!flowMode && feldBoxen.map((f, i) => {
-            const gemeinsam = {
-              position: "absolute", left: f.x, top: f.y, width: f.w, height: f.h,
-              boxSizing: "border-box", zIndex: 8, touchAction: "auto",
-            };
-            const stopp = (e) => e.stopPropagation();
-            if (f.art === "text") {
-              const schrift = Math.max(8, Math.min(f.mehrzeilig ? 13 : f.h * 0.68, 15));
-              const Feld = f.mehrzeilig ? "textarea" : "input";
-              return (
-                <Feld
-                  key={f.name + i}
-                  data-eingabe="1"
-                  value={formWerte[f.name] ?? ""}
-                  readOnly={f.readOnly}
-                  onMouseDown={stopp}
-                  onTouchStart={stopp}
-                  onChange={(e) => setFormWerte((w) => ({ ...w, [f.name]: e.target.value }))}
-                  title={f.name}
-                  style={{
-                    ...gemeinsam,
-                    font: `${schrift}px ${SANS}`, color: "#0f172a", lineHeight: 1.15,
-                    padding: f.mehrzeilig ? "2px 3px" : "0 3px",
-                    background: (formWerte[f.name] ?? "") ? "rgba(59,130,246,.06)" : "rgba(59,130,246,.13)",
-                    border: `1px solid ${T.accent}`, borderRadius: 2, outline: "none", resize: "none",
-                  }}
-                />
-              );
-            }
-            // Kästchen und Auswahlknöpfe: antippen setzt/entfernt den Haken
-            const an = f.art === "radio"
-              ? String(formWerte[f.name] ?? "") === String(f.anStatus)
-              : !!formWerte[f.name];
-            return (
-              <button
-                key={f.name + i}
-                data-eingabe="1"
-                type="button"
-                title={f.name}
-                onMouseDown={stopp}
-                onTouchStart={stopp}
-                onClick={() => setFormWerte((w) => ({
-                  ...w,
-                  [f.name]: f.art === "radio"
-                    ? (String(w[f.name] ?? "") === String(f.anStatus) ? "" : String(f.anStatus))
-                    : (w[f.name] ? "" : "Ja"),
-                }))}
-                style={{
-                  ...gemeinsam, cursor: "pointer", display: "grid", placeItems: "center",
-                  background: an ? "rgba(59,130,246,.22)" : "rgba(59,130,246,.10)",
-                  border: `1px solid ${T.accent}`, borderRadius: f.art === "radio" ? "50%" : 2,
-                  color: T.accent, font: `700 ${Math.max(9, Math.min(f.h * 0.8, 14))}px ${SANS}`,
-                }}
-              >
-                {an ? "✓" : ""}
-              </button>
-            );
-          })}
 
           {/* Eingetragene Texte (Nexus): auf dieser Seite bearbeitbar, beim Speichern fest ins PDF */}
           {texts.filter((t) => t.page === page).map((t) => (
