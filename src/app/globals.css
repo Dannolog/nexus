@@ -178,6 +178,25 @@ textarea.input { line-height: 1.5; }
 @keyframes pe-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes pe-slideup { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
+/* Formular-Ebene von pdf.js liegt deckungsgleich über dem Canvas.
+   Die Feldgestaltung kommt aus pdfjs-dist/web/pdf_viewer.css (im Root-Layout eingebunden);
+   hier nur Position und ein dezenter Rahmen, damit ausfüllbare Stellen erkennbar sind. */
+.annotationLayer { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+.annotationLayer .textWidgetAnnotation input,
+.annotationLayer .textWidgetAnnotation textarea,
+.annotationLayer .choiceWidgetAnnotation select {
+  background: rgba(59,130,246,.10); border: 1px solid rgba(59,130,246,.55); border-radius: 2px;
+  color: #0f172a; font-size: 100%; padding: 0 2px;
+}
+.annotationLayer .textWidgetAnnotation input:focus,
+.annotationLayer .textWidgetAnnotation textarea:focus {
+  background: #fff; outline: 2px solid rgba(59,130,246,.9); outline-offset: -1px;
+}
+.annotationLayer .buttonWidgetAnnotation.checkBox input,
+.annotationLayer .buttonWidgetAnnotation.radioButton input {
+  appearance: auto; accent-color: #3b82f6; cursor: pointer;
+}
+
 /* Gefundener Text in Suchergebnissen */
 mark.treffer {
   background: rgba(250, 204, 21, .45);
