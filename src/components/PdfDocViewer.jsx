@@ -237,14 +237,26 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
   const duplicateSlot = (i) => setOrder((o) => { const a = [...o]; const s = a[i]; if (!s) return o; a.splice(i + 1, 0, { ...s, k: genKey("d") }); return a; });
   const seitenGeaendert = editMode && (order.length !== numPages || order.some((s, i) => s.blank || s.orig !== i + 1));
   const texteVorhanden = texts.some((t) => String(t.value || "").trim());
-  const formularGeaendert = Object.keys(formWerte).some((k) => (formWerte[k] || "") !== (formWerteStart.current[k] || ""));
+  const formularGeaendert =
+    Object.keys(formWerte).some((k) => (formWerte[k] || "") !== (formWerteStart.current[k] || "")) ||
+    (docRef.current?.annotationStorage?.size ?? 0) > 0;
   const edited = seitenGeaendert || texteVorhanden || formularGeaendert;
   const savePdf = async (replace) => {
     if (!bytesRef.current || !onSavePdf || !order.length) return; // order wird beim Laden gefüllt
     setSaveMenu(false); setSavingPdf(true); setErr("");
     try {
       const { PDFDocument, StandardFonts, rgb, PDFName } = await import("pdf-lib");
-      const src = await PDFDocument.load(bytesRef.current);
+      // Eingaben aus der Formular-Ebene: pdf.js schreibt sie selbst ins Dokument –
+      // genau wie beim Speichern aus einem gewöhnlichen PDF-Betrachter.
+      let grundlage = bytesRef.current;
+      try {
+        if (docRef.current?.annotationStorage?.size > 0 && typeof docRef.current.saveDocument === "function") {
+          grundlage = await docRef.current.saveDocument();
+        }
+      } catch (e) {
+        console.warn("[pdf] Formular speichern:", e?.message || e);
+      }
+      const src = await PDFDocument.load(grundlage);
 
       // 1) Formularfelder ausfüllen – direkt in der Quelle, damit das Formular erhalten bleibt
       const formAenderungen = Object.keys(formWerte).filter((k) => (formWerte[k] || "") !== (formWerteStart.current[k] || ""));
