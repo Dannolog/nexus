@@ -61,7 +61,8 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
   const [formFelder, setFormFelder] = useState([]); // { name, type, value }
   const [formWerte, setFormWerte] = useState({});
   // Positionen der Formularfelder auf der angezeigten Seite → direkt im Dokument ausfüllbar
-  const [feldBoxen, setFeldBoxen] = useState([]); // { name, art, x, y, w, h, mehrzeilig, optionen, anStatus }
+  const [feldBoxen, setFeldBoxen] = useState([]); // Formularfelder der Seite (nur zur Anzeige der Anzahl)
+  const [formularTick, setFormularTick] = useState(0); // zählt Eingaben in der Formular-Ebene
   const [saveMenu, setSaveMenu] = useState(false); // Dropdown „Speichern neu"
   const [dragSlot, setDragSlot] = useState(null); // Index in order während des Umsortierens
   const bytesRef = useRef(null); // Original-PDF-Bytes (für pdf-lib)
@@ -183,6 +184,9 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
         if (cancelled) return; setProgress(100);
         const doc = await pdfjsLib.getDocument({ data }).promise; if (cancelled) return;
         docRef.current = doc; bytesRef.current = data; setNumPages(doc.numPages); setPage(1); setBusy(false); setDocTick((t) => t + 1);
+        // Jede Eingabe in einem Formularfeld meldet sich hier – dadurch erscheint die
+        // Speichern-Schaltfläche sofort und der Stand gilt als geändert.
+        try { doc.annotationStorage.onSetModified = () => setFormularTick((t) => t + 1); } catch { /* ältere Fassung */ }
         setTexts([]); setAktiverText(null); setTextMode(false);
         // Vorhandene Formularfelder (AcroForm) einlesen – damit lassen sich Anträge direkt ausfüllen
         (async () => {
@@ -239,6 +243,7 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
   const texteVorhanden = texts.some((t) => String(t.value || "").trim());
   const formularGeaendert =
     Object.keys(formWerte).some((k) => (formWerte[k] || "") !== (formWerteStart.current[k] || "")) ||
+    formularTick > 0 ||
     (docRef.current?.annotationStorage?.size ?? 0) > 0;
   const edited = seitenGeaendert || texteVorhanden || formularGeaendert;
   const savePdf = async (replace) => {
@@ -334,7 +339,7 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
         bytes = await out.save();
       }
       await onSavePdf(new Blob([bytes], { type: "application/pdf" }), { replace: !!replace });
-      setEditMode(false); setTexts([]); setAktiverText(null); setTextMode(false);
+      setEditMode(false); setTexts([]); setAktiverText(null); setTextMode(false); setFormularTick(0);
       formWerteStart.current = { ...formWerte };
     } catch (e) { setErr("Speichern fehlgeschlagen: " + (e.message || e)); }
     setSavingPdf(false);
@@ -718,7 +723,7 @@ export default function PdfDocViewer({ url, T, armed, onRegionText, armedLabel, 
         {onSavePdf && wide && numPages >= 1 && (
           <button onClick={() => { setEditMode((e) => !e); setShowRail(true); }} title="Seiten bearbeiten: umsortieren (ziehen), duplizieren, Leerseiten einfügen" style={{ ...btn(T), flexShrink: 0, background: editMode ? T.accent : T.card, color: editMode ? "#fff" : T.ink, borderColor: editMode ? T.accent : T.line }}><Pencil size={15} /></button>
         )}
-        {editMode && edited && (
+        {onSavePdf && edited && (
           <span style={{ position: "relative", display: "inline-flex", alignItems: "center", flexShrink: 0, height: 32, borderRadius: 9, overflow: "visible", background: T.accent }}>
             <button onClick={() => savePdf(true)} disabled={savingPdf} title="Original mit den Änderungen ersetzen" style={{ all: "unset", cursor: savingPdf ? "default" : "pointer", display: "inline-flex", alignItems: "center", gap: 6, height: "100%", padding: "0 12px", borderRadius: "9px 0 0 9px", color: "#fff", font: `700 12px ${SANS}`, opacity: savingPdf ? 0.7 : 1 }}>{savingPdf ? <span style={{ width: 13, height: 13, border: "2px solid rgba(255,255,255,.6)", borderTopColor: "#fff", borderRadius: "50%", display: "inline-block", animation: "pe-spin .8s linear infinite" }} /> : <Check size={15} />} Speichern</button>
             <button onClick={() => setSaveMenu((v) => !v)} disabled={savingPdf} title="Weitere Speicheroptionen" style={{ all: "unset", cursor: savingPdf ? "default" : "pointer", display: "grid", placeItems: "center", height: "100%", width: 26, color: "#fff", borderLeft: "1px solid rgba(255,255,255,.35)", borderRadius: "0 9px 9px 0" }}><ChevronDown size={15} /></button>
