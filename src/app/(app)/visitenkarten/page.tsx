@@ -81,13 +81,15 @@ function telefonGliedern(roh: string) {
 // erkennbar trennen, ohne dass ein echtes Leerzeichen im Text steht.
 function MailText({ wert }: { wert: string }) {
   const stelle = wert.indexOf("@");
-  if (stelle < 0) return <>{wert}</>;
+  // Ein umschließendes Feld ist nötig: die Zeile ist ein Flex-Kasten, ohne
+  // Klammer würde jeder Textteil ein eigenes Feld und die Adresse zerfiele.
+  if (stelle < 0) return <span className="wert">{wert}</span>;
   return (
-    <>
+    <span className="wert">
       {wert.slice(0, stelle)}
       <span className="at">@</span>
       {wert.slice(stelle + 1)}
-    </>
+    </span>
   );
 }
 
@@ -550,8 +552,7 @@ export default function Page() {
             <button className="kbtn" onClick={drucken}>Drucken</button>
           </div>
           <div className="hinweis">
-            Zwei Finger oder +/− zum Zoomen · Doppeltipp wechselt zwischen Anpassung und Lupe ·
-            Esc schließt · Pfeiltasten wechseln die Seite
+            Zwei Finger oder +/− zoomen · Doppeltipp wechselt die Lupe · Esc schließt
           </div>
         </div>
       )}
