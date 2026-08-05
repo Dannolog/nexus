@@ -208,8 +208,10 @@ export default function Page() {
     const wer = (person.name || "Baier").replace(/[^\wÄÖÜäöüß]+/g, "_");
     document.title = `Visitenkarte_${wer}_${zeitstempel()}`;
     document.body.classList.add("vk-druck");
+    document.documentElement.classList.add("vk-druck");
     const aufraeumen = () => {
       document.body.classList.remove("vk-druck");
+      document.documentElement.classList.remove("vk-druck");
       document.title = alt;
       setDruckt(false);
     };
@@ -220,6 +222,7 @@ export default function Page() {
       clearTimeout(zeit);
       window.removeEventListener("afterprint", aufraeumen);
       document.body.classList.remove("vk-druck");
+      document.documentElement.classList.remove("vk-druck");
       document.title = alt;
     };
   }, [druckt, person.name]);

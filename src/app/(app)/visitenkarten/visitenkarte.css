@@ -187,7 +187,7 @@
    Chrome jedoch auf jeder Seite erneut, daraus wurden zwei gleiche Blätter. */
 .vk-druckblatt{display:none}
 @media print{
-  body.vk-druck{background:#fff}
+  html.vk-druck,body.vk-druck{background:#fff}
   body.vk-druck > *{display:none!important}
   body.vk-druck > .vk-druckblatt{display:flex!important;flex-direction:column;
     align-items:center;justify-content:center;gap:16mm;
