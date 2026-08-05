@@ -156,9 +156,10 @@
 .vk-wurzel .karten-paar figcaption{font-size:11px;letter-spacing:.08em;text-transform:uppercase;
   color:var(--muted)}
 
-/* Auf schmalen Geräten die Karten mitskalieren, damit nichts überläuft */
-@media (max-width:420px){
-  .vk-wurzel .karten-paar{zoom:.8}
+/* Auf sehr schmalen Geräten die Karten mitskalieren, damit nichts überläuft.
+   Bis 380 px passen die 85 mm noch ohne Verkleinerung ins Bild. */
+@media (max-width:380px){
+  .vk-wurzel .karten-paar{zoom:.78}
 }
 
 /* ── Großansicht ── */
@@ -180,19 +181,17 @@
 @media (max-width:820px){ .vk-wurzel .kansicht .karte{zoom:1.35} }
 @media (max-width:520px){ .vk-wurzel .kansicht .karte{zoom:1} }
 
-/* ── Druck: beide Karten mittig untereinander, sonst nichts ──
-   Der Rest der Anwendung wird ausgeblendet, ohne die Kette der Elternelemente
-   aufzulösen – deshalb `visibility` statt `display`. */
+/* ── Druck: beide Karten mittig auf genau einem Blatt ──────────────
+   Das Druckblatt hängt direkt am Body. Innerhalb der Anwendungsstruktur
+   ließe es sich nur mit `position:fixed` mitteln – solche Elemente druckt
+   Chrome jedoch auf jeder Seite erneut, daraus wurden zwei gleiche Blätter. */
+.vk-druckblatt{display:none}
 @media print{
   body.vk-druck{background:#fff}
-  body.vk-druck *{visibility:hidden}
-  body.vk-druck .vk-druckflaeche,
-  body.vk-druck .vk-druckflaeche *{visibility:visible}
-  body.vk-druck .vk-druckflaeche{position:fixed;left:0;top:0;width:100%;
-    display:flex!important;flex-direction:column;align-items:center;justify-content:flex-start;
-    gap:14mm;padding:0;margin:0;zoom:1;background:#fff}
-  body.vk-druck .vk-druckflaeche figure{gap:0;cursor:auto}
-  body.vk-druck .vk-druckflaeche figcaption{display:none}
+  body.vk-druck > *{display:none!important}
+  body.vk-druck > .vk-druckblatt{display:flex!important;flex-direction:column;
+    align-items:center;justify-content:center;gap:16mm;
+    width:100%;height:250mm;margin:0;padding:0;background:#fff;zoom:1}
   .vk-wurzel .karte{box-shadow:none;border-radius:0;outline:.2mm dashed #aaa;break-inside:avoid;
     -webkit-print-color-adjust:exact;print-color-adjust:exact}
   .vk-wurzel .karte *{-webkit-print-color-adjust:exact;print-color-adjust:exact}

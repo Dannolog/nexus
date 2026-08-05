@@ -8,6 +8,7 @@
    braucht keine Tabelle in der Datenbank.
    ════════════════════════════════════════════════════════════════════ */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Icon from "@/components/Icon";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import "./visitenkarte.css";
@@ -130,6 +131,7 @@ export default function Page() {
   const [stand, setStand] = useState("");
   const [gross, setGross] = useState<null | "vorn" | "hinten">(null);
   const [loeschFrage, setLoeschFrage] = useState(false);
+  const [druckt, setDruckt] = useState(false);
   const [grafiken, setGrafiken] = useState<Record<string, string>>({});
   const wurzelRef = useRef<HTMLDivElement>(null);
   const vornRef = useRef<HTMLDivElement>(null);
@@ -194,8 +196,14 @@ export default function Page() {
     melden("Person gelöscht");
   }
 
-  // ── Drucken: beide Karten mittig untereinander auf einem Blatt ──
-  function drucken() {
+  // ── Drucken ──────────────────────────────────────────────────────
+  // Die beiden Karten kommen für den Druck auf ein eigenes Blatt, das direkt
+  // am Body hängt. Innerhalb der Anwendungsstruktur ließe sich nur mit
+  // `position:fixed` mitteln – das druckt Chrome aber auf jeder Seite erneut.
+  function drucken() { setDruckt(true); }
+
+  useEffect(() => {
+    if (!druckt) return;
     const alt = document.title;
     const wer = (person.name || "Baier").replace(/[^\wÄÖÜäöüß]+/g, "_");
     document.title = `Visitenkarte_${wer}_${zeitstempel()}`;
@@ -203,10 +211,18 @@ export default function Page() {
     const aufraeumen = () => {
       document.body.classList.remove("vk-druck");
       document.title = alt;
+      setDruckt(false);
     };
     window.addEventListener("afterprint", aufraeumen, { once: true });
-    setTimeout(() => window.print(), 60);
-  }
+    // erst drucken, wenn das Druckblatt wirklich im Dokument steht
+    const zeit = setTimeout(() => window.print(), 120);
+    return () => {
+      clearTimeout(zeit);
+      window.removeEventListener("afterprint", aufraeumen);
+      document.body.classList.remove("vk-druck");
+      document.title = alt;
+    };
+  }, [druckt, person.name]);
 
   // ── Bildexport: die Karte als SVG mit eingebettetem HTML, daraus ein PNG ──
   function svgText(quelle: HTMLElement, skala: number) {
@@ -398,7 +414,7 @@ export default function Page() {
       </div>
 
       {/* ── Vorschau: beide Seiten, Klick öffnet die Großansicht ── */}
-      <div className="karten-paar vk-druckflaeche">
+      <div className="karten-paar">
         <figure onClick={() => setGross("vorn")}>
           <Karte person={person} seite="vorn" karteRef={vornRef} />
           <figcaption>Vorderseite</figcaption>
@@ -423,6 +439,15 @@ export default function Page() {
           </div>
           <div className="hinweis">Esc schließt · Pfeiltasten wechseln die Seite</div>
         </div>
+      )}
+
+      {/* ── Druckblatt: hängt direkt am Body, damit es genau eine Seite füllt ── */}
+      {druckt && createPortal(
+        <div className="vk-wurzel vk-druckblatt" style={variablen}>
+          <Karte person={person} seite="vorn" />
+          <Karte person={person} seite="hinten" />
+        </div>,
+        document.body,
       )}
 
       <ConfirmDialog
