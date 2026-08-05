@@ -58,6 +58,39 @@ function zeitstempel() {
   return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}_${z(d.getHours())}${z(d.getMinutes())}`;
 }
 
+// Telefonnummer in Blöcke von 5, 4, 4 und 3 Ziffern gliedern – das liest sich
+// besser als eine durchgehende Ziffernfolge. Enthält die Eingabe etwas anderes
+// als Ziffern und Leerzeichen (etwa eine Ländervorwahl mit +), bleibt sie, wie
+// sie eingetragen wurde.
+function telefonGliedern(roh: string) {
+  const text = (roh || "").trim();
+  if (!text || /[^\d\s]/.test(text)) return text;
+  const ziffern = text.replace(/\s+/g, "");
+  const bloecke: string[] = [];
+  let rest = ziffern;
+  for (const laenge of [5, 4, 4, 3]) {
+    if (!rest) break;
+    bloecke.push(rest.slice(0, laenge));
+    rest = rest.slice(laenge);
+  }
+  if (rest) bloecke.push(rest);
+  return bloecke.join(" ");
+}
+
+// E-Mail mit etwas Luft um das @ setzen – das Zeichen soll die beiden Teile
+// erkennbar trennen, ohne dass ein echtes Leerzeichen im Text steht.
+function MailText({ wert }: { wert: string }) {
+  const stelle = wert.indexOf("@");
+  if (stelle < 0) return <>{wert}</>;
+  return (
+    <>
+      {wert.slice(0, stelle)}
+      <span className="at">@</span>
+      {wert.slice(stelle + 1)}
+    </>
+  );
+}
+
 // ── Die Karte: Vorderseite mit Person, Rückseite mit der Gruppe ──
 function Karte({ person, seite, karteRef }: {
   person: Person; seite: "vorn" | "hinten"; karteRef?: React.Ref<HTMLDivElement>;
@@ -114,9 +147,9 @@ function Karte({ person, seite, karteRef }: {
           <div className="rolle">{person.rolle}</div>
         </div>
         <div className="fuss">
-          <span className="telefon">{person.tel}</span>
+          <span className="telefon">{telefonGliedern(person.tel)}</span>
           <span className="web">{f.web}</span>
-          <span className="mail">{person.mail || f.mail}</span>
+          <span className="mail"><MailText wert={person.mail || f.mail} /></span>
           <span className="ort">{person.ort}</span>
         </div>
       </div>
@@ -132,6 +165,7 @@ export default function Page() {
   const [gross, setGross] = useState<null | "vorn" | "hinten">(null);
   const [loeschFrage, setLoeschFrage] = useState(false);
   const [druckt, setDruckt] = useState(false);
+  const [massstab, setMassstab] = useState(2);
   const [grafiken, setGrafiken] = useState<Record<string, string>>({});
   const wurzelRef = useRef<HTMLDivElement>(null);
   const vornRef = useRef<HTMLDivElement>(null);
@@ -324,9 +358,78 @@ export default function Page() {
       if (e.key === "Escape") setGross(null);
       if (e.key === "ArrowLeft" || e.key === "ArrowRight")
         setGross(g => (g === "vorn" ? "hinten" : "vorn"));
+      if (e.key === "+") zoomen(1);
+      if (e.key === "-") zoomen(-1);
     }
     window.addEventListener("keydown", taste);
     return () => window.removeEventListener("keydown", taste);
+  }, [gross]);
+
+  // ── Zoom der Großansicht ────────────────────────────────────────
+  // Gezoomt wird ausschließlich die Karte. Am Handy soll die Seite selbst
+  // ruhig bleiben, damit Bedienfeld und Schaltflächen an ihrem Platz stehen.
+  function passenderMassstab() {
+    if (typeof window === "undefined") return 2;
+    const breite = window.innerWidth - 32;      // Rand der Großansicht
+    const karte = 85 * (96 / 25.4);             // 85 mm in Bildpunkten
+    return Math.max(0.5, Math.min(2.4, Number((breite / karte).toFixed(2))));
+  }
+  function zoomen(richtung: number) {
+    setMassstab(m => Math.max(0.5, Math.min(6, Number((m * (richtung > 0 ? 1.25 : 0.8)).toFixed(2)))));
+  }
+
+  // Beim Öffnen auf die Bildschirmbreite einpassen
+  useEffect(() => { if (gross) setMassstab(passenderMassstab()); }, [gross]);
+
+  // Zwei Finger ziehen den Maßstab auf, ein Doppeltipp springt zwischen
+  // Einpassung und Lupe, Strg + Mausrad zoomt am Rechner.
+  // Die Ereignisse werden von Hand angemeldet: React meldet touchmove und
+  // wheel als „passiv" an, dort greift ein Abbrechen des Standardverhaltens
+  // nicht – die Seite selbst würde mitzoomen.
+  const ansichtRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const flaeche = ansichtRef.current;
+    if (!gross || !flaeche) return;
+    let kniff: { abstand: number; start: number } | null = null;
+    let letzterTipp = 0;
+    const abstand = (t: TouchList) =>
+      Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    const grenzen = (w: number) => Math.max(0.5, Math.min(6, Number(w.toFixed(2))));
+
+    function an(e: TouchEvent) {
+      if (e.touches.length === 2) {
+        setMassstab(m => { kniff = { abstand: abstand(e.touches), start: m }; return m; });
+      } else if (e.touches.length === 1) {
+        const jetzt = Date.now();
+        if (jetzt - letzterTipp < 300) {
+          const passend = passenderMassstab();
+          setMassstab(m => (Math.abs(m - passend) < 0.05 ? grenzen(passend * 2) : passend));
+        }
+        letzterTipp = jetzt;
+      }
+    }
+    function zieh(e: TouchEvent) {
+      if (e.touches.length !== 2 || !kniff) return;
+      e.preventDefault();
+      setMassstab(grenzen(kniff.start * (abstand(e.touches) / kniff.abstand)));
+    }
+    function aus() { kniff = null; }
+    function rad(e: WheelEvent) {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      zoomen(e.deltaY < 0 ? 1 : -1);
+    }
+
+    flaeche.addEventListener("touchstart", an, { passive: true });
+    flaeche.addEventListener("touchmove", zieh, { passive: false });
+    flaeche.addEventListener("touchend", aus, { passive: true });
+    flaeche.addEventListener("wheel", rad, { passive: false });
+    return () => {
+      flaeche.removeEventListener("touchstart", an);
+      flaeche.removeEventListener("touchmove", zieh);
+      flaeche.removeEventListener("touchend", aus);
+      flaeche.removeEventListener("wheel", rad);
+    };
   }, [gross]);
 
   const variablen = useMemo(() => grafiken as React.CSSProperties, [grafiken]);
@@ -428,19 +531,28 @@ export default function Page() {
         </figure>
       </div>
 
-      {/* ── Großansicht ── */}
+      {/* ── Großansicht: nur die Karte wird gezoomt, die Seite bleibt ruhig ── */}
       {gross && (
-        <div className="kansicht" onClick={e => { if (e.target === e.currentTarget) setGross(null); }}>
+        <div className="kansicht" ref={ansichtRef}
+             onClick={e => { if (e.target === e.currentTarget) setGross(null); }}>
           <button className="zu" onClick={() => setGross(null)} aria-label="Schließen">×</button>
-          <Karte person={person} seite={gross} />
+          <div className="buehne" style={{ zoom: massstab }}>
+            <Karte person={person} seite={gross} />
+          </div>
           <div className="werkzeuge">
             <button className={"kbtn" + (gross === "vorn" ? " aktiv" : "")}
                     onClick={() => setGross("vorn")}>Vorderseite</button>
             <button className={"kbtn" + (gross === "hinten" ? " aktiv" : "")}
                     onClick={() => setGross("hinten")}>Rückseite</button>
+            <button className="kbtn" onClick={() => zoomen(-1)} aria-label="Kleiner">−</button>
+            <button className="kbtn" onClick={() => setMassstab(passenderMassstab())}>Anpassen</button>
+            <button className="kbtn" onClick={() => zoomen(1)} aria-label="Größer">+</button>
             <button className="kbtn" onClick={drucken}>Drucken</button>
           </div>
-          <div className="hinweis">Esc schließt · Pfeiltasten wechseln die Seite</div>
+          <div className="hinweis">
+            Zwei Finger oder +/− zum Zoomen · Doppeltipp wechselt zwischen Anpassung und Lupe ·
+            Esc schließt · Pfeiltasten wechseln die Seite
+          </div>
         </div>
       )}
 
