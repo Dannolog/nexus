@@ -228,7 +228,11 @@ export default function Page() {
     inhalt.style.margin = "0";
     inhalt.style.boxShadow = "none";
     inhalt.style.fontFamily = schrift;
-    const variablen = Object.entries(grafiken).map(([k, v]) => `${k}:${v}`).join(";");
+    // Die Daten-URIs gehören in den Stilblock, nicht ins style-Attribut:
+    // sie enthalten Anführungszeichen und würden das Attribut aufbrechen.
+    const variablen = `.vk-wurzel{${Object.entries(grafiken).map(([k, v]) => `${k}:${v}`).join(";")}}`;
+    // XML-konform ausgeben – im SVG gilt XHTML, `<br>` allein wäre ein Syntaxfehler
+    const rumpf = new XMLSerializer().serializeToString(inhalt);
     return {
       breite, hoehe,
       text:
@@ -236,9 +240,9 @@ export default function Page() {
         `viewBox="0 0 ${breite} ${hoehe}">` +
         `<foreignObject width="${breite}" height="${hoehe}">` +
         `<div xmlns="http://www.w3.org/1999/xhtml" class="vk-wurzel" ` +
-        `style="width:${breite}px;height:${hoehe}px;${variablen}">` +
-        `<style>${teile.join("\n")}\n*{font-family:${schrift}}</style>` +
-        inhalt.outerHTML +
+        `style="width:${breite}px;height:${hoehe}px">` +
+        `<style><![CDATA[${teile.join("\n")}\n${variablen}\n*{font-family:${schrift}}]]></style>` +
+        rumpf +
         `</div></foreignObject></svg>`,
     };
   }
