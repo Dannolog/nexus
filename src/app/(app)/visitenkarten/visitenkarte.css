@@ -120,11 +120,12 @@
   overflow-wrap:anywhere}
 .vk-wurzel .karte .fuss .wert{min-width:0;overflow-wrap:anywhere}
 /* Die vier Angaben laufen von hell nach dunkel – in der Lesefolge Telefon,
-   Web, E-Mail, Ort. Der dunkelste Wert bleibt auf Schwarz noch gut lesbar. */
-.vk-wurzel .karte .fuss > span:nth-child(1){color:#f2f5f9}
-.vk-wurzel .karte .fuss > span:nth-child(2){color:#dbe1e9}
-.vk-wurzel .karte .fuss > span:nth-child(3){color:#c2cad4}
-.vk-wurzel .karte .fuss > span:nth-child(4){color:#a7b0bc}
+   Web, E-Mail, Ort. Insgesamt hell gehalten, damit auf Schwarz alles gut
+   lesbar bleibt; die Abstufung bleibt als feiner Verlauf erkennbar. */
+.vk-wurzel .karte .fuss > span:nth-child(1){color:#ffffff}
+.vk-wurzel .karte .fuss > span:nth-child(2){color:#f4f7fa}
+.vk-wurzel .karte .fuss > span:nth-child(3){color:#e8edf3}
+.vk-wurzel .karte .fuss > span:nth-child(4){color:#dbe2eb}
 /* Luft um das @, ohne ein echtes Leerzeichen in die Adresse zu schreiben */
 .vk-wurzel .karte .fuss .at{padding:0 .5mm}
 @supports ((-webkit-mask-image:url('')) or (mask-image:url(''))){
@@ -156,7 +157,10 @@
 .vk-wurzel .karte .firma.ing .web::before{background:var(--f-ing-l)}
 .vk-wurzel .karte .firma.masch .web::before{background:var(--f-masch-l)}
 .vk-wurzel .karte .firma.handel .web::before{background:var(--f-handel-l)}
-.vk-wurzel .karte .schlusszeile{font-size:5.4pt;color:var(--karte-soft);text-align:center;line-height:1.25}
+/* Etwas Luft über der Anschrift – 0,8 mm entspricht den gewünschten 3 px,
+   bleibt aber in der mm-Rechnung der Karte (Bildschirm = Druck) */
+.vk-wurzel .karte .schlusszeile{font-size:5.4pt;color:var(--karte-soft);text-align:center;
+  line-height:1.25;padding-top:.8mm}
 .vk-wurzel .karte .schlusszeile b{color:#fff}
 
 /* ── Beide Karten nebeneinander ── */

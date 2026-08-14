@@ -9,3 +9,6 @@ npm-debug.log*
 ENDPOINTS.md
 next-env.d.ts
 backups/
+
+# Zuordnungs-/Nachweisdateien mit Personenbezug bleiben lokal
+data/

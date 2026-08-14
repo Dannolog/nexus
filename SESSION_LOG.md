@@ -269,3 +269,10 @@
 - **Zweiter, entscheidender Fehler gefunden:** Die Speichern-Schaltfläche war an `editMode && edited` gebunden – sie erschien also **nur im Seiten-Bearbeiten-Modus**. Wer nur Felder ausfüllte, konnte gar nicht speichern. Jetzt: `onSavePdf && edited`. Zusätzlich meldet `annotationStorage.onSetModified` jede Eingabe an die Oberfläche (Zähler `formularTick`), damit die Schaltfläche sofort erscheint; nach dem Speichern wird zurückgesetzt.
 - **Styles:** `pdfjs-dist/web/pdf_viewer.css` im Root-Layout eingebunden (bestätigt: `annotationLayer section` wird ausgeliefert), dazu eigene dezente Kennzeichnung der ausfüllbaren Felder (blauer Rahmen, heller Hintergrund, deutlicher Fokusrahmen) in `globals.css`.
 - Build ✓, Neustart ✓, `/documents` 200.
+
+### 2026-08-14 (Vorbereitet: einheitliche E-Mail-Domäne @bgroup.de)
+- **Datenschutz-Regel erweitert** (Vorgabe Daniel): keine privaten Inhalte ungefragt öffnen **und keine Dateien/Links mit privaten Inhalten versenden** – alles bleibt lokal auf dem Server, Ergebnisse nur als lokale Datei mit Pfadangabe.
+- **Neues Skript `prisma/setze-mail-domain.ts`**: vergibt allen Benutzern `vorname.nachname@<Domäne>` (Standard `bgroup.de`), Umlaute umgeschrieben, Namensdopplungen mit Zahl. Schreibt in **Nexus** (Identity + Employee), **clocker** (User) und **kontor** (User). Dienstkonten (`*@nexus.local`) bleiben unberührt.
+- **Standard ist Vorschau** – geschrieben wird nur mit `--anwenden`; `--zurueck <datei> --anwenden` setzt alles zurück. Die vollständige Zuordnung alt → neu landet als Nachweis/Rückbau in `data/mail-domain-<Zeitstempel>.json` (lokal; `data/` ist jetzt in `.gitignore`, damit keine Personendaten ins Repo wandern). Die Konsole gibt nur Zahlen aus, keine Namen.
+- **Vorschau-Ergebnis:** 34 Personen betroffen (33 mit zentralem Login, 30 in clocker, 2 in kontor), 2 unverändert.
+- **Noch nicht ausgeführt** – die E-Mail ist in allen drei Apps der Anmelde-Schlüssel; Freigabe von Daniel abgewartet.
