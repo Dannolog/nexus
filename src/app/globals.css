@@ -197,6 +197,13 @@ textarea.input { line-height: 1.5; }
   appearance: auto; accent-color: #3b82f6; cursor: pointer;
 }
 
+/* Userverwaltung: App-Freigaben auf schmalen Displays untereinander */
+@media (max-width: 560px) {
+  .app-freigabe { flex-wrap: wrap; }
+  .app-freigabe > div:first-child { width: 100% !important; }
+  .app-freigabe select { max-width: 100% !important; }
+}
+
 /* Gefundener Text in Suchergebnissen */
 mark.treffer {
   background: rgba(250, 204, 21, .45);

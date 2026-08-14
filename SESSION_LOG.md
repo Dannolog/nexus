@@ -283,3 +283,10 @@
 - **Damit es nicht wieder auseinanderläuft:** `createEntity` (src/lib/revision.ts) vergibt neuen `Employee`/`Identity`-Datensätzen ohne E-Mail automatisch `vorname.nachname@<MAIL_DOMAIN>` (Standard `bgroup.de`, per Umgebungsvariable änderbar), inkl. Zahl bei Namensgleichheit. Über die API geprüft (Testdatensatz danach entfernt).
 - **Rückbau** jederzeit möglich über die lokalen Nachweisdateien in `data/` (`--zurueck <datei> --anwenden`).
 - **Offen:** Die Postfächer bei bgroup.de existieren noch nicht (Daniel: „kommt aber"). Die **Anmeldung funktioniert unabhängig davon**; nur App-Benachrichtigungen an diese Adressen kämen derzeit nicht an.
+
+### 2026-08-14 (Userverwaltung: mobiltauglich + Kopieren von E-Mail und Passwort)
+- **Mobil:** Tabelle bekommt `only-desktop`; für Handys neue **Karten** (`only-mobile`) mit Name, US-Nummer, E-Mail (mit Kopier-Schaltfläche), Rolle, Herkunft, App-Zugriffen und „Bearbeiten". Kopfbereich umbruchfähig (`vertrag-kopf`), Bearbeiten-Fenster auf ≤768 px bildschirmfüllend (`dm-fenster`), App-Freigaben brechen unter 560 px um (`.app-freigabe`: Umschalter und Rollenauswahl untereinander).
+- **Kopieren:** neue gemeinsame Helfer `src/lib/kopieren.ts` – `kopiere()` (mit `execCommand`-Fallback, weil `navigator.clipboard` nur über https läuft) und `erzeugePasswort()` (kryptografisch zufällig, ohne verwechselbare Zeichen wie 0/O oder 1/l, in Blöcken `xxxx-xxxx-xxxx`).
+- **E-Mail kopieren:** in der Tabelle, in der Handy-Karte und im Bearbeiten-Fenster – jeweils mit Häkchen-Rückmeldung.
+- **Passwort:** Feld mit vier Bedienelementen – **anzeigen/verbergen**, **kopieren**, **erzeugen** (setzt ein sicheres Passwort ein und macht es sichtbar). Klarer Hinweis darunter: Gespeicherte Passwörter lassen sich **nicht** anzeigen (liegen nur als Hash vor); kopierbar ist nur der Wert, der gerade im Feld steht – erzeugen, kopieren, an den Mitarbeiter geben. Beim Öffnen eines Users ist das Feld leer und verborgen (leer = unverändert).
+- Build ✓, Neustart ✓, `/identities` 200, neue CSS-Regeln im ausgelieferten Stylesheet bestätigt.
