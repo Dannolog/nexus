@@ -119,6 +119,26 @@ async function main() {
     });
   }
 
+  // App-Benutzer ohne Gegenstück in Nexus (nur in clocker bzw. kontor vorhanden)
+  for (const [liste, feld] of [[cUser, "clockerId"], [kUser, "kontorId"]] as [any[], string][]) {
+    for (const u of liste) {
+      const mail = norm(u.email);
+      if (mail.endsWith("@" + DOMAENE)) { continue; }
+      if (AUSNAHMEN.test(u.email || "")) { uebersprungen++; continue; }
+      if (eintraege.some((e) => e[feld] === u.id)) continue;          // schon über Nexus erfasst
+      // Über den Namen einem bereits geplanten Eintrag zuordnen, sonst eigenständig umstellen
+      const treffer = eintraege.find((e) => norm(e.person) === norm(u.name));
+      if (treffer) { treffer[feld] = u.id; continue; }
+      const neuAdresse = adresseAus(u.name, vergeben);
+      eintraege.push({
+        person: u.name, alt: u.email || "(ohne)", neu: neuAdresse,
+        nexusIdentityId: null, nexusEmployeeId: null, altEmployee: null,
+        clockerId: feld === "clockerId" ? u.id : null,
+        kontorId: feld === "kontorId" ? u.id : null,
+      });
+    }
+  }
+
   // Nachweis-/Rückbaudatei (lokal, enthält Namen → bleibt auf dem Server)
   const ordner = path.join(process.cwd(), "data");
   fs.mkdirSync(ordner, { recursive: true });

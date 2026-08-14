@@ -90,6 +90,25 @@ export async function createEntity(
   const attempt = () =>
     prisma.$transaction(async (tx) => {
       const clean = sanitize(entity, data);
+      // Firmeneinheitliche E-Mail: Wer neu angelegt wird und noch keine Adresse hat,
+      // bekommt automatisch vorname.nachname@<MAIL_DOMAIN> (Standard bgroup.de).
+      if ((entity === "Employee" || entity === "Identity") && !String(clean.email || "").trim()) {
+        const domaene = (process.env.MAIL_DOMAIN || "bgroup.de").replace(/^@/, "");
+        const basis = String(clean.name || "")
+          .toLowerCase()
+          .replace(/[äÄ]/g, "ae").replace(/[öÖ]/g, "oe").replace(/[üÜ]/g, "ue").replace(/ß/g, "ss")
+          .replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, ".");
+        if (basis) {
+          let kandidat = `${basis}@${domaene}`;
+          // Bei Namensgleichheit eine Zahl anhängen, damit die Adresse eindeutig bleibt
+          for (let i = 2; i < 50; i++) {
+            const belegt = await (tx as any)[def.delegate].findFirst({ where: { email: kandidat } });
+            if (!belegt) break;
+            kandidat = `${basis}${i}@${domaene}`;
+          }
+          clean.email = kandidat;
+        }
+      }
       // Zentrale fortlaufende Nummer vergeben (höchste vorhandene + 1), inkl. soft-deleted,
       // damit Nummern nie doppelt/wiederverwendet werden.
       if (def.autoNumberField) {
