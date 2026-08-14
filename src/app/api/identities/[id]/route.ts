@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
+import { verschluessle } from "@/lib/geheimnis";
 import { prisma } from "@/lib/prisma";
 import { json, handle, ApiError } from "@/lib/http";
 import { requireApp, requireAuth } from "@/lib/auth";
@@ -16,7 +17,7 @@ export const GET = (req: NextRequest, { params }: { params: { id: string } }) =>
       include: { appAccess: true },
     });
     if (!identity) throw new ApiError("Nicht gefunden", 404);
-    const { passwordHash, ...safe } = identity;
+    const { passwordHash, passwordEnc, ...safe } = identity;
     return json(safe);
   });
 
@@ -34,12 +35,15 @@ export const PATCH = (req: NextRequest, { params }: { params: { id: string } }) 
         throw new ApiError("Versionskonflikt", 409, { current: { ...current, passwordHash: undefined } });
       }
       const passwordHash = body.password ? await bcrypt.hash(String(body.password), 10) : undefined;
+      // Zusätzlich verschlüsselt merken, damit ein Admin das Passwort weitergeben kann.
+      const passwordEnc = body.password ? verschluessle(String(body.password)) : undefined;
       const updated = await tx.identity.update({
         where: { id: params.id },
         data: {
           ...(body.name != null ? { name: body.name } : {}),
           ...(body.globalRole != null ? { globalRole: body.globalRole } : {}),
           ...(passwordHash ? { passwordHash } : {}),
+          ...(passwordEnc ? { passwordEnc } : {}),
           version: current.version + 1,
         },
       });

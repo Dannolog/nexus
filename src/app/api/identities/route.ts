@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
+import { verschluessle } from "@/lib/geheimnis";
 import { prisma } from "@/lib/prisma";
 import { json, handle, ApiError } from "@/lib/http";
 import { requireApp, requireAuth } from "@/lib/auth";
@@ -19,7 +20,7 @@ export const GET = (req: NextRequest) =>
       orderBy: { name: "asc" },
     });
     return json({
-      data: identities.map(({ passwordHash, ...rest }) => rest),
+      data: identities.map(({ passwordHash, passwordEnc, ...rest }) => rest),
       count: identities.length,
     });
   });
@@ -62,6 +63,7 @@ export const POST = (req: NextRequest) =>
             name: body.name ?? existing.name,
             globalRole: body.globalRole ?? existing.globalRole,
             ...(passwordHash ? { passwordHash } : {}),
+          ...(body.password ? { passwordEnc: verschluessle(String(body.password)) } : {}),
             version: existing.version + 1,
           },
         });
@@ -72,6 +74,7 @@ export const POST = (req: NextRequest) =>
             email,
             name: body.name ?? email,
             passwordHash: passwordHash ?? (await bcrypt.hash(randomUUID(), 10)),
+          passwordEnc: body.password ? verschluessle(String(body.password)) : "",
             globalRole: body.globalRole ?? "user",
             origin: body.origin ?? ctx.appKey,
           },
@@ -117,6 +120,6 @@ export const POST = (req: NextRequest) =>
       return tx.identity.findUnique({ where: { id: identity.id }, include: { appAccess: true } });
     });
 
-    const { passwordHash: _ph, ...safe } = result as any;
+    const { passwordHash: _ph, passwordEnc: _pe, ...safe } = result as any;
     return json(safe, existing ? 200 : 201);
   });

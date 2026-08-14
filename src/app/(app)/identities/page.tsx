@@ -4,6 +4,8 @@ import { api } from "@/lib/clientApi";
 import Toggle from "@/components/Toggle";
 import Icon from "@/components/Icon";
 import { kopiere, erzeugePasswort } from "@/lib/kopieren";
+import SearchInput from "@/components/SearchInput";
+import Hervorheben from "@/components/Hervorheben";
 import TextField from "@/components/TextField";
 
 const APPS = ["kontor", "clocker", "cnc", "schaltplan", "projecteye", "vision"];
@@ -27,6 +29,20 @@ export default function IdentitiesPage() {
   const [msg, setMsg] = useState("");
   const [kopiert, setKopiert] = useState("");
   const [pwSichtbar, setPwSichtbar] = useState(false);
+  const [suche, setSuche] = useState("");
+
+  /** Hinterlegtes Anmeldepasswort holen und in die Zwischenablage legen (nur für Admins). */
+  async function passwortKopieren(id: string) {
+    try {
+      const d = await api(`/api/identities/${id}/password`);
+      if (!d.vorhanden) { setMsg(d.hinweis || "Für diesen Benutzer ist kein Passwort hinterlegt."); return; }
+      const ok = await kopiere(d.passwort);
+      setMsg(ok ? "Passwort kopiert – bitte sicher an den Mitarbeiter weitergeben." : "Kopieren nicht möglich.");
+      if (ok) { setKopiert("pw" + id); setTimeout(() => setKopiert((k) => (k === "pw" + id ? "" : k)), 1500); }
+    } catch (e: any) {
+      setMsg("Passwort konnte nicht geholt werden: " + e.message);
+    }
+  }
 
   /** Text kopieren und kurz rückmelden, welcher Wert es war. */
   async function inZwischenablage(text: string, was: string, merker?: string) {
@@ -69,6 +85,16 @@ export default function IdentitiesPage() {
     } catch (e: any) { setMsg("Fehler: " + e.message); }
   }
 
+  // Suche über Name, E-Mail, Rolle, Herkunft und freigeschaltete Apps
+  const treffer = (() => {
+    const q = suche.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((r: any) => {
+      const apps = (r.appAccess || []).filter((a: any) => a.allowed).map((a: any) => `${a.appKey} ${a.role}`).join(" ");
+      return [r.name, r.email, r.globalRole, r.origin, apps].some((f) => String(f || "").toLowerCase().includes(q));
+    });
+  })();
+
   return (
     <div>
       <div className="vertrag-kopf" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
@@ -76,6 +102,8 @@ export default function IdentitiesPage() {
           <Icon name="shield" size={24} /> Userverwaltung
         </h1>
         <button className="btn btn-primary" onClick={openNew}><Icon name="plus" /> Neuer User</button>
+        <SearchInput value={suche} onChange={setSuche} placeholder="Name, E-Mail, Rolle, App…"
+          style={{ flex: "1 1 220px", maxWidth: 340, marginLeft: "auto" }} />
       </div>
       <p className="muted" style={{ marginBottom: 16 }}>Ein Login für alle berechtigten Apps. Pro App: Zulassung + Rolle.</p>
       {msg && <div className="card" style={{ padding: "8px 12px", marginBottom: 12, fontSize: 14 }}>{msg}</div>}
@@ -92,41 +120,51 @@ export default function IdentitiesPage() {
             <th></th>
           </tr></thead>
           <tbody>
-            {rows.map((r, i) => (
+            {treffer.map((r: any, i: number) => (
               <tr key={r.id} style={{ borderBottom: "1px solid var(--border)" }}>
                 <td style={{ padding: "10px 12px", whiteSpace: "nowrap", color: "var(--muted)", fontVariantNumeric: "tabular-nums", fontSize: 13 }}>US-{i + 1}</td>
-                <td style={{ padding: "10px 12px" }}>{r.name}</td>
+                <td style={{ padding: "10px 12px" }}><Hervorheben text={r.name} suche={suche} /></td>
                 <td style={{ padding: "10px 12px" }}>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                    {r.email}
+                    <Hervorheben text={r.email} suche={suche} />
                     <button className="btn btn-icon" title="E-Mail kopieren" aria-label="E-Mail kopieren"
                       onClick={() => inZwischenablage(r.email, "E-Mail", "m" + r.id)}>
                       <Icon name={kopiert === "m" + r.id ? "check" : "copy"} size={14} />
                     </button>
                   </span>
                 </td>
-                <td style={{ padding: "10px 12px" }}>{r.globalRole}</td>
+                <td style={{ padding: "10px 12px" }}><Hervorheben text={r.globalRole} suche={suche} /></td>
                 <td style={{ padding: "10px 12px", fontSize: 12 }}>
                   {(r.appAccess || []).filter((a: any) => a.allowed).map((a: any) => `${a.appKey}:${a.role}`).join(", ") || "–"}
                 </td>
                 <td style={{ padding: "10px 12px" }}>{r.origin}</td>
-                <td style={{ padding: "8px 12px" }}><button className="btn btn-icon" title="Bearbeiten" aria-label="Bearbeiten" onClick={() => openEdit(r)}><Icon name="pencil" /></button></td>
+                <td style={{ padding: "8px 12px", whiteSpace: "nowrap", display: "flex", gap: 6 }}>
+                  <button className="btn btn-icon" title="Hinterlegtes Passwort kopieren" aria-label="Passwort kopieren"
+                    onClick={() => passwortKopieren(r.id)}>
+                    <Icon name={kopiert === "pw" + r.id ? "check" : "shield"} />
+                  </button>
+                  <button className="btn btn-icon" title="Bearbeiten" aria-label="Bearbeiten" onClick={() => openEdit(r)}><Icon name="pencil" /></button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
+      {rows.length > 0 && treffer.length === 0 && (
+        <div className="card" style={{ padding: 14, fontSize: 14 }}>Kein Benutzer passt zur Suche.</div>
+      )}
+
       {/* Handy: Karten statt Tabelle */}
       <div className="only-mobile" style={{ gap: 10 }}>
-        {rows.map((r, i) => (
+        {treffer.map((r: any, i: number) => (
           <div key={r.id} className="card" style={{ padding: 14, display: "grid", gap: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontWeight: 600, fontSize: 15, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</span>
+              <span style={{ fontWeight: 600, fontSize: 15, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}><Hervorheben text={r.name} suche={suche} /></span>
               <span className="muted" style={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}>US-{i + 1}</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, wordBreak: "break-all" }}>{r.email}</span>
+              <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, wordBreak: "break-all" }}><Hervorheben text={r.email} suche={suche} /></span>
               <button className="btn btn-icon" title="E-Mail kopieren" aria-label="E-Mail kopieren"
                 onClick={() => inZwischenablage(r.email, "E-Mail", "k" + r.id)}>
                 <Icon name={kopiert === "k" + r.id ? "check" : "copy"} />
@@ -139,9 +177,14 @@ export default function IdentitiesPage() {
             <div className="muted" style={{ fontSize: 12 }}>
               Apps: {(r.appAccess || []).filter((a: any) => a.allowed).map((a: any) => `${a.appKey}:${a.role}`).join(", ") || "–"}
             </div>
-            <button className="btn" style={{ justifyContent: "center" }} onClick={() => openEdit(r)}>
-              <Icon name="pencil" /> Bearbeiten
-            </button>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={() => passwortKopieren(r.id)}>
+                <Icon name={kopiert === "pw" + r.id ? "check" : "shield"} /> Passwort
+              </button>
+              <button className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={() => openEdit(r)}>
+                <Icon name="pencil" /> Bearbeiten
+              </button>
+            </div>
           </div>
         ))}
       </div>
@@ -188,14 +231,21 @@ export default function IdentitiesPage() {
                     onClick={() => inZwischenablage(editing.password, "Passwort", "pw")}>
                     <Icon name={kopiert === "pw" ? "check" : "copy"} />
                   </button>
+                  {editing.id && (
+                    <button type="button" className="btn" title="Hinterlegtes Passwort holen und kopieren"
+                      onClick={() => passwortKopieren(editing.id!)}>
+                      <Icon name="shield" /> Hinterlegtes kopieren
+                    </button>
+                  )}
                   <button type="button" className="btn" title="Sicheres Passwort erzeugen"
                     onClick={() => { const neu = erzeugePasswort(); setEditing({ ...editing, password: neu }); setPwSichtbar(true); }}>
                     <Icon name="redo" /> Erzeugen
                   </button>
                 </div>
                 <span className="muted" style={{ fontSize: 11.5, display: "block", marginTop: 4, lineHeight: 1.45 }}>
-                  Gespeicherte Passwörter lassen sich nicht anzeigen – sie liegen nur verschlüsselt vor.
-                  Kopieren geht nur mit dem Wert, der gerade hier steht: erzeugen, kopieren, an den Mitarbeiter geben.
+                  „Hinterlegtes kopieren" gibt das zuletzt über Nexus vergebene Passwort heraus (verschlüsselt gespeichert,
+                  nur für globale Admins, jeder Abruf wird im Verlauf vermerkt). Bei älteren Konten existiert es noch nicht –
+                  dann einfach ein neues erzeugen, kopieren und speichern.
                 </span>
               </label>
               <label style={{ fontSize: 13 }}>Globale Rolle

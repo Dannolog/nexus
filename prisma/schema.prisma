@@ -177,6 +177,10 @@ model Identity {
   id           String @id @default(cuid())
   email        String @unique
   passwordHash String
+  // Zusätzlich das vergebene Passwort verschlüsselt (AES-256-GCM), damit ein Admin es
+  // an den Mitarbeiter weitergeben kann. Wird NIE mit der Liste ausgeliefert, sondern
+  // nur einzeln über /api/identities/[id]/password und nur für globale Admins.
+  passwordEnc  String @default("") @db.Text
   name         String
   globalRole   String @default("user")
   employeeId   String?
