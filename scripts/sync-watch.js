@@ -31,7 +31,7 @@ const log = (...a) => console.log(new Date().toLocaleString("de-DE"), "·", ...a
 
 const SKRIPTE = {
   clocker: ["prisma/sync-clocker-employees.ts", "prisma/sync-clocker-stammdaten.ts"],
-  kontor: ["prisma/sync-kontor-stammdaten.ts"],
+  kontor: ["prisma/sync-kontor-stammdaten.ts", "prisma/sync-kontor-benutzer.ts"],
   projecteye: ["prisma/sync-projecteye-suppliers.ts"],
 };
 

@@ -10,3 +10,4 @@ echo "── $(date '+%Y-%m-%d %H:%M:%S') ──"
 TS_NODE_TRANSPILE_ONLY=1 node node_modules/ts-node/dist/bin.js --compiler-options "$OPT" prisma/sync-clocker-employees.ts
 TS_NODE_TRANSPILE_ONLY=1 node node_modules/ts-node/dist/bin.js --compiler-options "$OPT" prisma/sync-clocker-stammdaten.ts
 TS_NODE_TRANSPILE_ONLY=1 node node_modules/ts-node/dist/bin.js --compiler-options "$OPT" prisma/sync-kontor-stammdaten.ts
+TS_NODE_TRANSPILE_ONLY=1 node node_modules/ts-node/dist/bin.js --compiler-options "$OPT" prisma/sync-kontor-benutzer.ts
