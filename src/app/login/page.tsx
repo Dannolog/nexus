@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { setSession } from "@/lib/clientApi";
 import AppLogo from "@/components/AppLogo";
 import Icon from "@/components/Icon";
@@ -31,6 +31,14 @@ export default function LoginPage() {
       setBusy(false);
     }
   }
+
+  // Nach der E-Mail direkt ins Passwortfeld: Tab und Enter springen weiter.
+  // (Die Vorschlagsliste des Browsers schluckt den ersten Tab sonst gelegentlich.)
+  const passwortRef = useRef<HTMLInputElement>(null);
+  const weiterZumPasswort = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Tab" && !e.shiftKey) { e.preventDefault(); passwortRef.current?.focus(); }
+    else if (e.key === "Enter") { e.preventDefault(); passwortRef.current?.focus(); }
+  };
 
   return (
     <main
@@ -76,11 +84,15 @@ export default function LoginPage() {
 
         <label style={{ fontSize: 13, fontWeight: 500, display: "grid", gap: 6 }}>
           E-Mail
-          <TextField type="email" value={email} onChange={setEmail} autoComplete="username" placeholder="name@firma.de" inputStyle={{ paddingTop: 11, paddingBottom: 11 }} />
+          <TextField type="email" value={email} onChange={setEmail} autoComplete="username" placeholder="name@firma.de"
+            autoFocus enterKeyHint="next" onKeyDown={weiterZumPasswort}
+            inputStyle={{ paddingTop: 11, paddingBottom: 11 }} />
         </label>
         <label style={{ fontSize: 13, fontWeight: 500, display: "grid", gap: 6 }}>
           Passwort
-          <TextField type="password" value={password} onChange={setPassword} autoComplete="current-password" placeholder="••••••••" inputStyle={{ paddingTop: 11, paddingBottom: 11 }} />
+          <TextField type="password" value={password} onChange={setPassword} autoComplete="current-password" placeholder="••••••••"
+            inputRef={passwortRef} enterKeyHint="go"
+            inputStyle={{ paddingTop: 11, paddingBottom: 11 }} />
         </label>
 
         {err && (

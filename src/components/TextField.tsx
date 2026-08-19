@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import type { KeyboardEvent, RefObject } from "react";
 import Icon from "@/components/Icon";
 
 /**
@@ -18,6 +19,12 @@ export default function TextField({
   autoComplete,
   style,
   inputStyle,
+  inputRef,
+  onKeyDown,
+  enterKeyHint,
+  autoFocus,
+  name,
+  id,
 }: {
   value: string | number | null | undefined;
   onChange: (v: string) => void;
@@ -27,6 +34,15 @@ export default function TextField({
   autoComplete?: string;
   style?: React.CSSProperties;
   inputStyle?: React.CSSProperties;
+  /** Zugriff auf das Eingabefeld – z. B. um den Fokus gezielt zu setzen. */
+  inputRef?: RefObject<HTMLInputElement>;
+  /** Eigene Tastenbehandlung; läuft zusätzlich zur eingebauten Esc-Logik. */
+  onKeyDown?: (e: KeyboardEvent<HTMLInputElement>) => void;
+  /** Beschriftung der Bestätigungstaste auf Handy-Tastaturen ("next", "go", …). */
+  enterKeyHint?: "enter" | "done" | "go" | "next" | "previous" | "search" | "send";
+  autoFocus?: boolean;
+  name?: string;
+  id?: string;
 }) {
   const [showPw, setShowPw] = useState(false);
   const v = value ?? "";
@@ -44,12 +60,17 @@ export default function TextField({
   return (
     <div style={{ position: "relative", ...style }}>
       <input
+        ref={inputRef}
         className="input"
         type={effType}
         value={v}
         placeholder={placeholder}
         disabled={disabled}
         autoComplete={autoComplete}
+        enterKeyHint={enterKeyHint}
+        autoFocus={autoFocus}
+        name={name}
+        id={id}
         style={{ paddingRight: controls ? 8 + controls * 26 : undefined, ...inputStyle }}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
@@ -57,7 +78,9 @@ export default function TextField({
             e.preventDefault();
             if (String((e.target as HTMLInputElement).value).length > 0) onChange("");
             else e.currentTarget.blur();
+            return;
           }
+          onKeyDown?.(e);
         }}
       />
       {controls > 0 && (

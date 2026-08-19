@@ -311,3 +311,10 @@
 - **Ausgeführt:** 4 fehlende Benutzer angelegt (jetzt 6 von 6), zweiter Lauf ohne Änderungen (idempotent).
 - **In die Automatik aufgenommen:** Auslöser `nexus_sync_trg` jetzt auch auf **Identity** und **IdentityAppAccess** – eine Freigabe in der Userverwaltung stößt den Abgleich sofort an. `sync-watch.js` und das Cron-Sicherheitsnetz führen das Skript mit aus.
 - **End-to-End geprüft:** Testbenutzer mit kontor-Freigabe angelegt → **nach rund 10 Sekunden automatisch in kontor vorhanden**; Testkonto in beiden Systemen wieder entfernt.
+
+### 2026-08-19 (Login: Tab springt direkt ins Passwortfeld)
+- **Wunsch Daniel:** Nach der Eingabe des Benutzernamens soll Tab direkt ins Passwortfeld springen.
+- Zwischen den Feldern lag nichts Fokussierbares (die Hilfssymbole im Eingabefeld haben bereits `tabIndex={-1}`) – in der Praxis schluckt aber die Vorschlags-/Autofill-Liste des Browsers gern den ersten Tab. Deshalb ist der Sprung jetzt **ausdrücklich** umgesetzt.
+- **`TextField` erweitert** um `inputRef`, eigenes `onKeyDown` (läuft zusätzlich zur Esc-Logik), `enterKeyHint`, `autoFocus`, `name`, `id`.
+- **Login-Seite:** E-Mail-Feld bekommt den Fokus beim Öffnen; **Tab** und **Enter** springen von dort direkt ins Passwortfeld. Auf Handy-Tastaturen zeigt die Bestätigungstaste im E-Mail-Feld „Weiter" (`enterKeyHint="next"`) und im Passwortfeld „Los" (`go`).
+- **Zwischenfall:** Nach dem ersten Build antwortete `/login` nicht mehr (`Cannot find module .next/server/pages/_error.js` – unvollständiger Build-Ordner, weil zu früh neu gestartet wurde). Behoben durch vollständigen Neubau + Neustart; danach `/login`, `/documents`, `/identities`, `/contracts` alle 200. (Gleiche Ursache wie am 27.07. – Build immer vollständig durchlaufen lassen.)
