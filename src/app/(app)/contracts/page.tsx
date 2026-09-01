@@ -487,9 +487,14 @@ function ZoomView({ children }: { children: React.ReactNode }) {
 
   const applyZoom = (nz: number) => { setFitMode(false); setZoom(Math.max(0.3, Math.min(2, Math.round(nz * 100) / 100))); };
 
+  // Größer als der Platz? Dann links bündig beginnen und intern scrollen – sonst mittig.
+  const ueberbreit = z > fit + 0.001;
+
   return (
-    <div>
-      <div className="vv-toolbar" style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+    // `isolation` hält das skalierte Papier in einer eigenen Ebene: es kann die
+    // Eingabespalte daneben nicht überdecken.
+    <div style={{ isolation: "isolate", position: "relative", zIndex: 0, maxWidth: "100%", overflow: "hidden" }}>
+      <div className="vv-toolbar" style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, position: "relative", zIndex: 1, background: "var(--bg)" }}>
         <button className="btn btn-icon" title="Verkleinern" onClick={() => applyZoom(z - 0.1)} style={{ fontWeight: 700 }}>−</button>
         <button type="button" title="Auf 100 % setzen" onClick={() => applyZoom(1)}
           style={{ fontSize: 12, width: 52, textAlign: "center", fontVariantNumeric: "tabular-nums", cursor: "pointer", background: "transparent", border: "1px solid var(--border)", borderRadius: 6, padding: "4px 0", color: "var(--muted)" }}>
@@ -500,8 +505,13 @@ function ZoomView({ children }: { children: React.ReactNode }) {
           <Icon name="maximize" /> Breite
         </button>
       </div>
-      <div ref={outerRef} className="vv-zoom-outer" style={{ width: "100%", overflowX: z > fit + 0.001 ? "auto" : "hidden", overflowY: "hidden" }}>
-        <div className="vv-zoombox" style={{ width: A4_W * z, height: innerH ? innerH * z : undefined, margin: "0 auto", position: "relative" }}>
+      {/* `contain: paint` erzwingt das Zuschneiden – beim Vergrößern läuft nichts mehr
+          aus dem Vorschaufenster heraus. Zentriert wird per Flex statt „margin: auto",
+          sonst ragt ein überbreites Papier nach links über den scrollbaren Bereich hinaus. */}
+      <div ref={outerRef} className="vv-zoom-outer"
+        style={{ width: "100%", maxWidth: "100%", overflowX: ueberbreit ? "auto" : "hidden", overflowY: "hidden",
+                 contain: "paint", display: "flex", justifyContent: ueberbreit ? "flex-start" : "center" }}>
+        <div className="vv-zoombox" style={{ width: A4_W * z, flex: "0 0 auto", height: innerH ? innerH * z : undefined, position: "relative" }}>
           <div className="vv-scale" ref={innerRef} style={{ width: A4_W, transform: `scale(${z})`, transformOrigin: "top left", position: "absolute", top: 0, left: 0 }}>
             {children}
           </div>
