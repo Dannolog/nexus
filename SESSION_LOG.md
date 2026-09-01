@@ -318,3 +318,16 @@
 - **`TextField` erweitert** um `inputRef`, eigenes `onKeyDown` (läuft zusätzlich zur Esc-Logik), `enterKeyHint`, `autoFocus`, `name`, `id`.
 - **Login-Seite:** E-Mail-Feld bekommt den Fokus beim Öffnen; **Tab** und **Enter** springen von dort direkt ins Passwortfeld. Auf Handy-Tastaturen zeigt die Bestätigungstaste im E-Mail-Feld „Weiter" (`enterKeyHint="next"`) und im Passwortfeld „Los" (`go`).
 - **Zwischenfall:** Nach dem ersten Build antwortete `/login` nicht mehr (`Cannot find module .next/server/pages/_error.js` – unvollständiger Build-Ordner, weil zu früh neu gestartet wurde). Behoben durch vollständigen Neubau + Neustart; danach `/login`, `/documents`, `/identities`, `/contracts` alle 200. (Gleiche Ursache wie am 27.07. – Build immer vollständig durchlaufen lassen.)
+
+## 01.09.2026 — Zentrale Passwortvergabe (Generator + Einsehen/Ändern)
+- `src/lib/passwort.ts` (neu): sicherer Generator, 19 Zeichen, 4er-Blöcke mit Zusatzzeichen
+  (`!#$%&*+-=?@`) dazwischen, ohne verwechselbare Zeichen, alle Zeichenklassen garantiert.
+  `src/lib/kopieren.ts` reicht `erzeugePasswort` nur noch weiter.
+- `GET /api/identities`: neues Flag `hatPasswort` (nur ja/nein, nie der Wert).
+- `POST /api/identities/passwords` (neu, nur globale Admins): Sammelvergabe
+  (`modus: "fehlende" | "alle"` oder `ids`), setzt bcrypt-Hash + AES-Kopie, Revision `PASSWORD_SET`,
+  liefert die neuen Werte einmalig zurück.
+- Userverwaltung: Spalte „Passwort: hinterlegt/fehlt", Schild-Symbol öffnet Anzeige-Dialog
+  (statt nur Kopieren), Kopfbutton „Passwörter erzeugen (n offen)" mit Auswahl fehlende/alle
+  und Ergebnisliste zum Kopieren (einzeln oder ganze Liste).
+- Wirkt für alle Apps, da kontor & Co. sich über Nexus anmelden. tsc sauber, Build + `pm2 restart nexus` erledigt.
