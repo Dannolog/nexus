@@ -32,18 +32,7 @@ export async function kopiere(text: string): Promise<boolean> {
 }
 
 /**
- * Erzeugt ein zufälliges, gut vorlesbares Passwort.
- * Ohne leicht verwechselbare Zeichen (0/O, 1/l/I) und in Blöcken gruppiert.
+ * Passwort-Erzeugung liegt in `@/lib/passwort` (dort auch serverseitig nutzbar);
+ * hier nur weitergereicht, damit bestehende Importe weiter funktionieren.
  */
-export function erzeugePasswort(bloecke = 3, laenge = 4): string {
-  const zeichen = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const werte = new Uint32Array(bloecke * laenge);
-  crypto.getRandomValues(werte);
-  const teile: string[] = [];
-  for (let b = 0; b < bloecke; b++) {
-    let t = "";
-    for (let i = 0; i < laenge; i++) t += zeichen[werte[b * laenge + i] % zeichen.length];
-    teile.push(t);
-  }
-  return teile.join("-");
-}
+export { erzeugePasswort } from "@/lib/passwort";

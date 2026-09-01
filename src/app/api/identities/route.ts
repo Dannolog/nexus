@@ -20,7 +20,9 @@ export const GET = (req: NextRequest) =>
       orderBy: { name: "asc" },
     });
     return json({
-      data: identities.map(({ passwordHash, passwordEnc, ...rest }) => rest),
+      // `hatPasswort`: nur die Information, ob ein weitergebbares Passwort hinterlegt ist –
+      // niemals der Wert selbst (der geht nur einzeln über /api/identities/[id]/password).
+      data: identities.map(({ passwordHash, passwordEnc, ...rest }) => ({ ...rest, hatPasswort: Boolean(passwordEnc) })),
       count: identities.length,
     });
   });

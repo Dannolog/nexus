@@ -30,17 +30,44 @@ export default function IdentitiesPage() {
   const [kopiert, setKopiert] = useState("");
   const [pwSichtbar, setPwSichtbar] = useState(false);
   const [suche, setSuche] = useState("");
+  // Einzelanzeige eines hinterlegten Passworts (nur solange der Dialog offen ist)
+  const [pwAnzeige, setPwAnzeige] = useState<{ name: string; email: string; passwort: string } | null>(null);
+  // Ergebnis der Sammelvergabe — die Werte gibt es nur dieses eine Mal zu sehen
+  const [sammel, setSammel] = useState<{ id: string; name: string; email: string; passwort: string }[] | null>(null);
+  const [frage, setFrage] = useState(false);
+  const [laeuft, setLaeuft] = useState(false);
 
-  /** Hinterlegtes Anmeldepasswort holen und in die Zwischenablage legen (nur für Admins). */
-  async function passwortKopieren(id: string) {
+  /**
+   * Hinterlegtes Anmeldepasswort holen und anzeigen (nur globale Admins; jeder Abruf
+   * wird serverseitig im Verlauf vermerkt).
+   */
+  async function passwortAnzeigen(r: { id: string; name: string; email: string }) {
     try {
-      const d = await api(`/api/identities/${id}/password`);
-      if (!d.vorhanden) { setMsg(d.hinweis || "Für diesen Benutzer ist kein Passwort hinterlegt."); return; }
-      const ok = await kopiere(d.passwort);
-      setMsg(ok ? "Passwort kopiert – bitte sicher an den Mitarbeiter weitergeben." : "Kopieren nicht möglich.");
-      if (ok) { setKopiert("pw" + id); setTimeout(() => setKopiert((k) => (k === "pw" + id ? "" : k)), 1500); }
+      const d = await api(`/api/identities/${r.id}/password`);
+      if (!d.vorhanden) { setMsg(d.hinweis || "Für diesen Benutzer ist kein Passwort hinterlegt – bitte ein neues erzeugen."); return; }
+      setPwAnzeige({ name: r.name, email: r.email, passwort: d.passwort });
     } catch (e: any) {
       setMsg("Passwort konnte nicht geholt werden: " + e.message);
+    }
+  }
+
+  /**
+   * Vergibt in einem Rutsch neue sichere Passwörter — entweder nur für Konten ohne
+   * hinterlegtes Passwort oder für alle. Die Werte kommen einmalig zurück.
+   */
+  async function passwoerterErzeugen(modus: "fehlende" | "alle") {
+    setFrage(false);
+    setLaeuft(true);
+    try {
+      const d = await api("/api/identities/passwords", { method: "POST", body: JSON.stringify({ modus }) });
+      if (!d.anzahl) { setMsg("Es gibt keinen Benutzer ohne hinterlegtes Passwort."); return; }
+      setSammel(d.benutzer);
+      setMsg(`${d.anzahl} neue Passwörter vergeben – jetzt sichern, danach sind sie nur noch einzeln abrufbar.`);
+      load();
+    } catch (e: any) {
+      setMsg("Passwörter konnten nicht vergeben werden: " + e.message);
+    } finally {
+      setLaeuft(false);
     }
   }
 
@@ -95,6 +122,9 @@ export default function IdentitiesPage() {
     });
   })();
 
+  // Konten ohne weitergebbares Passwort (nur der Zähler – nie die Werte)
+  const ohnePasswort = rows.filter((r: any) => !r.hatPasswort).length;
+
   return (
     <div>
       <div className="vertrag-kopf" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
@@ -102,6 +132,10 @@ export default function IdentitiesPage() {
           <Icon name="shield" size={24} /> Userverwaltung
         </h1>
         <button className="btn btn-primary" onClick={openNew}><Icon name="plus" /> Neuer User</button>
+        <button className="btn" disabled={laeuft} onClick={() => setFrage(true)}
+          title="Sichere Passwörter für die Zugänge erzeugen">
+          <Icon name="shield" /> Passwörter erzeugen{ohnePasswort > 0 ? ` (${ohnePasswort} offen)` : ""}
+        </button>
         <SearchInput value={suche} onChange={setSuche} placeholder="Name, E-Mail, Rolle, App…"
           style={{ flex: "1 1 220px", maxWidth: 340, marginLeft: "auto" }} />
       </div>
@@ -116,6 +150,7 @@ export default function IdentitiesPage() {
             <th style={{ padding: "10px 12px" }}>E-Mail</th>
             <th style={{ padding: "10px 12px" }}>Globale Rolle</th>
             <th style={{ padding: "10px 12px" }}>App-Zugriff</th>
+            <th style={{ padding: "10px 12px" }}>Passwort</th>
             <th style={{ padding: "10px 12px" }}>Herkunft</th>
             <th></th>
           </tr></thead>
@@ -137,11 +172,18 @@ export default function IdentitiesPage() {
                 <td style={{ padding: "10px 12px", fontSize: 12 }}>
                   {(r.appAccess || []).filter((a: any) => a.allowed).map((a: any) => `${a.appKey}:${a.role}`).join(", ") || "–"}
                 </td>
+                <td style={{ padding: "10px 12px", fontSize: 12.5, whiteSpace: "nowrap" }}>
+                  {r.hatPasswort
+                    ? <span style={{ color: "var(--muted)" }}>hinterlegt</span>
+                    : <span style={{ color: "var(--warn, #c47f17)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        <Icon name="alert" size={13} /> fehlt
+                      </span>}
+                </td>
                 <td style={{ padding: "10px 12px" }}>{r.origin}</td>
                 <td style={{ padding: "8px 12px", whiteSpace: "nowrap", display: "flex", gap: 6 }}>
-                  <button className="btn btn-icon" title="Hinterlegtes Passwort kopieren" aria-label="Passwort kopieren"
-                    onClick={() => passwortKopieren(r.id)}>
-                    <Icon name={kopiert === "pw" + r.id ? "check" : "shield"} />
+                  <button className="btn btn-icon" title="Hinterlegtes Passwort anzeigen" aria-label="Passwort anzeigen"
+                    onClick={() => passwortAnzeigen(r)}>
+                    <Icon name="shield" />
                   </button>
                   <button className="btn btn-icon" title="Bearbeiten" aria-label="Bearbeiten" onClick={() => openEdit(r)}><Icon name="pencil" /></button>
                 </td>
@@ -173,13 +215,14 @@ export default function IdentitiesPage() {
             <div className="muted" style={{ fontSize: 12.5, display: "flex", gap: 10, flexWrap: "wrap" }}>
               <span>Rolle: <b>{r.globalRole}</b></span>
               <span>Herkunft: {r.origin}</span>
+              <span>Passwort: <b>{r.hatPasswort ? "hinterlegt" : "fehlt"}</b></span>
             </div>
             <div className="muted" style={{ fontSize: 12 }}>
               Apps: {(r.appAccess || []).filter((a: any) => a.allowed).map((a: any) => `${a.appKey}:${a.role}`).join(", ") || "–"}
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              <button className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={() => passwortKopieren(r.id)}>
-                <Icon name={kopiert === "pw" + r.id ? "check" : "shield"} /> Passwort
+              <button className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={() => passwortAnzeigen(r)}>
+                <Icon name="shield" /> Passwort
               </button>
               <button className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={() => openEdit(r)}>
                 <Icon name="pencil" /> Bearbeiten
@@ -188,6 +231,102 @@ export default function IdentitiesPage() {
           </div>
         ))}
       </div>
+
+      {/* Auswahl: welche Konten sollen ein neues Passwort bekommen? */}
+      {frage && (
+        <div onClick={() => setFrage(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "grid", placeItems: "center", padding: 16, zIndex: 60 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: 520, maxWidth: "92vw", padding: 22, display: "grid", gap: 14 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
+              <Icon name="shield" /> Sichere Passwörter erzeugen
+            </h2>
+            <p className="muted" style={{ fontSize: 13, lineHeight: 1.5 }}>
+              Es werden zufällige Passwörter mit Groß-/Kleinbuchstaben, Ziffern und Zusatzzeichen
+              vergeben (19 Zeichen, z.&nbsp;B. <code>hRt7#pQ4m-3Xvb@n8Ka</code>). Sie gelten sofort für
+              <b> alle Apps</b>, weil die Anmeldung zentral über Nexus läuft. Die neuen Werte werden
+              danach <b>einmalig</b> angezeigt – bitte sofort sichern und weitergeben.
+            </p>
+            <button className="btn btn-primary" style={{ justifyContent: "center" }} disabled={laeuft || ohnePasswort === 0}
+              onClick={() => passwoerterErzeugen("fehlende")}>
+              <Icon name="shield" /> Nur fehlende ({ohnePasswort})
+            </button>
+            <button className="btn" style={{ justifyContent: "center" }} disabled={laeuft}
+              onClick={() => passwoerterErzeugen("alle")}>
+              <Icon name="redo" /> Alle {rows.length} Benutzer neu setzen
+            </button>
+            <span className="muted" style={{ fontSize: 12 }}>
+              „Alle neu setzen" macht die bisherigen Passwörter sofort ungültig – jeder Mitarbeiter
+              braucht dann das neue.
+            </span>
+            <button className="btn" style={{ justifyContent: "center" }} onClick={() => setFrage(false)}>
+              <Icon name="x" /> Abbrechen
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Einzelnes hinterlegtes Passwort ansehen */}
+      {pwAnzeige && (
+        <div onClick={() => setPwAnzeige(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "grid", placeItems: "center", padding: 16, zIndex: 60 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: 460, maxWidth: "92vw", padding: 22, display: "grid", gap: 12 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
+              <Icon name="shield" /> Passwort von {pwAnzeige.name}
+            </h2>
+            <div className="muted" style={{ fontSize: 13, wordBreak: "break-all" }}>{pwAnzeige.email}</div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <code style={{ flex: 1, minWidth: 0, fontSize: 17, padding: "10px 12px", borderRadius: 8, border: "1px solid var(--border)", wordBreak: "break-all", fontFamily: "ui-monospace, monospace" }}>
+                {pwAnzeige.passwort}
+              </code>
+              <button className="btn btn-icon" title="Passwort kopieren"
+                onClick={() => inZwischenablage(pwAnzeige.passwort, "Passwort", "einzel")}>
+                <Icon name={kopiert === "einzel" ? "check" : "copy"} />
+              </button>
+            </div>
+            <span className="muted" style={{ fontSize: 12, lineHeight: 1.45 }}>
+              Nur für globale Admins – der Abruf wird im Verlauf vermerkt. Bitte über einen sicheren
+              Weg weitergeben und das Fenster danach schließen.
+            </span>
+            <button className="btn" style={{ justifyContent: "center" }} onClick={() => setPwAnzeige(null)}>
+              <Icon name="x" /> Schließen
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Ergebnis der Sammelvergabe — einmalige Anzeige */}
+      {sammel && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", display: "grid", placeItems: "center", padding: 16, zIndex: 60 }}>
+          <div className="card" style={{ width: 640, maxWidth: "94vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ padding: "18px 22px", borderBottom: "1px solid var(--border)" }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700 }}>{sammel.length} neue Passwörter</h2>
+              <p className="muted" style={{ fontSize: 12.5, marginTop: 4 }}>
+                Jetzt sichern – danach sind sie nur noch einzeln über das Schild-Symbol abrufbar.
+              </p>
+            </div>
+            <div style={{ padding: 16, overflowY: "auto", flex: 1, display: "grid", gap: 8 }}>
+              {sammel.map((b) => (
+                <div key={b.id} style={{ display: "flex", gap: 8, alignItems: "center", borderBottom: "1px solid var(--border)", paddingBottom: 8 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{b.name}</div>
+                    <div className="muted" style={{ fontSize: 12, wordBreak: "break-all" }}>{b.email}</div>
+                  </div>
+                  <code style={{ fontFamily: "ui-monospace, monospace", fontSize: 14, wordBreak: "break-all" }}>{b.passwort}</code>
+                  <button className="btn btn-icon" title="Passwort kopieren"
+                    onClick={() => inZwischenablage(b.passwort, "Passwort", "s" + b.id)}>
+                    <Icon name={kopiert === "s" + b.id ? "check" : "copy"} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div style={{ padding: "14px 22px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
+              <button className="btn"
+                onClick={() => inZwischenablage(sammel.map((b) => `${b.name}\t${b.email}\t${b.passwort}`).join("\n"), "Liste", "liste")}>
+                <Icon name={kopiert === "liste" ? "check" : "copy"} /> Ganze Liste kopieren
+              </button>
+              <button className="btn btn-primary" onClick={() => setSammel(null)}><Icon name="check" /> Gesichert, schließen</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {editing && (
         <div onClick={() => setEditing(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "grid", placeItems: "center", padding: 16, zIndex: 50 }}>
@@ -232,9 +371,9 @@ export default function IdentitiesPage() {
                     <Icon name={kopiert === "pw" ? "check" : "copy"} />
                   </button>
                   {editing.id && (
-                    <button type="button" className="btn" title="Hinterlegtes Passwort holen und kopieren"
-                      onClick={() => passwortKopieren(editing.id!)}>
-                      <Icon name="shield" /> Hinterlegtes kopieren
+                    <button type="button" className="btn" title="Hinterlegtes Passwort anzeigen"
+                      onClick={() => passwortAnzeigen({ id: editing.id!, name: editing.name, email: editing.email })}>
+                      <Icon name="shield" /> Hinterlegtes anzeigen
                     </button>
                   )}
                   <button type="button" className="btn" title="Sicheres Passwort erzeugen"
@@ -243,7 +382,7 @@ export default function IdentitiesPage() {
                   </button>
                 </div>
                 <span className="muted" style={{ fontSize: 11.5, display: "block", marginTop: 4, lineHeight: 1.45 }}>
-                  „Hinterlegtes kopieren" gibt das zuletzt über Nexus vergebene Passwort heraus (verschlüsselt gespeichert,
+                  „Hinterlegtes anzeigen" zeigt das zuletzt über Nexus vergebene Passwort (verschlüsselt gespeichert,
                   nur für globale Admins, jeder Abruf wird im Verlauf vermerkt). Bei älteren Konten existiert es noch nicht –
                   dann einfach ein neues erzeugen, kopieren und speichern.
                 </span>
