@@ -14,6 +14,15 @@ import TextField from "@/components/TextField";
 
 const LOGO_RESOURCES = ["customers", "organizations"];
 
+/**
+ * Sprung vom Mitarbeiter zu seinem Zugang in der Userverwaltung: gesucht wird dort über
+ * die E-Mail (Anmeldekennung), ersatzweise über den Namen. `open=1` öffnet den Zugang
+ * gleich zum Bearbeiten, wenn er eindeutig ist.
+ */
+function userVerwaltungHref(row: any) {
+  return `/identities?q=${encodeURIComponent(String(row.email || row.name || "").trim())}&open=1`;
+}
+
 /** Ansprechpartner eines Datensatzes, die zum Suchbegriff passen (für die Trefferanzeige). */
 function passendeKontakte(row: any, suche: string) {
   const s = String(suche || "").trim().toLowerCase();
@@ -106,12 +115,15 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
 
   return (
     <div>
-      <div className="rv-sticky-header" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, display: "flex", alignItems: "center", gap: 10 }}>
-          <Icon name={R.icon} size={24} /> {R.title}
-        </h1>
-        <button className="btn btn-primary" onClick={() => setEditing({})}><Icon name="plus" /> Neu</button>
-        <SearchInput value={search} onChange={setSearch} style={{ flex: "1 1 200px", maxWidth: 320, marginLeft: "auto" }} />
+      <div className="rv-sticky-header" style={{ display: "grid", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <h1 style={{ fontSize: 24, fontWeight: 700, display: "flex", alignItems: "center", gap: 10 }}>
+            <Icon name={R.icon} size={24} /> {R.title}
+          </h1>
+          <button className="btn btn-primary" onClick={() => setEditing({})}><Icon name="plus" /> Neu</button>
+        </div>
+        {/* Suchfeld linksbündig direkt über der Liste – dort wird es gesucht, nicht am rechten Rand. */}
+        <SearchInput value={search} onChange={setSearch} style={{ width: "100%", maxWidth: 320 }} />
       </div>
       {msg && <div className="card" style={{ padding: "8px 12px", marginBottom: 12, fontSize: 14 }}>{msg}</div>}
 
@@ -187,6 +199,9 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
                 ))}
                 <td onClick={(e) => e.stopPropagation()} style={{ padding: "8px 12px", whiteSpace: "nowrap", display: "flex", gap: 6 }}>
                   <button className="btn btn-icon" title="Bearbeiten" aria-label="Bearbeiten" onClick={() => setEditing({ ...row })}><Icon name="pencil" /></button>
+                  {resourceKey === "employees" && (
+                    <Link className="btn btn-icon" title="Zugang in der Userverwaltung" aria-label="Zugang in der Userverwaltung" href={userVerwaltungHref(row)}><Icon name="shield" /></Link>
+                  )}
                   <Link className="btn btn-icon" title="Verlauf" aria-label="Verlauf" href={`/history?entity=${R.entity}&entityId=${row.id}`}><Icon name="history" /></Link>
                   <button className="btn btn-icon btn-danger" title="Löschen" aria-label="Löschen" onClick={() => setDeleting(row)}><Icon name="trash" /></button>
                 </td>
@@ -231,6 +246,9 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
             </div>
             <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 8, justifyContent: "flex-end", borderTop: "1px solid var(--border)", paddingTop: 10 }}>
               <button className="btn btn-icon" title="Bearbeiten" aria-label="Bearbeiten" onClick={() => setEditing({ ...row })}><Icon name="pencil" /></button>
+              {resourceKey === "employees" && (
+                <Link className="btn btn-icon" title="Zugang in der Userverwaltung" aria-label="Zugang in der Userverwaltung" href={userVerwaltungHref(row)}><Icon name="shield" /></Link>
+              )}
               <Link className="btn btn-icon" title="Verlauf" aria-label="Verlauf" href={`/history?entity=${R.entity}&entityId=${row.id}`}><Icon name="history" /></Link>
               <button className="btn btn-icon btn-danger" title="Löschen" aria-label="Löschen" onClick={() => setDeleting(row)}><Icon name="trash" /></button>
             </div>

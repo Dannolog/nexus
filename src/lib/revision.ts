@@ -1,6 +1,7 @@
 import { prisma } from "./prisma";
 import { ApiError } from "./http";
 import { getEntity, EntityName } from "./entities";
+import { mailKaskade } from "./mailKaskade";
 import { AuthContext } from "./auth";
 import { randomUUID } from "crypto";
 
@@ -150,11 +151,21 @@ export async function updateEntity(
     if (expectedVersion != null && current.version !== expectedVersion) {
       throw new ApiError("Versionskonflikt", 409, { current });
     }
+    const clean = sanitize(entity, data);
     const updated = await delegate.update({
       where: { id },
-      data: { ...sanitize(entity, data), version: current.version + 1 },
+      data: { ...clean, version: current.version + 1 },
     });
     await record(tx, { txId, entity, entityId: id, action: "UPDATE", before: current, after: updated, ctx });
+
+    // Die E-Mail ist die Anmeldekennung für alle Apps: Änderung am Mitarbeiter zieht den
+    // zentralen Login mit (und umgekehrt). Von dort verteilen die Abgleich-Skripte weiter.
+    if ((entity === "Employee" || entity === "Identity") && "email" in clean) {
+      const mit = await mailKaskade(tx, entity, updated, String((current as any).email || ""), String(clean.email || ""), updated.name);
+      if (mit) {
+        await record(tx, { txId, entity: mit.entity, entityId: mit.id, action: "UPDATE", before: mit.before, after: mit.after, ctx });
+      }
+    }
     return updated;
   });
 }

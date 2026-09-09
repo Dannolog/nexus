@@ -2,6 +2,8 @@
  * Mitarbeiter-Abgleich Nexus ⇄ clocker — **beidseitig**.
  *
  * Zuordnung (in dieser Reihenfolge):
+ *   0. gemerkte Verknüpfung (`IdentityAppAccess.localUserId` für „clocker") – sie hält auch
+ *      dann, wenn die E-Mail in Nexus geändert wird (sonst entstünde in clocker ein Zweiter)
  *   1. E-Mail (in clocker eindeutig)
  *   2. Personalnummer (Nexus `employeeNumber` ↔ clocker `employeeId`)
  *   3. normalisierter Name — nur als letzte Stufe, wird im Protokoll ausdrücklich vermerkt
@@ -44,10 +46,53 @@ type CUser = {
 const nameKey = (s: string) =>
   String(s || "").toLowerCase().replace(/[^a-zäöüß]+/g, "");
 
+/**
+ * Übernimmt eine geänderte Mitarbeiter-Adresse in die zentrale Identität (Login für alle Apps).
+ * Ist die Adresse dort schon anderweitig vergeben, bleibt sie unverändert – mit Hinweis.
+ */
+async function identitaetMailSetzen(
+  emp: { id: string; identityId: string | null; email: string },
+  neueMail: string
+) {
+  const ident =
+    (emp.identityId ? await prisma.identity.findFirst({ where: { id: emp.identityId, deletedAt: null } }) : null) ||
+    (await prisma.identity.findFirst({ where: { employeeId: emp.id, deletedAt: null } })) ||
+    (emp.email ? await prisma.identity.findFirst({ where: { email: emp.email, deletedAt: null } }) : null);
+  if (!ident || ident.email.toLowerCase() === neueMail.toLowerCase()) return;
+  const belegt = await prisma.identity.findFirst({ where: { email: neueMail, NOT: { id: ident.id } } });
+  if (belegt) {
+    console.warn(`  ! Login-Adresse „${neueMail}" ist in Nexus schon vergeben – Identität nicht geändert`);
+    return;
+  }
+  await prisma.identity.update({
+    where: { id: ident.id },
+    data: { email: neueMail, employeeId: emp.id, version: ident.version + 1 },
+  });
+  await prisma.employee.update({ where: { id: emp.id }, data: { identityId: ident.id } });
+  console.log(`  Login-Adresse angeglichen: ${ident.email} → ${neueMail}`);
+}
+
 async function main() {
   await clocker.connect();
 
   const nexusListe = await prisma.employee.findMany({ where: { deletedAt: null } });
+  const identitaeten = await prisma.identity.findMany({ where: { deletedAt: null }, include: { appAccess: true } });
+  const identNachEmployee = new Map(identitaeten.filter((i) => i.employeeId).map((i) => [i.employeeId as string, i]));
+  const identNachMail = new Map(identitaeten.map((i) => [i.email.toLowerCase(), i]));
+
+  /** Zentrale Identität eines Mitarbeiters: Verknüpfung zuerst, Adresse als Rückfallebene. */
+  const identZu = (n: { id: string; identityId: string | null; email: string }) =>
+    identNachEmployee.get(n.id) ||
+    (n.identityId ? identitaeten.find((i) => i.id === n.identityId) : undefined) ||
+    identNachMail.get((n.email || "").trim().toLowerCase());
+
+  /** Merkt sich den clocker-Benutzer an der App-Freigabe – überlebt spätere E-Mail-Änderungen. */
+  const merkeLokal = async (n: { id: string; identityId: string | null; email: string }, clockerId: string) => {
+    const ident = identZu(n);
+    const zugriff = ident?.appAccess.find((a) => a.appKey === "clocker");
+    if (!zugriff || zugriff.localUserId === clockerId || TROCKEN) return;
+    await prisma.identityAppAccess.update({ where: { id: zugriff.id }, data: { localUserId: clockerId, syncedAt: new Date() } });
+  };
   const clockerListe: CUser[] = (
     await clocker.query(`SELECT id, name, email, "employeeId", color, password, "updatedAt", "companyId" FROM "User"`)
   ).rows;
@@ -60,11 +105,19 @@ async function main() {
 
   for (const n of nexusListe) {
     const mail = (n.email || "").trim().toLowerCase();
+    const gemerkt = identZu(n)?.appAccess.find((a) => a.appKey === "clocker")?.localUserId || null;
     let c =
+      (gemerkt && clockerListe.find((x) => x.id === gemerkt)) ||
       (mail && clockerListe.find((x) => (x.email || "").trim().toLowerCase() === mail)) ||
       (n.employeeNumber && clockerListe.find((x) => (x.employeeId || "").trim() === n.employeeNumber.trim())) ||
       null;
-    let via = c ? (mail && (c.email || "").toLowerCase() === mail ? "E-Mail" : "Personalnummer") : "";
+    let via = c
+      ? gemerkt && c.id === gemerkt
+        ? "Verknüpfung"
+        : mail && (c.email || "").toLowerCase() === mail
+          ? "E-Mail"
+          : "Personalnummer"
+      : "";
     if (!c) {
       const treffer = clockerListe.filter((x) => nameKey(x.name) === nameKey(n.name));
       if (treffer.length === 1) { c = treffer[0]; via = "Name (unsicher)"; }
@@ -110,9 +163,15 @@ async function main() {
       if (belegt) { console.warn(`  ! E-Mail „${clockerPatch.email}" ist in clocker schon vergeben – nicht übertragen (${n.name})`); delete clockerPatch.email; }
     }
 
+    if (!TROCKEN) await merkeLokal(n, c.id);
+
     if (Object.keys(nexusPatch).length) {
       tat(`Nexus ← clocker: ${n.name} [${via}] ${JSON.stringify(nexusPatch)}`);
-      if (!TROCKEN) await prisma.employee.update({ where: { id: n.id }, data: nexusPatch });
+      if (!TROCKEN) {
+        await prisma.employee.update({ where: { id: n.id }, data: nexusPatch });
+        // Die Adresse ist die Anmeldekennung – der zentrale Login muss sie mittragen.
+        if (nexusPatch.email) await identitaetMailSetzen(n, nexusPatch.email);
+      }
       nachNexus++;
     }
     if (Object.keys(clockerPatch).length) {
@@ -177,11 +236,13 @@ async function main() {
     }
     tat(`clocker anlegen: ${n.name} <${mail}> (${hinweis})`);
     if (!TROCKEN) {
-      await clocker.query(
+      const angelegt = await clocker.query(
         `INSERT INTO "User" (id, name, email, password, color, role, "employeeId", "createdAt", "updatedAt")
-         VALUES (gen_random_uuid()::text, $1, $2, $3, $4, 'employee', $5, now(), now())`,
+         VALUES (gen_random_uuid()::text, $1, $2, $3, $4, 'employee', $5, now(), now())
+         RETURNING id`,
         [n.name, mail, hash, n.color || "#7c3cc0", n.employeeNumber || ""]
       );
+      if (angelegt.rows[0]?.id) await merkeLokal(n, angelegt.rows[0].id);
     }
     neuInClocker++;
   }

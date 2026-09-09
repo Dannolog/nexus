@@ -331,3 +331,32 @@
   (statt nur Kopieren), Kopfbutton „Passwörter erzeugen (n offen)" mit Auswahl fehlende/alle
   und Ergebnisliste zum Kopieren (einzeln oder ganze Liste).
 - Wirkt für alle Apps, da kontor & Co. sich über Nexus anmelden. tsc sauber, Build + `pm2 restart nexus` erledigt.
+
+## 09.09.2026 — E-Mail-Änderung schlägt überall durch + Sprung Mitarbeiter → Userverwaltung
+- **Anlass Daniel:** „Wenn ich bei einem Mitarbeiter die E-Mail ändere, muss das direkt in
+  allen Funktionen und Logins geändert werden. Von jedem Mitarbeiter direkt zur
+  Userverwaltung kommen. Suche links über den Tabellen platzieren."
+- **`src/lib/mailKaskade.ts` (neu):** zieht eine geänderte Adresse zwischen **Employee** und
+  **Identity** (Login für alle Apps) nach – Zuordnung über `identityId`/`employeeId`, ersatzweise
+  über die alte Adresse; verfestigt dabei beide Rückbezüge. Ist die neue Adresse auf der
+  Gegenseite vergeben → Fehler 409 mit Klartext statt stiller Doppelvergabe.
+- **`updateEntity` (`src/lib/revision.ts`):** ruft die Kaskade bei jeder E-Mail-Änderung an
+  Employee/Identity auf und schreibt die Mit-Änderung mit **derselben txId** in den Verlauf
+  (Undo greift für beide Sätze zusammen).
+- **`PATCH /api/identities/:id`:** schrieb `email` bisher **gar nicht** – eine Änderung in der
+  Userverwaltung war wirkungslos. Jetzt: Eindeutigkeitsprüfung, Übernahme, Kaskade zum
+  Mitarbeiter, Revision.
+- **`prisma/sync-kontor-benutzer.ts`:** Zuordnung zuerst über die gemerkte
+  `IdentityAppAccess.localUserId` (überlebt E-Mail-Wechsel), sonst über die Adresse; die
+  lokale ID wird beim Anlegen/Zuordnen zurückgeschrieben. Geänderte Adresse wird im
+  kontor-Benutzer **umbenannt** statt einen zweiten Benutzer anzulegen.
+- **`prisma/sync-clocker-employees.ts`:** neue Zuordnungsstufe 0 über `localUserId`
+  (vor E-Mail/Personalnummer/Name), ID wird gemerkt; übernimmt clocker eine Adresse nach
+  Nexus, zieht die zentrale Identität mit (`identitaetMailSetzen`).
+- **Userverwaltung erreichbar aus der Mitarbeiterliste:** Schild-Symbol je Zeile/Karte →
+  `/identities?q=<E-Mail>&open=1`; dort wird die Suche aus der URL vorbelegt und ein
+  eindeutiger Treffer gleich zum Bearbeiten geöffnet (kein Treffer → Hinweis „noch kein Zugang").
+- **Suche links über der Liste:** in `ResourceView` und in der Userverwaltung steht das
+  Suchfeld jetzt linksbündig in einer eigenen Zeile über der Tabelle statt rechts im Kopf.
+- tsc sauber, Probeläufe beider Sync-Skripte mit `--dry` fehlerfrei, Build + `pm2 restart nexus`,
+  `/login` HTTP 200.

@@ -29,7 +29,13 @@ export default function IdentitiesPage() {
   const [msg, setMsg] = useState("");
   const [kopiert, setKopiert] = useState("");
   const [pwSichtbar, setPwSichtbar] = useState(false);
-  const [suche, setSuche] = useState("");
+  const [suche, setSuche] = useState(() =>
+    typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("q") || "" : ""
+  );
+  // ?open=1 (Sprung aus der Mitarbeiterliste): eindeutigen Treffer gleich zum Bearbeiten öffnen
+  const [autoOeffnen, setAutoOeffnen] = useState(() =>
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("open") === "1"
+  );
   // Einzelanzeige eines hinterlegten Passworts (nur solange der Dialog offen ist)
   const [pwAnzeige, setPwAnzeige] = useState<{ name: string; email: string; passwort: string } | null>(null);
   // Ergebnis der Sammelvergabe — die Werte gibt es nur dieses eine Mal zu sehen
@@ -122,6 +128,15 @@ export default function IdentitiesPage() {
     });
   })();
 
+  // Sprung aus der Mitarbeiterliste: genau ein Treffer → direkt in den Zugang
+  useEffect(() => {
+    if (!autoOeffnen || editing || rows.length === 0) return;
+    setAutoOeffnen(false);
+    if (treffer.length === 1) openEdit(treffer[0]);
+    else if (treffer.length === 0) setMsg("Zu diesem Mitarbeiter gibt es noch keinen Zugang – hier neu anlegen.");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOeffnen, rows, treffer.length]);
+
   // Konten ohne weitergebbares Passwort (nur der Zähler – nie die Werte)
   const ohnePasswort = rows.filter((r: any) => !r.hatPasswort).length;
 
@@ -136,8 +151,11 @@ export default function IdentitiesPage() {
           title="Sichere Passwörter für die Zugänge erzeugen">
           <Icon name="shield" /> Passwörter erzeugen{ohnePasswort > 0 ? ` (${ohnePasswort} offen)` : ""}
         </button>
+      </div>
+      {/* Suchfeld linksbündig direkt über der Liste */}
+      <div style={{ marginBottom: 12 }}>
         <SearchInput value={suche} onChange={setSuche} placeholder="Name, E-Mail, Rolle, App…"
-          style={{ flex: "1 1 220px", maxWidth: 340, marginLeft: "auto" }} />
+          style={{ width: "100%", maxWidth: 340 }} />
       </div>
       <p className="muted" style={{ marginBottom: 16 }}>Ein Login für alle berechtigten Apps. Pro App: Zulassung + Rolle.</p>
       {msg && <div className="card" style={{ padding: "8px 12px", marginBottom: 12, fontSize: 14 }}>{msg}</div>}

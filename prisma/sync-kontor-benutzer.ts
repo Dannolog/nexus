@@ -47,28 +47,57 @@ async function main() {
 
   const lokale = (await kontor.query(`SELECT id, lower(email) AS email, role FROM "User"`)).rows;
   const nachMail = new Map(lokale.map((u: any) => [u.email, u]));
+  // Stabile Zuordnung über die gemerkte lokale ID – sie überlebt eine E-Mail-Änderung,
+  // die reine Suche über die Adresse dagegen nicht (dort entstünde ein zweiter Benutzer).
+  const nachId = new Map(lokale.map((u: any) => [u.id, u]));
   const standardFirma = (await kontor.query(`SELECT id FROM "Company" ORDER BY "createdAt" LIMIT 1`)).rows[0]?.id ?? null;
 
-  let neu = 0, rolleGeaendert = 0, unveraendert = 0;
+  let neu = 0, rolleGeaendert = 0, mailGeaendert = 0, unveraendert = 0;
+
+  /** Merkt sich zu einer App-Freigabe den lokalen Benutzer, damit spätere Änderungen ihn wiederfinden. */
+  const merkeLokal = async (zugriffId: string | undefined, lokalId: string, bisher?: string | null) => {
+    if (!zugriffId || bisher === lokalId || TROCKEN) return;
+    await prisma.identityAppAccess.update({ where: { id: zugriffId }, data: { localUserId: lokalId, syncedAt: new Date() } });
+  };
 
   for (const i of berechtigt) {
     const mail = i.email.toLowerCase();
     const zugriff = i.appAccess.find((x) => x.appKey === "kontor");
     const rolle = i.globalRole === "admin" ? "admin" : zugriff?.role === "admin" ? "admin" : "user";
-    const vorhanden = nachMail.get(mail);
+    const vorhanden = (zugriff?.localUserId ? nachId.get(zugriff.localUserId) : undefined) || nachMail.get(mail);
 
     if (!vorhanden) {
       tat(`kontor-Benutzer anlegen (Rolle ${rolle})`);
       if (!TROCKEN) {
-        await kontor.query(
+        const angelegt = await kontor.query(
           `INSERT INTO "User" (id, name, email, password, role, "companyId", "createdAt", "updatedAt")
            VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, now(), now())
-           ON CONFLICT (email) DO NOTHING`,
+           ON CONFLICT (email) DO NOTHING
+           RETURNING id`,
           [i.name || mail, i.email, i.passwordHash, rolle, standardFirma]
         );
+        const neueId = angelegt.rows[0]?.id;
+        if (neueId) await merkeLokal(zugriff?.id, neueId, zugriff?.localUserId);
       }
       neu++;
       continue;
+    }
+
+    await merkeLokal(zugriff?.id, vorhanden.id, zugriff?.localUserId);
+
+    // Anmeldekennung angleichen: In Nexus geänderte E-Mail auf den lokalen Benutzer übertragen.
+    if (vorhanden.email !== mail) {
+      const belegt = lokale.find((u: any) => u.id !== vorhanden.id && u.email === mail);
+      if (belegt) {
+        console.warn(`  ! E-Mail „${mail}" ist in kontor schon einem anderen Benutzer zugeordnet – nicht übertragen`);
+      } else {
+        tat(`kontor-E-Mail angleichen: ${vorhanden.email} → ${mail}`);
+        if (!TROCKEN) {
+          await kontor.query(`UPDATE "User" SET email = $1, "updatedAt" = now() WHERE id = $2`, [i.email, vorhanden.id]);
+        }
+        vorhanden.email = mail;
+        mailGeaendert++;
+      }
     }
 
     if (vorhanden.role !== rolle) {
@@ -87,7 +116,7 @@ async function main() {
   const ohneFreigabe = lokale.filter((u: any) => u.email && !berechtigteMails.has(u.email));
 
   console.log(`Für kontor freigegeben: ${berechtigt.length} · lokal vorhanden: ${lokale.length}`);
-  console.log(`Neu angelegt: ${neu} · Rolle angeglichen: ${rolleGeaendert} · unverändert: ${unveraendert}`);
+  console.log(`Neu angelegt: ${neu} · Rolle angeglichen: ${rolleGeaendert} · E-Mail angeglichen: ${mailGeaendert} · unverändert: ${unveraendert}`);
   if (ohneFreigabe.length) {
     console.log(`Hinweis: ${ohneFreigabe.length} lokale kontor-Benutzer haben in Nexus keine Freigabe. Sie werden NICHT gelöscht (daran hängen Belege/Protokolle) – bei Bedarf in kontor selbst sperren.`);
   }

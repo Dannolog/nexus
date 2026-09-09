@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { json, handle, ApiError } from "@/lib/http";
 import { requireApp, requireAuth } from "@/lib/auth";
 import { newTxId } from "@/lib/revision";
+import { mailKaskade } from "@/lib/mailKaskade";
 
 export const dynamic = "force-dynamic";
 
@@ -37,9 +38,16 @@ export const PATCH = (req: NextRequest, { params }: { params: { id: string } }) 
       const passwordHash = body.password ? await bcrypt.hash(String(body.password), 10) : undefined;
       // Zusätzlich verschlüsselt merken, damit ein Admin das Passwort weitergeben kann.
       const passwordEnc = body.password ? verschluessle(String(body.password)) : undefined;
+      // Anmeldekennung: geänderte E-Mail muss eindeutig bleiben und beim Mitarbeiter mitziehen.
+      const neueMail = body.email != null ? String(body.email).trim() : "";
+      if (neueMail && neueMail.toLowerCase() !== current.email.toLowerCase()) {
+        const belegt = await tx.identity.findFirst({ where: { email: neueMail, NOT: { id: params.id } } });
+        if (belegt) throw new ApiError(`Die E-Mail „${neueMail}" ist bereits für „${belegt.name || belegt.email}" vergeben.`, 409);
+      }
       const updated = await tx.identity.update({
         where: { id: params.id },
         data: {
+          ...(neueMail ? { email: neueMail } : {}),
           ...(body.name != null ? { name: body.name } : {}),
           ...(body.globalRole != null ? { globalRole: body.globalRole } : {}),
           ...(passwordHash ? { passwordHash } : {}),
@@ -66,6 +74,20 @@ export const PATCH = (req: NextRequest, { params }: { params: { id: string } }) 
               role: a.role ?? "user",
               rights: typeof a.rights === "string" ? a.rights : JSON.stringify(a.rights ?? {}),
               syncedAt: new Date(),
+            },
+          });
+        }
+      }
+
+      // E-Mail geändert → Mitarbeiterstammsatz nachziehen (Verlauf mit derselben txId)
+      if (neueMail && neueMail.toLowerCase() !== current.email.toLowerCase()) {
+        const mit = await mailKaskade(tx, "Identity", updated, current.email, neueMail, updated.name);
+        if (mit) {
+          await tx.revision.create({
+            data: {
+              txId, entity: mit.entity, entityId: mit.id, action: "UPDATE",
+              before: JSON.stringify(mit.before), after: JSON.stringify(mit.after),
+              identityId: ctx.identityId, appKey: ctx.appKey,
             },
           });
         }
