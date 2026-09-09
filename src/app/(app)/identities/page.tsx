@@ -32,10 +32,14 @@ export default function IdentitiesPage() {
   const [suche, setSuche] = useState(() =>
     typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("q") || "" : ""
   );
-  // ?open=1 (Sprung aus der Mitarbeiterliste): eindeutigen Treffer gleich zum Bearbeiten öffnen
-  const [autoOeffnen, setAutoOeffnen] = useState(() =>
-    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("open") === "1"
-  );
+  // ?open=1 (Sprung aus der Mitarbeiterliste): Zugangseinstellungen sofort öffnen.
+  // ?mail / ?name liefern die Mitarbeiterdaten für den Fall, dass es noch keinen Zugang gibt.
+  const [sprung, setSprung] = useState<{ mail: string; name: string } | null>(() => {
+    if (typeof window === "undefined") return null;
+    const p = new URLSearchParams(window.location.search);
+    if (p.get("open") !== "1") return null;
+    return { mail: (p.get("mail") || "").trim(), name: (p.get("name") || "").trim() };
+  });
   // Einzelanzeige eines hinterlegten Passworts (nur solange der Dialog offen ist)
   const [pwAnzeige, setPwAnzeige] = useState<{ name: string; email: string; passwort: string } | null>(null);
   // Ergebnis der Sammelvergabe — die Werte gibt es nur dieses eine Mal zu sehen
@@ -128,14 +132,20 @@ export default function IdentitiesPage() {
     });
   })();
 
-  // Sprung aus der Mitarbeiterliste: genau ein Treffer → direkt in den Zugang
+  // Sprung aus der Mitarbeiterliste: Zugangseinstellungen ohne Zwischenschritt öffnen.
+  // Reihenfolge: exakte E-Mail → einziger Suchtreffer → sonst neuen Zugang vorausgefüllt anlegen.
   useEffect(() => {
-    if (!autoOeffnen || editing || rows.length === 0) return;
-    setAutoOeffnen(false);
-    if (treffer.length === 1) openEdit(treffer[0]);
-    else if (treffer.length === 0) setMsg("Zu diesem Mitarbeiter gibt es noch keinen Zugang – hier neu anlegen.");
+    if (!sprung || editing || rows.length === 0) return;
+    const mail = sprung.mail.toLowerCase();
+    const genau = mail ? rows.find((r: any) => String(r.email || "").toLowerCase() === mail) : null;
+    setSprung(null);
+    if (genau) { openEdit(genau); return; }
+    if (treffer.length === 1) { openEdit(treffer[0]); return; }
+    if (treffer.length > 1) { setMsg("Mehrere passende Zugänge – bitte den richtigen auswählen."); return; }
+    setMsg(`Für ${sprung.name || sprung.mail} gibt es noch keinen Zugang – Daten sind vorausgefüllt, bitte Apps freigeben und speichern.`);
+    setEditing({ ...emptyForm(), email: sprung.mail, name: sprung.name });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoOeffnen, rows, treffer.length]);
+  }, [sprung, rows, treffer.length]);
 
   // Konten ohne weitergebbares Passwort (nur der Zähler – nie die Werte)
   const ohnePasswort = rows.filter((r: any) => !r.hatPasswort).length;

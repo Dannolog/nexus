@@ -16,11 +16,18 @@ const LOGO_RESOURCES = ["customers", "organizations"];
 
 /**
  * Sprung vom Mitarbeiter zu seinem Zugang in der Userverwaltung: gesucht wird dort über
- * die E-Mail (Anmeldekennung), ersatzweise über den Namen. `open=1` öffnet den Zugang
- * gleich zum Bearbeiten, wenn er eindeutig ist.
+ * die E-Mail (Anmeldekennung), ersatzweise über den Namen. `open=1` öffnet die
+ * Zugangseinstellungen sofort – gibt es noch keinen Zugang, den Anlegen-Dialog mit
+ * E-Mail und Name des Mitarbeiters vorausgefüllt.
  */
 function userVerwaltungHref(row: any) {
-  return `/identities?q=${encodeURIComponent(String(row.email || row.name || "").trim())}&open=1`;
+  const p = new URLSearchParams({
+    q: String(row.email || row.name || "").trim(),
+    open: "1",
+    mail: String(row.email || "").trim(),
+    name: String(row.name || "").trim(),
+  });
+  return `/identities?${p.toString()}`;
 }
 
 /** Ansprechpartner eines Datensatzes, die zum Suchbegriff passen (für die Trefferanzeige). */

@@ -360,3 +360,8 @@
   Suchfeld jetzt linksbündig in einer eigenen Zeile über der Tabelle statt rechts im Kopf.
 - tsc sauber, Probeläufe beider Sync-Skripte mit `--dry` fehlerfrei, Build + `pm2 restart nexus`,
   `/login` HTTP 200.
+- **Nachtrag (Wunsch Daniel):** Der Klick beim Mitarbeiter öffnet die **Zugangseinstellungen
+  direkt** – ohne Zwischenschritt über die Liste. Reihenfolge: exakte E-Mail → einziger
+  Suchtreffer → sonst öffnet sich der Anlegen-Dialog mit **E-Mail und Name vorausgefüllt**
+  (Link trägt `mail`/`name` mit). Bei mehreren passenden Zugängen bleibt die gefilterte Liste
+  mit Hinweis stehen.
