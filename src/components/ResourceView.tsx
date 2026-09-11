@@ -207,7 +207,10 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
                 <td onClick={(e) => e.stopPropagation()} style={{ padding: "8px 12px", whiteSpace: "nowrap", display: "flex", gap: 6 }}>
                   <button className="btn btn-icon" title="Bearbeiten" aria-label="Bearbeiten" onClick={() => setEditing({ ...row })}><Icon name="pencil" /></button>
                   {resourceKey === "employees" && (
-                    <Link className="btn btn-icon" title="Zugang in der Userverwaltung" aria-label="Zugang in der Userverwaltung" href={userVerwaltungHref(row)}><Icon name="shield" /></Link>
+                    <>
+                      <Link className="btn btn-icon" title="Akte: Dokumente und Notizen" aria-label="Akte: Dokumente und Notizen" href={`/documents?employee=${row.id}`}><Icon name="folder" /></Link>
+                      <Link className="btn btn-icon" title="Zugang in der Userverwaltung" aria-label="Zugang in der Userverwaltung" href={userVerwaltungHref(row)}><Icon name="shield" /></Link>
+                    </>
                   )}
                   <Link className="btn btn-icon" title="Verlauf" aria-label="Verlauf" href={`/history?entity=${R.entity}&entityId=${row.id}`}><Icon name="history" /></Link>
                   <button className="btn btn-icon btn-danger" title="Löschen" aria-label="Löschen" onClick={() => setDeleting(row)}><Icon name="trash" /></button>
@@ -254,7 +257,10 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
             <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 8, justifyContent: "flex-end", borderTop: "1px solid var(--border)", paddingTop: 10 }}>
               <button className="btn btn-icon" title="Bearbeiten" aria-label="Bearbeiten" onClick={() => setEditing({ ...row })}><Icon name="pencil" /></button>
               {resourceKey === "employees" && (
-                <Link className="btn btn-icon" title="Zugang in der Userverwaltung" aria-label="Zugang in der Userverwaltung" href={userVerwaltungHref(row)}><Icon name="shield" /></Link>
+                <>
+                  <Link className="btn btn-icon" title="Akte: Dokumente und Notizen" aria-label="Akte: Dokumente und Notizen" href={`/documents?employee=${row.id}`}><Icon name="folder" /></Link>
+                  <Link className="btn btn-icon" title="Zugang in der Userverwaltung" aria-label="Zugang in der Userverwaltung" href={userVerwaltungHref(row)}><Icon name="shield" /></Link>
+                </>
               )}
               <Link className="btn btn-icon" title="Verlauf" aria-label="Verlauf" href={`/history?entity=${R.entity}&entityId=${row.id}`}><Icon name="history" /></Link>
               <button className="btn btn-icon btn-danger" title="Löschen" aria-label="Löschen" onClick={() => setDeleting(row)}><Icon name="trash" /></button>

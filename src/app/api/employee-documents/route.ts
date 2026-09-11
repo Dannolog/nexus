@@ -6,6 +6,18 @@ import { bauDateiname, fuelleFormular, loesePlatzhalter, werteAusMitarbeiter } f
 
 export const dynamic = "force-dynamic";
 
+/** Dateityp aus der Endung – damit Bilder später auch als Bild angezeigt werden können. */
+function dateiTyp(name: string) {
+  const e = (name.match(/\.([a-z0-9]+)$/i)?.[1] || "").toLowerCase();
+  const karte: Record<string, string> = {
+    pdf: "application/pdf",
+    jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", gif: "image/gif",
+    webp: "image/webp", heic: "image/heic", bmp: "image/bmp", tif: "image/tiff", tiff: "image/tiff",
+    txt: "text/plain", csv: "text/csv",
+  };
+  return karte[e] || "application/octet-stream";
+}
+
 /** Abgelegte Dokumente – ohne Dateidaten. Optional gefiltert nach Mitarbeiter. */
 export const GET = (req: NextRequest) =>
   handle(async () => {
@@ -16,7 +28,7 @@ export const GET = (req: NextRequest) =>
       where: { deletedAt: null, ...(employeeId ? { employeeId } : {}) },
       orderBy: { createdAt: "desc" },
       select: {
-        id: true, employeeId: true, orgId: true, orgName: true, templateId: true, templateKey: true,
+        id: true, employeeId: true, groupId: true, orgId: true, orgName: true, templateId: true, templateKey: true,
         title: true, fileName: true, mimeType: true, size: true, version: true, filled: true,
         note: true, createdAt: true, updatedAt: true,
       },
@@ -35,7 +47,7 @@ export const POST = (req: NextRequest) =>
   handle(async () => {
     await requireAuth(req);
     const body = await req.json().catch(() => ({}));
-    const { employeeId, orgId = "", templateId = "", base64, fileName, title = "", note = "" } = body as Record<string, any>;
+    const { employeeId, groupId = "", orgId = "", templateId = "", base64, fileName, title = "", note = "" } = body as Record<string, any>;
     const fill = body.fill !== false;
 
     if (!employeeId) throw new ApiError("Mitarbeiter fehlt", 400);
@@ -66,7 +78,7 @@ export const POST = (req: NextRequest) =>
       daten = Buffer.from(String(base64).replace(/^data:[^,]+,/, ""), "base64");
       key = (body.templateKey as string) || "upload";
       anzeige = anzeige || fileName || "Dokument";
-      if (fileName && !/\.pdf$/i.test(fileName)) mimeType = "application/octet-stream";
+      mimeType = dateiTyp(String(fileName || ""));
     } else {
       throw new ApiError("Weder Vorlage noch Datei übergeben", 400);
     }
@@ -91,6 +103,7 @@ export const POST = (req: NextRequest) =>
     const doc = await prisma.employeeDocument.create({
       data: {
         employeeId,
+        groupId,
         orgId,
         orgName: org?.name || "",
         templateId,
@@ -105,7 +118,7 @@ export const POST = (req: NextRequest) =>
         note,
       },
       select: {
-        id: true, employeeId: true, orgName: true, templateKey: true, title: true,
+        id: true, employeeId: true, groupId: true, orgName: true, templateKey: true, title: true,
         fileName: true, size: true, version: true, filled: true, createdAt: true,
       },
     });

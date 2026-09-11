@@ -5,6 +5,7 @@ import Icon from "@/components/Icon";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import PdfViewerModal from "@/components/PdfViewerModal";
 import SuchSelect from "@/components/SuchSelect";
+import MitarbeiterAkte, { Gruppe } from "@/components/MitarbeiterAkte";
 
 // ── Dokumentenablage ──
 // Links: Vorlagen (z. B. Personalfragebogen) hochladen und versionieren.
@@ -70,12 +71,17 @@ export default function DocumentsPage() {
   const [empId, setEmpId] = useState("");
   const [orgId, setOrgId] = useState("");
   const [vorlageId, setVorlageId] = useState("");
+  // Rubriken der Akte (z. B. „Krankenversicherung") – gelten für alle Mitarbeiter
+  const [gruppen, setGruppen] = useState<Gruppe[]>([]);
+  const [gruppeId, setGruppeId] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState("");
   const [loeschen, setLoeschen] = useState<Dokument | null>(null);
   // PDF-Viewer (aus ProjectEye übernommen): zeigt Vorlagen und abgelegte Dokumente
   const [viewer, setViewer] = useState<{ url: string; titel: string; dok?: Dokument; vorlage?: Vorlage } | null>(null);
   const [vorlageLoeschen, setVorlageLoeschen] = useState<Vorlage | null>(null);
+  // Einfache Bildansicht für hochgeladene Fotos/Scans (der PDF-Betrachter kann nur PDFs)
+  const [bild, setBild] = useState<{ url: string; titel: string } | null>(null);
 
   const ladeVorlagen = useCallback(async () => {
     try {
@@ -84,6 +90,13 @@ export default function DocumentsPage() {
       if (!vorlageId && d.data?.length) setVorlageId(d.data[0].id);
     } catch (e: any) { setMsg("Vorlagen: " + e.message); }
   }, [vorlageId]);
+
+  const ladeGruppen = useCallback(async () => {
+    try {
+      const d = await api("/api/doc-groups");
+      setGruppen(d.data || []);
+    } catch (e: any) { setMsg("Rubriken: " + e.message); }
+  }, []);
 
   const ladeDokumente = useCallback(async (id: string) => {
     if (!id) { setDokumente([]); return; }
@@ -95,6 +108,7 @@ export default function DocumentsPage() {
 
   useEffect(() => {
     ladeVorlagen();
+    ladeGruppen();
     api("/api/employees").then((d) => setMitarbeiter(d.data || [])).catch(() => {});
     api("/api/organizations").then((d) => {
       setMandanten(d.data || []);
@@ -104,6 +118,12 @@ export default function DocumentsPage() {
   }, []);
 
   useEffect(() => { ladeDokumente(empId); }, [empId, ladeDokumente]);
+
+  // Sprung aus der Mitarbeiterliste: /documents?employee=<id> öffnet dessen Akte direkt
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("employee");
+    if (id) setEmpId(id);
+  }, []);
 
   const emp = mitarbeiter.find((m) => m.id === empId);
   const vorlage = vorlagen.find((v) => v.id === vorlageId);
@@ -158,7 +178,7 @@ export default function DocumentsPage() {
     try {
       const d = await api("/api/employee-documents", {
         method: "POST",
-        body: JSON.stringify({ employeeId: empId, orgId, templateId: vorlageId, fill }),
+        body: JSON.stringify({ employeeId: empId, groupId: gruppeId, orgId, templateId: vorlageId, fill }),
       });
       setMsg(`Abgelegt als ${d.fileName} (Version ${d.version})${d.filled ? " – vorausgefüllt" : ""}.`);
       ladeDokumente(empId);
@@ -166,7 +186,7 @@ export default function DocumentsPage() {
     finally { setBusy(""); }
   }
 
-  async function dokumentHochladen(f: File) {
+  async function dokumentHochladen(f: File, groupId?: string) {
     if (!empId) { setMsg("Bitte zuerst einen Mitarbeiter wählen."); return; }
     setBusy("upload-dok");
     try {
@@ -174,7 +194,7 @@ export default function DocumentsPage() {
       const d = await api("/api/employee-documents", {
         method: "POST",
         body: JSON.stringify({
-          employeeId: empId, orgId, base64, fileName: f.name,
+          employeeId: empId, groupId: groupId ?? gruppeId, orgId, base64, fileName: f.name,
           title: f.name.replace(/\.[^.]+$/, ""),
           templateKey: vorlage?.key || "upload",
           fill: false,
@@ -190,8 +210,13 @@ export default function DocumentsPage() {
     setBusy("dok" + d.id);
     try {
       const { blob, name } = await ladeDatei(`/api/employee-documents/${d.id}/file`);
+      const titel = `${d.title || d.templateKey} · v${d.version} · ${name}`;
       if (speichern) speichereBlob(blob, name);
-      else setViewer({ url: URL.createObjectURL(blob), titel: `${d.title || d.templateKey} · v${d.version} · ${name}`, dok: d });
+      // Der PDF-Betrachter kann nur PDFs – Bilder (z. B. abfotografierte Nachweise)
+      // bekommen eine einfache Bildansicht, alles andere wird heruntergeladen.
+      else if (String(d.mimeType || "").startsWith("image/")) setBild({ url: URL.createObjectURL(blob), titel });
+      else if (d.mimeType && d.mimeType !== "application/pdf") { speichereBlob(blob, name); setMsg(`${name} heruntergeladen – dieser Dateityp lässt sich nicht in der App anzeigen.`); }
+      else setViewer({ url: URL.createObjectURL(blob), titel, dok: d });
     } catch (e: any) { setMsg("Fehler: " + e.message); }
     finally { setBusy(""); }
   }
@@ -223,6 +248,7 @@ export default function DocumentsPage() {
         method: "POST",
         body: JSON.stringify({
           employeeId,
+          groupId: dok?.groupId ?? gruppeId,
           orgId: dok?.orgId || orgId,
           base64,
           title: dok?.title || vorlage?.name || "Dokument",
@@ -347,6 +373,17 @@ export default function DocumentsPage() {
               </label>
             </div>
 
+            <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
+              <span className="muted">Rubrik in der Akte</span>
+              <SuchSelect
+                value={gruppeId}
+                onChange={setGruppeId}
+                platzhalter="— ohne Zuordnung —"
+                suchePlatzhalter="Rubrik suchen…"
+                options={gruppen.map((g) => ({ value: g.id, label: g.name }))}
+              />
+            </label>
+
             {emp && fehlendeStammdaten.length > 0 && (
               <div className="muted" style={{ fontSize: 12.5, lineHeight: 1.5 }}>
                 Für das Vorausfüllen fehlen bei {emp.name} noch: <b>{fehlendeStammdaten.join(", ")}</b>.
@@ -376,41 +413,36 @@ export default function DocumentsPage() {
             </div>
           </div>
 
-          <div className="card" style={{ padding: 14 }}>
-            <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em", marginBottom: 10 }}>
-              Abgelegte Dokumente {emp ? `– ${emp.name}` : ""}
-            </div>
-            {!empId && <div className="muted" style={{ fontSize: 13 }}>Bitte einen Mitarbeiter wählen.</div>}
-            {empId && dokumente.length === 0 && <div className="muted" style={{ fontSize: 13 }}>Noch nichts abgelegt.</div>}
-            <div style={{ display: "grid", gap: 8 }}>
-              {dokumente.map((d) => (
-                <div key={d.id} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 10, display: "grid", gap: 6 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                    <span style={{ fontWeight: 600, fontSize: 14 }}>{d.title || d.templateKey}</span>
-                    <span className="muted" style={{ fontSize: 12, border: "1px solid var(--border)", borderRadius: 6, padding: "1px 6px" }}>v{d.version}</span>
-                    {d.filled && <span className="muted" style={{ fontSize: 12 }}>vorausgefüllt</span>}
-                    <span className="muted" style={{ fontSize: 12, marginLeft: "auto" }}>{datum(d.createdAt)}</span>
-                  </div>
-                  <div className="muted" style={{ fontSize: 12, wordBreak: "break-all" }}>
-                    {d.fileName}{d.size ? ` · ${groesse(d.size)}` : ""}
-                  </div>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    <button className="btn" onClick={() => dokumentOeffnen(d, false)} disabled={busy === "dok" + d.id}>
-                      <Icon name="eye" /> Öffnen
-                    </button>
-                    <button className="btn" onClick={() => dokumentOeffnen(d, true)} disabled={busy === "dok" + d.id}>
-                      <Icon name="save" /> Speichern
-                    </button>
-                    <button className="btn btn-icon btn-danger" title="Entfernen" onClick={() => setLoeschen(d)}>
-                      <Icon name="trash" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <MitarbeiterAkte
+            empId={empId}
+            empName={emp?.name || ""}
+            gruppen={gruppen}
+            gruppeId={gruppeId}
+            setGruppeId={setGruppeId}
+            dokumente={dokumente}
+            busy={busy}
+            neuLadenGruppen={ladeGruppen}
+            neuLadenDokumente={() => ladeDokumente(empId)}
+            onOeffnen={dokumentOeffnen}
+            onHochladen={dokumentHochladen}
+            onLoeschen={(d) => setLoeschen(d)}
+            melde={setMsg}
+          />
         </div>
       </div>
+
+      {bild && (
+        <div onClick={() => { URL.revokeObjectURL(bild.url); setBild(null); }}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", display: "grid", gridTemplateRows: "auto 1fr", zIndex: 70 }}>
+          <div onClick={(e) => e.stopPropagation()}
+            style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "var(--bg)", borderBottom: "1px solid var(--border)" }}>
+            <span style={{ fontSize: 14, fontWeight: 600, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{bild.titel}</span>
+            <button className="btn btn-icon" aria-label="Schließen" onClick={() => { URL.revokeObjectURL(bild.url); setBild(null); }}><Icon name="x" /></button>
+          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={bild.url} alt={bild.titel} style={{ width: "100%", height: "100%", objectFit: "contain", padding: 12 }} />
+        </div>
+      )}
 
       {viewer && (
         <PdfViewerModal

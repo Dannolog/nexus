@@ -302,9 +302,38 @@ model DocumentTemplate {
 }
 
 // ---- Dokumentenablage: abgelegte Dokumente je Mitarbeiter ----
+// ---- Ablage-Gruppe (Rubrik in der Mitarbeiterakte, z. B. „Krankenversicherung") ----
+// Gilt für alle Mitarbeiter gleich: einmal anlegen, überall nutzbar.
+model DocumentGroup {
+  id        String   @id @default(cuid())
+  name      String
+  sort      Int      @default(0)               // Reihenfolge in der Akte
+  color     String   @default("")              // optionale Farbmarkierung
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---- Notiz in der Mitarbeiterakte (frei, optional einer Gruppe zugeordnet) ----
+model EmployeeNote {
+  id         String   @id @default(cuid())
+  employeeId String
+  groupId    String   @default("")             // leer = Gruppe „Ohne Zuordnung"
+  title      String   @default("")
+  text       String   @default("") @db.Text
+  author     String   @default("")             // wer sie angelegt hat (Anzeigename)
+  deletedAt  DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([employeeId])
+  @@index([groupId])
+}
+
 model EmployeeDocument {
   id          String   @id @default(cuid())
   employeeId  String
+  groupId     String   @default("")            // Rubrik in der Akte (DocumentGroup)
   orgId       String   @default("")            // Firma/Mandant, zu der das Dokument gehört
   orgName     String   @default("")            // eingefroren für den Dateinamen
   templateId  String   @default("")
@@ -322,6 +351,7 @@ model EmployeeDocument {
   updatedAt   DateTime @updatedAt
 
   @@index([employeeId])
+  @@index([groupId])
   @@index([templateKey])
 }
 

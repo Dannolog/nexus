@@ -365,3 +365,30 @@
   Suchtreffer → sonst öffnet sich der Anlegen-Dialog mit **E-Mail und Name vorausgefüllt**
   (Link trägt `mail`/`name` mit). Bei mehreren passenden Zugängen bleibt die gefilterte Liste
   mit Hinweis stehen.
+
+## 11.09.2026 — Mitarbeiterakte: Rubriken, Dokumente, Notizen
+- **Wunsch Daniel:** „Bei den Mitarbeitern muss ich Dokumente ablegen können, Gruppen erstellen
+  wie Krankenversicherung, dann Dokumente ablegen und View wie bei ProjectEye, auch Notizen
+  ablegen können."
+- **Datenmodell (`prisma db push`):** neu `DocumentGroup` (Rubrik: Name, Sortierung, Farbe) und
+  `EmployeeNote` (Notiz je Mitarbeiter, optional in einer Rubrik, mit Urheber-Anzeigename);
+  `EmployeeDocument.groupId` ergänzt (+ Index).
+- **Rubriken gelten für alle Mitarbeiter gleich** – einmal anlegen, überall nutzbar. Beim ersten
+  Aufruf legt `GET /api/doc-groups` die üblichen an: Arbeitsvertrag, Krankenversicherung,
+  Sozialversicherung & Steuer, Zeugnisse & Nachweise, Schriftverkehr, Sonstiges.
+- **Neue Routen:** `/api/doc-groups` (GET/POST) und `/api/doc-groups/[id]` (PATCH/DELETE –
+  Löschen räumt Dokumente/Notizen nach „Ohne Zuordnung", nichts geht verloren);
+  `/api/employee-notes` (GET/POST) und `/api/employee-notes/[id]` (PATCH/DELETE, weich).
+  `employee-documents` kennt jetzt `groupId` (anlegen, ausliefern, umsortieren).
+- **`src/components/MitarbeiterAkte.tsx` (neu):** Akte je Mitarbeiter, nach Rubriken gegliedert
+  und aufklappbar. Je Rubrik: Datei hochladen, Notiz ablegen, umbenennen, entfernen. Je Dokument:
+  Öffnen (Betrachter), Speichern, Notiz am Dokument, Rubrik wechseln, Entfernen. Notizen mit
+  Überschrift, Text, Urheber und Zeitpunkt, bearbeit- und löschbar.
+- **Betrachter:** PDFs weiter im ProjectEye-Viewer (`PdfViewerModal`, Seiten sortieren/löschen,
+  Formulare ausfüllen, Speichern = neue Version). Hochgeladene **Bilder** (Fotos/Scans von
+  Nachweisen) bekommen eine eigene Bildansicht – dafür leitet die API den echten Dateityp aus
+  der Endung ab statt alles als `octet-stream` abzulegen; andere Dateitypen werden geladen.
+- **Sprung aus der Mitarbeiterliste:** Ordner-Symbol je Zeile/Karte → `/documents?employee=<id>`
+  öffnet direkt die Akte dieses Mitarbeiters (neben dem Schild-Symbol zur Userverwaltung).
+- tsc sauber, Build + `pm2 restart nexus`, `/documents`, `/employees`, `/identities` HTTP 200,
+  `/api/doc-groups` ohne Token 401.
