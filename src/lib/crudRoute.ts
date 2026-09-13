@@ -26,7 +26,9 @@ export function makeList(entity: EntityName) {
           // z. B. Lieferanten über ihre Ansprechpartner finden
           ...(def.searchRelations || []).map((r) => ({
             [r.relation]: {
-              some: { OR: r.fields.map((f) => ({ [f]: { contains: search, mode: "insensitive" } })) },
+              // Kontakte sind weich gelöscht (der Abgleich braucht die Markierung) –
+              // gelöschte dürfen weder gefunden noch mitgeliefert werden.
+              some: { deletedAt: null, OR: r.fields.map((f) => ({ [f]: { contains: search, mode: "insensitive" } })) },
             },
           })),
         ];
@@ -39,7 +41,7 @@ export function makeList(entity: EntityName) {
         take,
         orderBy: { updatedAt: "desc" },
         ...(def.includeRelations?.length
-          ? { include: Object.fromEntries(def.includeRelations.map((r) => [r, true])) }
+          ? { include: Object.fromEntries(def.includeRelations.map((r) => [r, { where: { deletedAt: null } }])) }
           : {}),
       });
       // Logos NICHT in der Liste mitsenden (Transfer schlank halten) — werden

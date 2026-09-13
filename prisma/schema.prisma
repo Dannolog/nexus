@@ -48,7 +48,8 @@ model Customer {
   distanceKm  Float   @default(0)
   notes       String  @default("")
   logo        String  @default("") @db.Text  // Firmenlogo/-symbol (base64 data URL), asynchron geladen
-  contacts    CustomerContact[]
+  contacts       Contact[]                     // zentrales Kontaktregister
+  legacyContacts CustomerContact[]              // Altbestand vor der Zentralisierung (nur Archiv)
   numbers     CustomerNumber[]
   projects    Project[]
   version     Int      @default(1)
@@ -170,6 +171,46 @@ model Employee {
   updatedAt      DateTime @updatedAt
 
   @@index([name])
+}
+
+// ---- Zentrales Kontaktregister (alle Ansprechpartner aller Apps) ----
+// Kontakte gehören Nexus: kontor (ClientContact) und ProjectEye (suppliers/savedEmails)
+// werden beidseitig abgeglichen – Protokoll: /mnt/devip3/shared/sync/KONTAKTE.md
+model Contact {
+  id           String   @id @default(cuid())
+  name         String
+  role         String   @default("")            // Funktion, z. B. „Einkauf"
+  email        String   @default("")
+  phone        String   @default("")
+  mobile       String   @default("")
+  notes        String   @default("") @db.Text
+  // Zugehörigkeit: zu welcher Firma gehört die Person?
+  ownerKind    String   @default("frei")        // customer | supplier | organization | frei
+  ownerId      String   @default("")            // Nexus-ID der Firma (leer bei „frei")
+  ownerName    String   @default("")            // eingefroren, für Anzeige und Zuordnung
+  // Echte Verknüpfung, damit Kunden-/Lieferantenlisten ihre Ansprechpartner mitladen
+  // und die Suche sie findet. Wird zusammen mit ownerKind/ownerId gepflegt.
+  customerId   String?
+  customer     Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  supplierId   String?
+  supplier     Supplier? @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  // Herkunft und stabile Verknüpfung in die Fachanwendungen
+  source       String   @default("nexus")       // nexus | kontor | projecteye
+  kontorId     String   @default("")            // kontor "ClientContact".id
+  projecteyeId String   @default("")            // ProjectEye suppliers[].id bzw. savedEmails-Schlüssel
+  favorite     Boolean  @default(false)         // Schnellauswahl
+  version      Int      @default(1)
+  deletedAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([ownerKind, ownerId])
+  @@index([customerId])
+  @@index([supplierId])
+  @@index([name])
+  @@index([email])
+  @@index([kontorId])
+  @@index([projecteyeId])
 }
 
 // ---- Zentrale Identität (Login für ALLE Apps) ----
@@ -376,7 +417,8 @@ model Supplier {
   category      String   @default("")
   notes         String   @default("") @db.Text
   projecteyeId  Int?                              // Verknüpfung zur ProjectEye-ID (Abgleich)
-  contacts      SupplierContact[]
+  contacts       Contact[]                      // zentrales Kontaktregister
+  legacyContacts SupplierContact[]               // Altbestand vor der Zentralisierung (nur Archiv)
   archived      Boolean  @default(false)
   version       Int      @default(1)
   deletedAt     DateTime?

@@ -392,3 +392,47 @@
   öffnet direkt die Akte dieses Mitarbeiters (neben dem Schild-Symbol zur Userverwaltung).
 - tsc sauber, Build + `pm2 restart nexus`, `/documents`, `/employees`, `/identities` HTTP 200,
   `/api/doc-groups` ohne Token 401.
+
+## 13.09.2026 — Zentrales Kontaktregister + Abgleich mit kontor und ProjectEye
+- **Wunsch Daniel:** Alle Kontaktdaten und Ansprechpartner in Nexus, mit Suche und
+  Schnellauswahl, beidseitig synchron mit ProjectEye und kontor („egal wo Kontakte angelegt
+  oder geändert werden"), Bearbeiten immer im Pop-up, dazu eine Ansicht des Kontakts/der Firma.
+  Außerdem eine **Kommunikationsdatei** in kontor und ProjectEye, damit alle Sessions
+  zusammenarbeiten und neue Anweisungen mitbekommen.
+- **Kommunikation der Sessions:** neuer Ordner `/mnt/devip3/shared/sync/` mit
+  `KONTAKTE.md` (verbindliches Protokoll: wer führt was, Felder, Konfliktregel, Löschregel,
+  Skripte, Stand) und `nachrichten.md` (Postfach mit festem Eintragsformat).
+  In `kontor/CLAUDE.md` und `ProjectEye/CLAUDE.md` steht jetzt oben der Hinweis, **vor**
+  Arbeiten an Kontakten/Kunden/Lieferanten/Benutzern beides zu lesen und Änderungen einzutragen.
+  Eintrag im Funktions-Register (`shared/registry/features.json`: `daten.kontakte-zentral`).
+- **Datenmodell:** neues `Contact` (Name, Funktion, E-Mail, Telefon, Mobil, Notiz, Schnellauswahl,
+  `ownerKind`/`ownerId`/`ownerName` = Kunde/Lieferant/Mandant/frei, dazu echte Verknüpfungen
+  `customerId`/`supplierId`, Herkunft `source` sowie `kontorId`/`projecteyeId` als **stabile**
+  Zuordnung). `Customer.contacts` und `Supplier.contacts` zeigen jetzt auf das Register, der
+  Altbestand bleibt als `legacyContacts` erhalten (`prisma/kontakte-uebernehmen.ts` hat ihn
+  übernommen, nichts gelöscht).
+- **API:** `/api/contacts` (Register mit Volltextsuche, Filter, Favoriten) und
+  `/api/contacts/[id]` (inkl. `expectedVersion`/409, weiches Löschen).
+  `/api/supplier-contacts` bleibt als Adapter bestehen und schreibt ins Register –
+  ProjectEye nutzt diese Routen bereits direkt (`server/nexus.js`), nichts musste dort umgebaut werden.
+  Kunden- und Lieferantensuche finden Ansprechpartner weiterhin (gelöschte bleiben ausgeblendet).
+- **Abgleich beidseitig:**
+  `prisma/sync-kontor-kontakte.ts` (Nexus `Contact` ⇄ kontor `ClientContact`; Firmen über
+  Namensschlüssel, Personen über `kontorId` → E-Mail → Name; Nexus gewinnt bei echtem Konflikt,
+  weil `ClientContact` kein `updatedAt` hat) und
+  `prisma/sync-projecteye-kontakte.ts` (Lieferanten-Ansprechpartner beidseitig; Schreiben nach
+  ProjectEye **nur über dessen HTTP-API**, nie in die JSON-Datei; Adressbuch `savedEmails`
+  einseitig nach Nexus).
+- **Sofort-Sync:** Trigger `nexus_sync_trg` neu auf Nexus `Contact` und kontor `ClientContact`;
+  `scripts/sync-watch.js` startet die neuen Skripte (Nexus-Änderungen lösen jetzt auch den
+  ProjectEye-Abgleich aus), `scripts/sync-clocker.sh` (Cron, alle 2 h) führt sie ebenfalls aus.
+- **Oberfläche:** neue Seite `/contacts` – Suche über Name/Firma/E-Mail/Telefon/Funktion,
+  Filter nach Kunde/Lieferant/Mandant/frei, **Schnellauswahl** (Stern), Tabelle (Desktop) bzw.
+  Karten (Handy), **Ansicht** eines Kontakts mit Firma und deren weiteren Ansprechpartnern
+  (inkl. „Ansprechpartner bei dieser Firma" anlegen), **Bearbeiten ausschließlich im Pop-up**.
+  Navigation und Befehlspalette ergänzt.
+- **Bestand nach dem ersten Lauf:** 443 Kontakte (436 freie aus dem ProjectEye-Adressbuch,
+  5 Lieferanten-Ansprechpartner, 2 Kunden-Ansprechpartner).
+- tsc sauber, Probeläufe beider Skripte mit `--dry`, Build + `pm2 restart nexus`,
+  `/contacts`, `/customers`, `/suppliers` HTTP 200; Sofort-Abgleich nach einer Teständerung
+  im Log nachgewiesen.

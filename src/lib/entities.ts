@@ -31,6 +31,9 @@ export const ENTITIES: Record<EntityName, EntityDef> = {
   Customer: {
     delegate: "customer",
     searchable: ["companyName", "contactName", "shortCode", "email", "city"],
+    // Die Kundensuche findet auch Ansprechpartner (zentrales Kontaktregister).
+    searchRelations: [{ relation: "contacts", fields: ["name", "role", "email", "phone", "mobile"] }],
+    includeRelations: ["contacts"],
     protectedFields: PROTECTED,
   },
   Project: {

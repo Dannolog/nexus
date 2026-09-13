@@ -14,6 +14,7 @@ const SOURCES = [
 const NAV = [
   { href: "/", label: "Übersicht", icon: "home" },
   { href: "/customers", label: "Kunden", icon: "users" },
+  { href: "/contacts", label: "Kontakte", icon: "id-card" },
   { href: "/projects", label: "Projekte", icon: "folder" },
   { href: "/tasks", label: "Aufgaben", icon: "tasks" },
   { href: "/employees", label: "Mitarbeiter", icon: "user" },

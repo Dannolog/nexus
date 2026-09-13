@@ -5,7 +5,8 @@
  *   - Postgres-Signal „nexus_sync" aus der **clocker**-Datenbank (Trigger auf
  *     User/Client/Project/Company)
  *   - Postgres-Signal „nexus_sync" aus der **Nexus**-Datenbank (Employee/Customer/
- *     Project/Organization/Supplier) → schiebt Änderungen in die Gegenrichtung
+ *     Project/Organization/Supplier/Identity/**Contact**) → schiebt Änderungen in die
+ *     Gegenrichtung, inkl. Kontakte nach kontor und ProjectEye
  *   - Dateiänderung an **ProjectEye** (server/data/projecteye.json) → Lieferanten
  *
  * Die Trigger senden nur ein Signal, sie ändern keine Daten.
@@ -31,8 +32,10 @@ const log = (...a) => console.log(new Date().toLocaleString("de-DE"), "·", ...a
 
 const SKRIPTE = {
   clocker: ["prisma/sync-clocker-employees.ts", "prisma/sync-clocker-stammdaten.ts"],
-  kontor: ["prisma/sync-kontor-stammdaten.ts", "prisma/sync-kontor-benutzer.ts"],
-  projecteye: ["prisma/sync-projecteye-suppliers.ts"],
+  // Kunden/Mandanten zuerst – der Kontakt-Abgleich braucht die Firmenzuordnung
+  kontor: ["prisma/sync-kontor-stammdaten.ts", "prisma/sync-kontor-benutzer.ts", "prisma/sync-kontor-kontakte.ts"],
+  // Lieferanten zuerst, dann deren Ansprechpartner und das Adressbuch
+  projecteye: ["prisma/sync-projecteye-suppliers.ts", "prisma/sync-projecteye-kontakte.ts"],
 };
 
 const zustand = {
@@ -105,13 +108,13 @@ function hoeren(name, url, art) {
 // Änderungen in Nexus lösen beide aus, damit sie in beide Fachanwendungen wandern.
 hoeren("clocker", CLOCKER_URL, "clocker");
 hoeren("kontor", KONTOR_URL, "kontor");
-hoeren("nexus", NEXUS_URL, ["clocker", "kontor"]);
+hoeren("nexus", NEXUS_URL, ["clocker", "kontor", "projecteye"]);
 
 // ProjectEye speichert in einer JSON-Datei → Dateiänderung beobachten
 try {
   fs.watch(path.dirname(PE_DATEI), (_ereignis, datei) => {
     if (datei && datei.startsWith(path.basename(PE_DATEI))) {
-      log("ProjectEye-Daten geändert → Lieferanten-Abgleich geplant");
+      log("ProjectEye-Daten geändert → Lieferanten- und Kontakt-Abgleich geplant");
       planen("projecteye");
     }
   });
