@@ -15,6 +15,7 @@ export const dynamic = "force-dynamic";
  *   ?customerId=  Kurzform für ownerKind=customer (Abwärtskompatibilität)
  *   ?supplierId=  Kurzform für ownerKind=supplier
  *   ?favorite=1   nur Schnellauswahl
+ *   ?category=    nur eine Kontaktart (z. B. „Vertreter", „Shop")
  */
 export const GET = (req: NextRequest) =>
   handle(async () => {
@@ -25,14 +26,16 @@ export const GET = (req: NextRequest) =>
     const supplierId = sp.get("supplierId");
     const ownerKind = sp.get("ownerKind");
     const ownerId = sp.get("ownerId");
+    const category = sp.get("category");
 
     const where: any = { deletedAt: null };
     if (customerId) { where.ownerKind = "customer"; where.ownerId = customerId; }
     else if (supplierId) { where.ownerKind = "supplier"; where.ownerId = supplierId; }
     else if (ownerKind) { where.ownerKind = ownerKind; if (ownerId) where.ownerId = ownerId; }
     if (sp.get("favorite") === "1") where.favorite = true;
+    if (category) where.category = category;
     // Mehrfachsuche: „maier einkauf" findet nur Kontakte, auf die beides zutrifft.
-    const bedingung = sucheBedingung(search, ["name", "role", "email", "phone", "mobile", "ownerName", "notes"]);
+    const bedingung = sucheBedingung(search, ["name", "role", "email", "phone", "mobile", "ownerName", "notes", "category"]);
     if (bedingung) Object.assign(where, bedingung);
 
     const rows = await prisma.contact.findMany({
@@ -54,7 +57,7 @@ export const POST = (req: NextRequest) =>
 
     const art = body.customerId ? "customer" : body.supplierId ? "supplier" : String(body.ownerKind || "frei");
     const id = String(body.customerId || body.supplierId || body.ownerId || "");
-    const owner = await ownerFelder(art, id);
+    const owner = await ownerFelder(art, id, String(body.ownerName || ""));
 
     const created = await prisma.contact.create({
       data: {
@@ -64,6 +67,7 @@ export const POST = (req: NextRequest) =>
         phone: String(body.phone ?? ""),
         mobile: String(body.mobile ?? ""),
         notes: String(body.notes ?? ""),
+        category: String(body.category ?? "").trim(),
         favorite: !!body.favorite,
         source: String(body.source || "nexus"),
         kontorId: String(body.kontorId || ""),

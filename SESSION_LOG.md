@@ -455,3 +455,14 @@
   - Geprüft: tsc sauber, Probeläufe `--app=kontor` und `--app=clocker`, Build + Neustart,
     `/`, `/contacts`, `/customers`, `/suppliers` HTTP 200, Mehrfachsuche gegen die Datenbank
     getestet (1 Begriff 440 Treffer → 2 Begriffe 438 → Wortgruppe 3 → Unsinn 0).
+- **Nachtrag: Kontakte ohne Kunde (Vertreter, Shops).** Freie Kontakte gab es zwar schon, sie
+  konnten aber weder einen Firmennamen noch eine Einordnung tragen. Jetzt:
+  - `Contact.category` (frei wählbar, z. B. Vertreter, Shop, Handwerker, Behörde, Dienstleister,
+    Privat – Vorschlagsliste im Feld, eigene Begriffe erlaubt) und `Contact.ownerName` ist bei
+    „frei" ein **selbst eingetippter** Firmen-/Shopname (kein Kundenstammsatz nötig).
+  - Pop-up zeigt bei „frei" statt der Firmenauswahl das freie Namensfeld plus „Art des Kontakts".
+  - Kontaktliste: zweite Filterleiste mit allen vergebenen Arten; Art wird in Tabelle und
+    Ansicht angezeigt und ist durchsuchbar (auch in der Mehrfachsuche).
+  - `GET /api/contacts?category=…` filtert serverseitig.
+  - Klarstellung in der Oberfläche: Kontakte einer Kundenfirma laufen nach kontor/clocker,
+    Lieferanten-Ansprechpartner nach ProjectEye, **freie Kontakte bleiben nur in Nexus**.

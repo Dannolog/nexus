@@ -186,8 +186,12 @@ model Contact {
   notes        String   @default("") @db.Text
   // Zugehörigkeit: zu welcher Firma gehört die Person?
   ownerKind    String   @default("frei")        // customer | supplier | organization | frei
+  // Einordnung freier Kontakte, die zu keinem Stammdatensatz gehören –
+  // z. B. „Vertreter", „Shop", „Handwerker". Frei wählbar, dient Filter und Suche.
+  category     String   @default("")
   ownerId      String   @default("")            // Nexus-ID der Firma (leer bei „frei")
-  ownerName    String   @default("")            // eingefroren, für Anzeige und Zuordnung
+  ownerName    String   @default("")            // Firma: eingefroren; bei „frei" frei eintragbar
+                                                 // (Shop-, Vertretungs- oder Firmenname ohne Stammsatz)
   // Echte Verknüpfung, damit Kunden-/Lieferantenlisten ihre Ansprechpartner mitladen
   // und die Suche sie findet. Wird zusammen mit ownerKind/ownerId gepflegt.
   customerId   String?
@@ -206,6 +210,7 @@ model Contact {
   updatedAt    DateTime @updatedAt
 
   @@index([ownerKind, ownerId])
+  @@index([category])
   @@index([customerId])
   @@index([supplierId])
   @@index([name])

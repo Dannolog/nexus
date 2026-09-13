@@ -16,11 +16,16 @@ export type OwnerArt = "customer" | "supplier" | "organization" | "frei";
 
 export const nameKey = (s: string) => String(s || "").toLowerCase().replace(/[^a-z0-9äöüß]+/g, "");
 
-/** Firmenzuordnung in die Felder übersetzen, die gespeichert werden. */
-export async function ownerFelder(ownerKind: string, ownerId: string) {
+/**
+ * Firmenzuordnung in die Felder übersetzen, die gespeichert werden.
+ *
+ * Bei „frei" gibt es keinen Stammdatensatz – dort zählt der **eingetippte** Name
+ * (Shop, Vertretung, sonstige Firma). Deshalb wird `freierName` übernommen statt geleert.
+ */
+export async function ownerFelder(ownerKind: string, ownerId: string, freierName = "") {
   const art = (["customer", "supplier", "organization", "frei"].includes(ownerKind) ? ownerKind : "frei") as OwnerArt;
   if (art === "frei" || !ownerId) {
-    return { ownerKind: "frei", ownerId: "", ownerName: "", customerId: null, supplierId: null };
+    return { ownerKind: "frei", ownerId: "", ownerName: String(freierName || "").trim(), customerId: null, supplierId: null };
   }
   if (art === "customer") {
     const k = await prisma.customer.findFirst({ where: { id: ownerId, deletedAt: null } });
@@ -53,7 +58,7 @@ export async function findeKontakt(ownerKind: string, ownerId: string, name: str
 
 /** Felder, die eine Liste ausliefert (Notizen inklusive – sie gehören zum Kontakt). */
 export const KONTAKT_FELDER = {
-  id: true, name: true, role: true, email: true, phone: true, mobile: true, notes: true,
+  id: true, name: true, role: true, email: true, phone: true, mobile: true, notes: true, category: true,
   ownerKind: true, ownerId: true, ownerName: true, source: true, favorite: true,
   kontorId: true, projecteyeId: true, version: true, createdAt: true, updatedAt: true,
 } as const;

@@ -11,32 +11,41 @@ import { kopiere } from "@/lib/kopieren";
 /**
  * Kontaktregister – alle Ansprechpartner aller Apps an einer Stelle.
  *
- * Der Bestand wird zentral hier geführt und beidseitig mit kontor und ProjectEye
+ * Der Bestand wird zentral hier geführt und beidseitig mit kontor, clocker und ProjectEye
  * abgeglichen (Protokoll: /mnt/devip3/shared/sync/KONTAKTE.md). Bearbeitet wird
  * ausschließlich im Pop-up; ein Klick auf einen Eintrag öffnet die Ansicht des
  * Kontakts samt Firma und deren übrigen Ansprechpartnern.
+ *
+ * Ein Kontakt braucht **keinen** Kunden: „frei" trägt einen selbst eingetippten Firmen- oder
+ * Shopnamen und eine frei wählbare Art (Vertreter, Shop, Handwerker …). Solche Kontakte
+ * bleiben in Nexus und werden nicht in die Fachanwendungen geschoben.
  */
 
 type Kontakt = {
   id: string; name: string; role: string; email: string; phone: string; mobile: string; notes: string;
-  ownerKind: string; ownerId: string; ownerName: string; source: string; favorite: boolean;
+  category: string; ownerKind: string; ownerId: string; ownerName: string; source: string; favorite: boolean;
   version: number; updatedAt: string;
 };
+
+/** Übliche Einordnungen für Kontakte ohne Kunden-/Lieferantenstammsatz – frei ergänzbar. */
+const ARTEN = ["Vertreter", "Shop", "Handwerker", "Behörde", "Dienstleister", "Privat"];
 
 const ART_LABEL: Record<string, string> = {
   customer: "Kunde", supplier: "Lieferant", organization: "Mandant", frei: "frei",
 };
 
-const HERKUNFT: Record<string, string> = { nexus: "Nexus", kontor: "kontor", projecteye: "ProjectEye" };
+const HERKUNFT: Record<string, string> = { nexus: "Nexus", kontor: "kontor", clocker: "clocker", projecteye: "ProjectEye" };
 
 function leer(): Partial<Kontakt> {
-  return { name: "", role: "", email: "", phone: "", mobile: "", notes: "", ownerKind: "frei", ownerId: "", favorite: false };
+  return { name: "", role: "", email: "", phone: "", mobile: "", notes: "", category: "",
+           ownerKind: "frei", ownerId: "", ownerName: "", favorite: false };
 }
 
 export default function ContactsPage() {
   const [rows, setRows] = useState<Kontakt[]>([]);
   const [suche, setSuche] = useState("");
   const [art, setArt] = useState("");                       // Filter auf Firmenart
+  const [kategorie, setKategorie] = useState("");           // Filter auf Kontaktart (Vertreter, Shop …)
   const [laedt, setLaedt] = useState(true);
   const [msg, setMsg] = useState("");
   const [editor, setEditor] = useState<Partial<Kontakt> | null>(null);
@@ -63,7 +72,17 @@ export default function ContactsPage() {
     ]).then(([k, l, o]) => setFirmen({ customer: k.data || [], supplier: l.data || [], organization: o.data || [] }));
   }, []);
 
-  const gefiltert = useMemo(() => (art ? rows.filter((r) => r.ownerKind === art) : rows), [rows, art]);
+  const gefiltert = useMemo(() => {
+    let l = art ? rows.filter((r) => r.ownerKind === art) : rows;
+    if (kategorie) l = l.filter((r) => (r.category || "") === kategorie);
+    return l;
+  }, [rows, art, kategorie]);
+
+  // Alle tatsächlich vergebenen Kontaktarten – als Filterleiste unter den Firmenarten
+  const kategorien = useMemo(
+    () => Array.from(new Set(rows.map((r) => (r.category || "").trim()).filter(Boolean))).sort(),
+    [rows]
+  );
   const favoriten = gefiltert.filter((r) => r.favorite);
 
   /** Name der Firma für die Auswahl im Pop-up. */
@@ -82,7 +101,10 @@ export default function ContactsPage() {
       const nutzlast = {
         name, role: editor.role || "", email: editor.email || "", phone: editor.phone || "",
         mobile: editor.mobile || "", notes: editor.notes || "", favorite: !!editor.favorite,
+        category: (editor.category || "").trim(),
         ownerKind: editor.ownerKind || "frei", ownerId: editor.ownerId || "",
+        // Bei „frei" zählt der eingetippte Firmen-/Shopname (es gibt keinen Stammsatz)
+        ownerName: editor.ownerKind === "frei" || !editor.ownerKind ? editor.ownerName || "" : undefined,
       };
       if (editor.id) {
         await api(`/api/contacts/${editor.id}`, { method: "PATCH", body: JSON.stringify(nutzlast) });
@@ -131,7 +153,10 @@ export default function ContactsPage() {
           <h1 style={{ fontSize: 24, fontWeight: 700, display: "flex", alignItems: "center", gap: 10 }}>
             <Icon name="id-card" size={24} /> Kontakte
           </h1>
-          <button className="btn btn-primary" onClick={() => setEditor(leer())}><Icon name="plus" /> Neu</button>
+          <button className="btn btn-primary" onClick={() => setEditor(leer())}
+            title="Kontakt anlegen – mit oder ohne Firma (z. B. Vertreter oder Shop)">
+            <Icon name="plus" /> Neu
+          </button>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {[["", "alle"], ["customer", "Kunden"], ["supplier", "Lieferanten"], ["organization", "Mandanten"], ["frei", "frei"]].map(([w, l]) => (
               <button key={w} className="btn" onClick={() => setArt(w)}
@@ -144,6 +169,21 @@ export default function ContactsPage() {
             {laedt ? "lädt…" : `${gefiltert.length} Kontakte`}
           </span>
         </div>
+        {kategorien.length > 0 && (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <span className="muted" style={{ fontSize: 12, alignSelf: "center" }}>Art:</span>
+            <button className="btn" onClick={() => setKategorie("")}
+              style={{ background: kategorie === "" ? "var(--accent)" : undefined, color: kategorie === "" ? "#fff" : undefined }}>
+              alle
+            </button>
+            {kategorien.map((k) => (
+              <button key={k} className="btn" onClick={() => setKategorie(k)}
+                style={{ background: kategorie === k ? "var(--accent)" : undefined, color: kategorie === k ? "#fff" : undefined }}>
+                {k}
+              </button>
+            ))}
+          </div>
+        )}
         <SearchInput value={suche} onChange={setSuche} placeholder="Name, Firma, E-Mail, Telefon, Funktion…"
           style={{ width: "100%", maxWidth: 380 }} />
       </div>
@@ -195,7 +235,9 @@ export default function ContactsPage() {
                 <td style={{ padding: "10px 12px" }}><Hervorheben text={k.role || "–"} suche={suche} /></td>
                 <td style={{ padding: "10px 12px" }}>
                   <Hervorheben text={k.ownerName || "–"} suche={suche} />
-                  <span className="muted" style={{ fontSize: 11.5 }}> {ART_LABEL[k.ownerKind] || ""}</span>
+                  <span className="muted" style={{ fontSize: 11.5 }}>
+                    {" "}{k.category ? <Hervorheben text={k.category} suche={suche} /> : ART_LABEL[k.ownerKind] || ""}
+                  </span>
                 </td>
                 <td style={{ padding: "10px 12px" }}><Hervorheben text={k.email || "–"} suche={suche} /></td>
                 <td style={{ padding: "10px 12px" }}><Hervorheben text={k.phone || k.mobile || "–"} suche={suche} /></td>
@@ -243,6 +285,7 @@ export default function ContactsPage() {
                 <div className="muted" style={{ fontSize: 12.5 }}>
                   {ansicht.role ? `${ansicht.role} · ` : ""}
                   {ansicht.ownerName || "ohne Firma"} {ansicht.ownerKind !== "frei" ? `(${ART_LABEL[ansicht.ownerKind]})` : ""}
+                  {ansicht.category ? ` · ${ansicht.category}` : ""}
                 </div>
               </div>
               <button className="btn btn-icon" title={ansicht.favorite ? "Aus der Schnellauswahl" : "In die Schnellauswahl"}
@@ -352,7 +395,7 @@ export default function ContactsPage() {
                   ]}
                 />
               </label>
-              {editor.ownerKind && editor.ownerKind !== "frei" && (
+              {editor.ownerKind && editor.ownerKind !== "frei" ? (
                 <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
                   <span className="muted">Firma</span>
                   <SuchSelect
@@ -363,7 +406,26 @@ export default function ContactsPage() {
                     options={firmenOptionen(editor.ownerKind)}
                   />
                 </label>
+              ) : (
+                <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
+                  <span className="muted">Firma / Shop (frei eingetragen)</span>
+                  <input className="input" value={editor.ownerName || ""} placeholder="z. B. Elektro Meier, Vertretung Nord"
+                    onChange={(e) => setEditor({ ...editor, ownerName: e.target.value })} />
+                  <span className="muted" style={{ fontSize: 12 }}>
+                    Kein Kundenstammsatz nötig – der Name steht nur an diesem Kontakt.
+                  </span>
+                </label>
               )}
+
+              <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
+                <span className="muted">Art des Kontakts</span>
+                <input className="input" list="kontaktarten" value={editor.category || ""}
+                  placeholder="z. B. Vertreter, Shop – frei wählbar"
+                  onChange={(e) => setEditor({ ...editor, category: e.target.value })} />
+                <datalist id="kontaktarten">
+                  {Array.from(new Set([...ARTEN, ...kategorien])).map((k) => <option key={k} value={k} />)}
+                </datalist>
+              </label>
 
               <div className="feld-zeile feld-zeile-2">
                 <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
@@ -388,8 +450,9 @@ export default function ContactsPage() {
                 In die Schnellauswahl aufnehmen
               </label>
               <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
-                Änderungen laufen automatisch nach <b>kontor</b> und <b>ProjectEye</b> – und Änderungen von dort
-                kommen hierher zurück.
+                Kontakte einer <b>Kundenfirma</b> laufen automatisch nach kontor und clocker, Ansprechpartner von
+                <b> Lieferanten</b> nach ProjectEye – und Änderungen von dort kommen hierher zurück.
+                <b> Freie</b> Kontakte (Vertreter, Shops) bleiben nur hier.
               </div>
             </div>
 

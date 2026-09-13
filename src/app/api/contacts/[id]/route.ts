@@ -28,14 +28,14 @@ export const PATCH = (req: NextRequest, { params }: { params: { id: string } }) 
     }
 
     const data: Record<string, unknown> = {};
-    for (const f of ["name", "role", "email", "phone", "mobile", "notes", "kontorId", "projecteyeId", "source"]) {
+    for (const f of ["name", "role", "email", "phone", "mobile", "notes", "category", "kontorId", "projecteyeId", "source"]) {
       if (typeof body[f] === "string") data[f] = body[f];
     }
     if (typeof body.favorite === "boolean") data.favorite = body.favorite;
     if (body.ownerKind != null || body.customerId != null || body.supplierId != null) {
       const art = body.customerId ? "customer" : body.supplierId ? "supplier" : String(body.ownerKind || "frei");
       const id = String(body.customerId || body.supplierId || body.ownerId || "");
-      Object.assign(data, await ownerFelder(art, id));
+      Object.assign(data, await ownerFelder(art, id, String(body.ownerName ?? aktuell.ownerName)));
     }
     if (!Object.keys(data).length) throw new ApiError("Keine Änderungen übergeben", 400);
 
