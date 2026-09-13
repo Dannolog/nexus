@@ -6,9 +6,13 @@ import Icon from "@/components/Icon";
 
 const TILES = [
   { href: "/customers", label: "Kunden", key: "customers", icon: "users" },
+  { href: "/contacts", label: "Kontakte", key: "contacts", icon: "id-card" },
+  { href: "/suppliers", label: "Lieferanten", key: "suppliers", icon: "truck" },
   { href: "/projects", label: "Projekte", key: "projects", icon: "folder" },
   { href: "/tasks", label: "Aufgaben", key: "tasks", icon: "tasks" },
   { href: "/employees", label: "Mitarbeiter", key: "employees", icon: "user" },
+  { href: "/products", label: "Artikel", key: "products", icon: "package" },
+  { href: "/identities", label: "Zugänge", key: "identities", icon: "shield" },
 ];
 
 export default function Dashboard() {
@@ -21,8 +25,10 @@ export default function Dashboard() {
       <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 10 }}>
         <Icon name="home" size={24} /> Übersicht
       </h1>
-      <p className="muted" style={{ marginBottom: 20 }}>Zentrale Stammdaten für alle Apps</p>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: 16 }}>
+      <p className="muted" style={{ marginBottom: 20 }}>
+        Zentrale Stammdaten für alle Apps – Kontakte werden mit kontor, clocker und ProjectEye abgeglichen.
+      </p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(160px,1fr))", gap: 16 }}>
         {TILES.map((t) => (
           <Link key={t.href} href={t.href} className="card" style={{ padding: 20, textDecoration: "none", color: "var(--fg)" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>

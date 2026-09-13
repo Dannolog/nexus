@@ -195,8 +195,9 @@ model Contact {
   supplierId   String?
   supplier     Supplier? @relation(fields: [supplierId], references: [id], onDelete: Cascade)
   // Herkunft und stabile Verknüpfung in die Fachanwendungen
-  source       String   @default("nexus")       // nexus | kontor | projecteye
+  source       String   @default("nexus")       // nexus | kontor | clocker | projecteye
   kontorId     String   @default("")            // kontor "ClientContact".id
+  clockerId    String   @default("")            // clocker "ClientContact".id
   projecteyeId String   @default("")            // ProjectEye suppliers[].id bzw. savedEmails-Schlüssel
   favorite     Boolean  @default(false)         // Schnellauswahl
   version      Int      @default(1)
@@ -210,6 +211,7 @@ model Contact {
   @@index([name])
   @@index([email])
   @@index([kontorId])
+  @@index([clockerId])
   @@index([projecteyeId])
 }
 

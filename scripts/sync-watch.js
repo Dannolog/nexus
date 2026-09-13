@@ -31,9 +31,9 @@ const RUHE = Number(process.env.SYNC_MIN_ABSTAND_MS || 15000); // Mindestabstand
 const log = (...a) => console.log(new Date().toLocaleString("de-DE"), "·", ...a);
 
 const SKRIPTE = {
-  clocker: ["prisma/sync-clocker-employees.ts", "prisma/sync-clocker-stammdaten.ts"],
-  // Kunden/Mandanten zuerst – der Kontakt-Abgleich braucht die Firmenzuordnung
-  kontor: ["prisma/sync-kontor-stammdaten.ts", "prisma/sync-kontor-benutzer.ts", "prisma/sync-kontor-kontakte.ts"],
+  // Kunden zuerst – der Kontakt-Abgleich braucht die Firmenzuordnung
+  clocker: ["prisma/sync-clocker-employees.ts", "prisma/sync-clocker-stammdaten.ts", "prisma/sync-app-kontakte.ts --app=clocker"],
+  kontor: ["prisma/sync-kontor-stammdaten.ts", "prisma/sync-kontor-benutzer.ts", "prisma/sync-app-kontakte.ts --app=kontor"],
   // Lieferanten zuerst, dann deren Ansprechpartner und das Adressbuch
   projecteye: ["prisma/sync-projecteye-suppliers.ts", "prisma/sync-projecteye-kontakte.ts"],
 };
@@ -60,11 +60,14 @@ function fuehreAus(art) {
       if (z.nachlauf) { z.nachlauf = false; planen(art, SAMMELZEIT); }
       return;
     }
-    log(`▶ ${art}: ${path.basename(s)}`);
+    // Einträge dürfen Argumente tragen, z. B. "…/sync-app-kontakte.ts --app=clocker"
+    const [datei, ...argumente] = s.split(" ");
+    log(`▶ ${art}: ${path.basename(datei)}${argumente.length ? " " + argumente.join(" ") : ""}`);
     const p = spawn("node", [
       "node_modules/ts-node/dist/bin.js",
       "--compiler-options", '{"module":"CommonJS","moduleResolution":"node"}',
-      s,
+      datei,
+      ...argumente,
     ], { cwd: NEXUS, env: { ...process.env, TS_NODE_TRANSPILE_ONLY: "1" } });
     let letzte = "";
     p.stdout.on("data", (d) => { letzte += d.toString(); });
@@ -72,7 +75,7 @@ function fuehreAus(art) {
     p.on("close", (code) => {
       // nur die Ergebniszeilen protokollieren, nicht jede Ausgabe
       letzte.split("\n").filter((l) => /neu|ergänzt|Bestand|Felder aktualisiert|angelegt/i.test(l)).forEach((l) => log("   " + l.trim()));
-      if (code !== 0) log(`   ! ${path.basename(s)} endete mit Code ${code}`);
+      if (code !== 0) log(`   ! ${path.basename(datei)} endete mit Code ${code}`);
       naechstes();
     });
   };

@@ -5,7 +5,7 @@ import { api, ConflictError } from "@/lib/clientApi";
 import { RESOURCES, Field } from "@/lib/uiSchema";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import SearchInput from "@/components/SearchInput";
-import Hervorheben from "@/components/Hervorheben";
+import Hervorheben, { sucheBegriffe } from "@/components/Hervorheben";
 import AnsprechpartnerListe from "@/components/AnsprechpartnerListe";
 import Toggle from "@/components/Toggle";
 import Icon from "@/components/Icon";
@@ -30,13 +30,18 @@ function userVerwaltungHref(row: any) {
   return `/identities?${p.toString()}`;
 }
 
-/** Ansprechpartner eines Datensatzes, die zum Suchbegriff passen (für die Trefferanzeige). */
+/**
+ * Ansprechpartner eines Datensatzes, die zur Suche passen (für die Trefferanzeige).
+ * Bei mehreren Begriffen genügt **ein** passender Begriff, damit der Kontakt als Fundstelle
+ * angezeigt wird – die Firma selbst erfüllt die übrigen Begriffe bereits.
+ */
 function passendeKontakte(row: any, suche: string) {
-  const s = String(suche || "").trim().toLowerCase();
-  if (!s || !Array.isArray(row?.contacts)) return [];
-  return row.contacts.filter((k: any) =>
-    ["name", "role", "email", "phone", "mobile"].some((f) => String(k?.[f] || "").toLowerCase().includes(s))
-  );
+  const teile = sucheBegriffe(suche).map((t) => t.toLowerCase());
+  if (teile.length === 0 || !Array.isArray(row?.contacts)) return [];
+  return row.contacts.filter((k: any) => {
+    const text = ["name", "role", "email", "phone", "mobile"].map((f) => String(k?.[f] || "")).join(" ").toLowerCase();
+    return teile.some((t) => text.includes(t));
+  });
 }
 
 function cell(v: any) {

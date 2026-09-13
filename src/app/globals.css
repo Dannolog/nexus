@@ -144,6 +144,9 @@ textarea.input { line-height: 1.5; }
   /* Button-Text ausblenden → Icon-only (z.B. „Verlauf" in der Vorschau) auf schmalen Screens */
   .btn-label { display: none; }
 
+  /* Suchfeld auf dem Handy über die ganze Breite – nicht auf 320 px begrenzt */
+  .suchfeld { max-width: none !important; width: 100% !important; }
+
   /* Listen: Desktop-Tabelle aus, Handy-Karten an */
   .only-desktop { display: none !important; }
   .only-mobile { display: grid; }

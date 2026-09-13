@@ -3,12 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { json, handle, ApiError } from "@/lib/http";
 import { requireApp, requireAuth } from "@/lib/auth";
 import { KONTAKT_FELDER, ownerFelder } from "@/lib/kontakte";
+import { sucheBedingung } from "@/lib/suche";
 
 export const dynamic = "force-dynamic";
 
 /**
  * GET /api/contacts — zentrales Kontaktregister.
- *   ?search=      Volltext über Name, Funktion, E-Mail, Telefon und Firma
+ *   ?search=      Volltext über Name, Funktion, E-Mail, Telefon, Firma und Notiz;
+ *                 mehrere Begriffe werden UND-verknüpft, "…" hält eine Wortgruppe zusammen
  *   ?ownerKind=&ownerId=   nur Kontakte einer Firma
  *   ?customerId=  Kurzform für ownerKind=customer (Abwärtskompatibilität)
  *   ?supplierId=  Kurzform für ownerKind=supplier
@@ -29,11 +31,9 @@ export const GET = (req: NextRequest) =>
     else if (supplierId) { where.ownerKind = "supplier"; where.ownerId = supplierId; }
     else if (ownerKind) { where.ownerKind = ownerKind; if (ownerId) where.ownerId = ownerId; }
     if (sp.get("favorite") === "1") where.favorite = true;
-    if (search) {
-      where.OR = ["name", "role", "email", "phone", "mobile", "ownerName", "notes"].map((f) => ({
-        [f]: { contains: search, mode: "insensitive" },
-      }));
-    }
+    // Mehrfachsuche: „maier einkauf" findet nur Kontakte, auf die beides zutrifft.
+    const bedingung = sucheBedingung(search, ["name", "role", "email", "phone", "mobile", "ownerName", "notes"]);
+    if (bedingung) Object.assign(where, bedingung);
 
     const rows = await prisma.contact.findMany({
       where,

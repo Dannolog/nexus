@@ -5,6 +5,7 @@ import { requireApp, requireAuth } from "./auth";
 import { getEntity, EntityName } from "./entities";
 import { createEntity, updateEntity, deleteEntity } from "./revision";
 import { getActiveLock } from "./locking";
+import { sucheBedingung } from "./suche";
 
 /** GET /api/<entity> — Liste mit Suche/Filter. Nur App-Key nötig (Lesen). */
 export function makeList(entity: EntityName) {
@@ -20,19 +21,10 @@ export function makeList(entity: EntityName) {
 
       const where: any = {};
       if (!includeDeleted) where.deletedAt = null;
-      if (search) {
-        where.OR = [
-          ...def.searchable.map((f) => ({ [f]: { contains: search, mode: "insensitive" } })),
-          // z. B. Lieferanten über ihre Ansprechpartner finden
-          ...(def.searchRelations || []).map((r) => ({
-            [r.relation]: {
-              // Kontakte sind weich gelöscht (der Abgleich braucht die Markierung) –
-              // gelöschte dürfen weder gefunden noch mitgeliefert werden.
-              some: { deletedAt: null, OR: r.fields.map((f) => ({ [f]: { contains: search, mode: "insensitive" } })) },
-            },
-          })),
-        ];
-      }
+      // Mehrfachsuche: alle Begriffe müssen vorkommen – auch über verknüpfte
+      // Datensätze hinweg (z. B. Lieferant über den Namen seines Ansprechpartners).
+      const bedingung = sucheBedingung(search, def.searchable, def.searchRelations || []);
+      if (bedingung) Object.assign(where, bedingung);
       if (archived === "0") where.archived = false;
       if (archived === "1") where.archived = true;
 

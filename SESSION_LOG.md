@@ -436,3 +436,22 @@
 - tsc sauber, Probeläufe beider Skripte mit `--dry`, Build + `pm2 restart nexus`,
   `/contacts`, `/customers`, `/suppliers` HTTP 200; Sofort-Abgleich nach einer Teständerung
   im Log nachgewiesen.
+- **Nachtrag 13.09.2026 (clocker + Dashboard + Suche):**
+  - **clocker angebunden:** `prisma/sync-kontor-kontakte.ts` ist zu `prisma/sync-app-kontakte.ts`
+    verallgemeinert (`--app=kontor|clocker`) – beide halten ihre Ansprechpartner in einer gleich
+    aufgebauten `ClientContact`-Tabelle. Neues Merkfeld `Contact.clockerId`, Trigger auf clocker
+    `ClientContact`, Watcher (`scripts/sync-watch.js` versteht jetzt Skript-Argumente) und
+    Cron-Netz erweitert. clocker pflegt Ansprechpartner bereits unter `/admin/clients` – dort war
+    nichts zu bauen. Erster Lauf: 18 von 22 Kunden zugeordnet, 2 Kontakte verknüpft.
+  - **Dashboard:** Kacheln jetzt für Kunden, **Kontakte**, Lieferanten, Projekte, Aufgaben,
+    Mitarbeiter, Artikel und Zugänge; `/api/health` zählt nur den lebenden Bestand
+    (`deletedAt: null`). Stand: 22 Kunden · 443 Kontakte · 27 Lieferanten · 88 Projekte ·
+    34 Mitarbeiter · 150 Artikel · 39 Zugänge.
+  - **Suche überall verbessert:** neues `src/lib/suche.ts` – **Mehrfachsuche**, bei der alle
+    Begriffe zutreffen müssen (`maier einkauf`), `"…"` hält eine Wortgruppe zusammen. Gilt für
+    alle Listen (`crudRoute`), das Kontaktregister und – clientseitig – die Userverwaltung.
+    `Hervorheben` markiert jeden Begriff einzeln, das Suchfeld hat Lupe und Kreuz zum Leeren und
+    nimmt auf dem Handy die **volle Breite** ein (`.suchfeld`).
+  - Geprüft: tsc sauber, Probeläufe `--app=kontor` und `--app=clocker`, Build + Neustart,
+    `/`, `/contacts`, `/customers`, `/suppliers` HTTP 200, Mehrfachsuche gegen die Datenbank
+    getestet (1 Begriff 440 Treffer → 2 Begriffe 438 → Wortgruppe 3 → Unsinn 0).

@@ -5,7 +5,7 @@ import Toggle from "@/components/Toggle";
 import Icon from "@/components/Icon";
 import { kopiere, erzeugePasswort } from "@/lib/kopieren";
 import SearchInput from "@/components/SearchInput";
-import Hervorheben from "@/components/Hervorheben";
+import Hervorheben, { sucheBegriffe } from "@/components/Hervorheben";
 import TextField from "@/components/TextField";
 
 const APPS = ["kontor", "clocker", "cnc", "schaltplan", "projecteye", "vision"];
@@ -122,13 +122,15 @@ export default function IdentitiesPage() {
     } catch (e: any) { setMsg("Fehler: " + e.message); }
   }
 
-  // Suche über Name, E-Mail, Rolle, Herkunft und freigeschaltete Apps
+  // Suche über Name, E-Mail, Rolle, Herkunft und freigeschaltete Apps.
+  // Mehrere Begriffe werden UND-verknüpft: „admin kontor" findet nur beides zusammen.
   const treffer = (() => {
-    const q = suche.trim().toLowerCase();
-    if (!q) return rows;
+    const teile = sucheBegriffe(suche).map((t) => t.toLowerCase());
+    if (teile.length === 0) return rows;
     return rows.filter((r: any) => {
       const apps = (r.appAccess || []).filter((a: any) => a.allowed).map((a: any) => `${a.appKey} ${a.role}`).join(" ");
-      return [r.name, r.email, r.globalRole, r.origin, apps].some((f) => String(f || "").toLowerCase().includes(q));
+      const text = [r.name, r.email, r.globalRole, r.origin, apps].map((f) => String(f || "")).join(" ").toLowerCase();
+      return teile.every((t) => text.includes(t));
     });
   })();
 

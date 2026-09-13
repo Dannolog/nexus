@@ -6,11 +6,14 @@ import Icon from "@/components/Icon";
  * - ESC bei gefülltem Feld → leert das Feld
  * - ESC bei leerem Feld → entfernt den Fokus (Autofokus off)
  * - Cross (✕) rechts leert das Feld
+ * - **Mehrfachsuche:** mehrere Begriffe mit Leerzeichen trennen – gesucht wird nach
+ *   Treffern, die *alle* Begriffe enthalten; "…" hält eine Wortgruppe zusammen.
+ * - Auf dem Handy nimmt das Feld die **volle Breite** ein (Klasse `suchfeld`).
  */
 export default function SearchInput({
   value,
   onChange,
-  placeholder = "Suche…",
+  placeholder = "Suchen – mehrere Begriffe möglich",
   style,
 }: {
   value: string;
@@ -19,13 +22,13 @@ export default function SearchInput({
   style?: React.CSSProperties;
 }) {
   return (
-    <div style={{ position: "relative", display: "inline-block", ...style }}>
+    <div className="suchfeld" style={{ position: "relative", display: "inline-block", width: "100%", ...style }}>
       <span style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", opacity: 0.5, pointerEvents: "none", display: "flex" }}>
         <Icon name="search" size={16} />
       </span>
       <input
         className="input"
-        style={{ paddingLeft: 32, paddingRight: 30 }}
+        style={{ paddingLeft: 32, paddingRight: 30, width: "100%" }}
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
