@@ -18,6 +18,8 @@ const NAV = [
   { href: "/projects", label: "Projekte", icon: "folder" },
   { href: "/tasks", label: "Aufgaben", icon: "tasks" },
   { href: "/employees", label: "Mitarbeiter", icon: "user" },
+  { href: "/documents", label: "Dokumente", icon: "archive" },
+  { href: "/scan", label: "Scannen", icon: "printer" },
   { href: "/organizations", label: "Mandanten", icon: "building" },
   { href: "/identities", label: "Userverwaltung", icon: "shield" },
   { href: "/history", label: "Verlauf", icon: "history" },

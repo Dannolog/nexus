@@ -19,6 +19,7 @@ const NAV = [
   { href: "/suppliers", label: "Lieferanten", icon: "truck" },
   { href: "/contracts", label: "Arbeitsverträge", icon: "file-text" },
   { href: "/documents", label: "Dokumente", icon: "archive" },
+  { href: "/scan", label: "Scannen", icon: "printer" },
   { href: "/organizations", label: "Mandanten", icon: "building" },
   { href: "/identities", label: "Userverwaltung", icon: "shield" },
   { href: "/history", label: "Verlauf (Undo/Redo)", icon: "history" },

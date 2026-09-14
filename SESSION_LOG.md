@@ -479,3 +479,33 @@
     Feldname bzw. Beschriftung ein Symbol zu (E-Mail, Telefon, Firma, Datum, Nummer, Rolle …).
     Wirkt in allen Listen (`ResourceView`), im Kontaktregister und in der Userverwaltung.
     Neue Icons: `mail`, `tag`, `lock`, `calendar`.
+
+## 14.09.2026 — Scannen mit Posteingang (Tagesverlauf) und Duplikat-Warnung
+- **Wunsch Daniel:** Scanfunktion wie in ProjectEye, Scans einem Mitarbeiter zuordnen **oder
+  erst liegen lassen** und später zuordnen, Verlauf pro Tag für die Übersicht, Namen ändern
+  können, und **warnen bei gleichen Namen oder gleichen Dokumenten**.
+- **Scanner-Anbindung:** `src/lib/scanner.ts` – treiberloses eSCL/AirScan über HTTPS, aus
+  ProjectEye (`server/scanner.js`) nach TypeScript übernommen: Fähigkeiten (Modell, Quellen,
+  Auflösungen, Duplex), Scan-Auftrag, Seiten abholen, Abbrechen. Neu ergänzt: die gescannten
+  JPEG-Seiten werden mit pdf-lib zu **einem PDF** zusammengefasst.
+- **Datenmodell:** `Scanner` (Name, IP, Modell, zuletzt benutzt) und `ScanDocument`
+  (Posteingang: Titel, Dateiname, PDF, Seiten, Größe, **sha256**, Scanner, Zeitpunkt, Status
+  offen/zugeordnet, Mitarbeiter, Rubrik, erzeugtes Dokument, Notiz). `EmployeeDocument` hat
+  jetzt ebenfalls `sha256` – dadurch erkennt der Posteingang bereits abgelegte Dokumente.
+- **API:** `/api/scanners` (Liste, Einrichten mit Erreichbarkeitsprüfung),
+  `/api/scanners/[id]` (umbenennen/entfernen), `/api/scanners/[id]/capabilities`,
+  `/api/scanners/[id]/scan` (Scan → Posteingang), `/api/scan-inbox` (Liste mit Warnungen,
+  Datei-Upload ohne Scanner), `/api/scan-inbox/[id]` (Name/Notiz ändern, verwerfen),
+  `/api/scan-inbox/[id]/file`, `/api/scan-inbox/[id]/assign` (in die Mitarbeiterakte legen).
+- **Seite `/scan`:** Gerät + Vorlage (Flachbett/Einzug), Farbe, Auflösung, Duplex – die Auswahl
+  richtet sich nach den gemeldeten Fähigkeiten. Posteingang **nach Tagen gegliedert**
+  („Heute", „Gestern", sonst Datum mit Wochentag) samt Anzahl Dokumente und Seiten je Tag.
+  Je Scan: Name direkt bearbeiten, Öffnen im PDF-Betrachter, Speichern, **Mitarbeiter zuordnen**
+  (mit Rubrik), Verwerfen. Suche mit Mehrfachbegriffen, Filter „nur offene".
+- **Warnungen** je Eintrag: inhaltsgleicher Scan im Posteingang (doppelt gescannt),
+  inhaltsgleiches Dokument **liegt schon in einer Akte**, oder gleicher Name wie ein anderer Scan.
+- **Gerät übernommen:** der in ProjectEye eingerichtete „HP Color LaserJet Pro MFP 4302 – Büro"
+  (192.168.10.54) steht in Nexus bereit; Fähigkeiten-Abfrage geprüft (HTTP 200).
+  Ein echter Scan wurde bewusst **nicht** ausgelöst – das ist eine Aktion am Gerät.
+- tsc sauber, Build + `pm2 restart nexus`, `/scan`, `/documents`, `/contacts` HTTP 200,
+  `/api/scanners` ohne Token 401.

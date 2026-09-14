@@ -361,6 +361,49 @@ model DocumentTemplate {
 }
 
 // ---- Dokumentenablage: abgelegte Dokumente je Mitarbeiter ----
+// ---- Netzwerk-Scanner (treiberlos über eSCL/AirScan) ----
+model Scanner {
+  id        String   @id @default(cuid())
+  name      String                                // Anzeigename, z. B. „Büro oben"
+  host      String                                // IP oder Hostname
+  model     String   @default("")                 // vom Gerät gemeldet
+  note      String   @default("")
+  lastUsedAt DateTime?
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([host])
+}
+
+// ---- Posteingang für gescannte Dokumente ----
+// Ein Scan landet zuerst hier („liegen lassen") und kann später einem Mitarbeiter und
+// einer Rubrik zugeordnet werden – dann entsteht daraus ein EmployeeDocument.
+model ScanDocument {
+  id          String   @id @default(cuid())
+  title       String                              // bearbeitbarer Name
+  fileName    String                              // Dateiname für Download/Ablage
+  mimeType    String   @default("application/pdf")
+  data        Bytes
+  size        Int      @default(0)
+  pages       Int      @default(1)
+  sha256      String   @default("")               // erkennt inhaltsgleiche Scans
+  scannerName String   @default("")
+  scannedAt   DateTime @default(now())            // Grundlage für den Tagesverlauf
+  status      String   @default("offen")          // offen | zugeordnet
+  employeeId  String   @default("")               // gesetzt beim Zuordnen
+  groupId     String   @default("")               // Rubrik in der Akte
+  documentId  String   @default("")               // daraus entstandenes EmployeeDocument
+  note        String   @default("") @db.Text
+  deletedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([scannedAt])
+  @@index([sha256])
+}
+
 // ---- Ablage-Gruppe (Rubrik in der Mitarbeiterakte, z. B. „Krankenversicherung") ----
 // Gilt für alle Mitarbeiter gleich: einmal anlegen, überall nutzbar.
 model DocumentGroup {
@@ -404,6 +447,7 @@ model EmployeeDocument {
   size        Int      @default(0)
   version     Int      @default(1)              // laufende Version je Mitarbeiter + Vorlage
   filled      Boolean  @default(false)          // aus Nexus-Daten vorausgefüllt?
+  sha256      String   @default("")              // Inhaltsprüfsumme (Duplikat-Warnung)
   note        String   @default("") @db.Text
   deletedAt   DateTime?
   createdAt   DateTime @default(now())
@@ -412,6 +456,7 @@ model EmployeeDocument {
   @@index([employeeId])
   @@index([groupId])
   @@index([templateKey])
+  @@index([sha256])
 }
 
 // ---- Lieferant (zentral; Quelle bisher ProjectEye) ----

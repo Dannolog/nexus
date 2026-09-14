@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import crypto from "crypto";
 import { requireAuth } from "@/lib/auth";
 import { handle, json, ApiError } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
@@ -115,6 +116,8 @@ export const POST = (req: NextRequest) =>
         size: daten.length,
         version,
         filled: ausgefuellt,
+        // Prüfsumme für die Duplikat-Warnung im Scan-Posteingang
+        sha256: crypto.createHash("sha256").update(daten).digest("hex"),
         note,
       },
       select: {
