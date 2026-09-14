@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { json, handle, ApiError } from "@/lib/http";
 import { requireApp, requireAuth } from "@/lib/auth";
-import { KONTAKT_FELDER, ownerFelder } from "@/lib/kontakte";
+import { KONTAKT_FELDER, PRIVATE_TEXTFELDER, ownerFelder } from "@/lib/kontakte";
 import { sucheBedingung } from "@/lib/suche";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +35,12 @@ export const GET = (req: NextRequest) =>
     if (sp.get("favorite") === "1") where.favorite = true;
     if (category) where.category = category;
     // Mehrfachsuche: „maier einkauf" findet nur Kontakte, auf die beides zutrifft.
-    const bedingung = sucheBedingung(search, ["name", "role", "email", "phone", "mobile", "ownerName", "notes", "category"]);
+    // Private Rufnummern/Adressen sind mitdurchsuchbar (Rückwärtssuche „wer ruft da an?"),
+    // angezeigt werden sie aber nur in der zugeklappten Rubrik der Kontaktansicht.
+    const bedingung = sucheBedingung(search, [
+      "name", "role", "email", "phone", "mobile", "ownerName", "notes", "category",
+      "privatePhone", "privateMobile", "privateEmail", "privateCity",
+    ]);
     if (bedingung) Object.assign(where, bedingung);
 
     const rows = await prisma.contact.findMany({
@@ -68,6 +73,9 @@ export const POST = (req: NextRequest) =>
         mobile: String(body.mobile ?? ""),
         notes: String(body.notes ?? ""),
         category: String(body.category ?? "").trim(),
+        // Private Angaben (bleiben in Nexus – der Abgleich fasst sie nicht an)
+        ...Object.fromEntries(PRIVATE_TEXTFELDER.map((f) => [f, String(body[f] ?? "")])),
+        ...(body.birthday ? { birthday: new Date(String(body.birthday)) } : {}),
         favorite: !!body.favorite,
         source: String(body.source || "nexus"),
         kontorId: String(body.kontorId || ""),

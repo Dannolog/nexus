@@ -25,6 +25,10 @@ type Kontakt = {
   id: string; name: string; role: string; email: string; phone: string; mobile: string; notes: string;
   category: string; ownerKind: string; ownerId: string; ownerName: string; source: string; favorite: boolean;
   version: number; updatedAt: string;
+  // Private Angaben – bleiben in Nexus und werden nie in die Fachanwendungen gespiegelt
+  privatePhone: string; privateMobile: string; privateEmail: string;
+  privateStreet: string; privateZip: string; privateCity: string; privateNotes: string;
+  birthday: string | null;
 };
 
 /** Übliche Einordnungen für Kontakte ohne Kunden-/Lieferantenstammsatz – frei ergänzbar. */
@@ -38,8 +42,22 @@ const HERKUNFT: Record<string, string> = { nexus: "Nexus", kontor: "kontor", clo
 
 function leer(): Partial<Kontakt> {
   return { name: "", role: "", email: "", phone: "", mobile: "", notes: "", category: "",
-           ownerKind: "frei", ownerId: "", ownerName: "", favorite: false };
+           ownerKind: "frei", ownerId: "", ownerName: "", favorite: false,
+           privatePhone: "", privateMobile: "", privateEmail: "",
+           privateStreet: "", privateZip: "", privateCity: "", privateNotes: "", birthday: null };
 }
+
+/** Hat der Kontakt überhaupt private Angaben? (Steuert den Hinweis in der Ansicht.) */
+function hatPrivates(k: Partial<Kontakt>) {
+  return !!(k.privatePhone || k.privateMobile || k.privateEmail || k.privateStreet ||
+    k.privateZip || k.privateCity || k.privateNotes || k.birthday);
+}
+
+const datum = (v?: string | null) => {
+  if (!v) return "";
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? "" : d.toLocaleDateString("de-DE");
+};
 
 export default function ContactsPage() {
   const [rows, setRows] = useState<Kontakt[]>([]);
@@ -52,6 +70,8 @@ export default function ContactsPage() {
   const [ansicht, setAnsicht] = useState<Kontakt | null>(null);
   const [loeschen, setLoeschen] = useState<Kontakt | null>(null);
   const [firmen, setFirmen] = useState<{ customer: any[]; supplier: any[]; organization: any[] }>({ customer: [], supplier: [], organization: [] });
+  // Private Angaben sind bewusst zugeklappt – sie werden erst auf Klick sichtbar
+  const [privatOffen, setPrivatOffen] = useState(false);
 
   const laden = useCallback(async () => {
     setLaedt(true);
@@ -105,6 +125,11 @@ export default function ContactsPage() {
         ownerKind: editor.ownerKind || "frei", ownerId: editor.ownerId || "",
         // Bei „frei" zählt der eingetippte Firmen-/Shopname (es gibt keinen Stammsatz)
         ownerName: editor.ownerKind === "frei" || !editor.ownerKind ? editor.ownerName || "" : undefined,
+        // Private Angaben – bleiben in Nexus
+        privatePhone: editor.privatePhone || "", privateMobile: editor.privateMobile || "",
+        privateEmail: editor.privateEmail || "", privateStreet: editor.privateStreet || "",
+        privateZip: editor.privateZip || "", privateCity: editor.privateCity || "",
+        privateNotes: editor.privateNotes || "", birthday: editor.birthday || null,
       };
       if (editor.id) {
         await api(`/api/contacts/${editor.id}`, { method: "PATCH", body: JSON.stringify(nutzlast) });
@@ -130,6 +155,10 @@ export default function ContactsPage() {
   }
 
   /** Schnellauswahl: Stern an/aus – die Markierten stehen oben. */
+  /** Öffnet Ansicht oder Pop-up und klappt die privaten Angaben dabei wieder zu. */
+  function zeige(k: Kontakt | null) { setPrivatOffen(false); setAnsicht(k); }
+  function bearbeite(k: Partial<Kontakt> | null) { setPrivatOffen(false); setEditor(k); }
+
   async function stern(k: Kontakt) {
     try {
       await api(`/api/contacts/${k.id}`, { method: "PATCH", body: JSON.stringify({ favorite: !k.favorite }) });
@@ -153,7 +182,7 @@ export default function ContactsPage() {
           <h1 style={{ fontSize: 24, fontWeight: 700, display: "flex", alignItems: "center", gap: 10 }}>
             <Icon name="id-card" size={24} /> Kontakte
           </h1>
-          <button className="btn btn-primary" onClick={() => setEditor(leer())}
+          <button className="btn btn-primary" onClick={() => bearbeite(leer())}
             title="Kontakt anlegen – mit oder ohne Firma (z. B. Vertreter oder Shop)">
             <Icon name="plus" /> Neu
           </button>
@@ -198,7 +227,7 @@ export default function ContactsPage() {
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {favoriten.map((k) => (
-              <button key={k.id} className="btn" onClick={() => setAnsicht(k)} title={k.ownerName || "ohne Firma"}>
+              <button key={k.id} className="btn" onClick={() => zeige(k)} title={k.ownerName || "ohne Firma"}>
                 <Icon name="user" size={14} /> {k.name}
                 {k.ownerName ? <span className="muted" style={{ fontSize: 12 }}> · {k.ownerName}</span> : null}
               </button>
@@ -213,18 +242,20 @@ export default function ContactsPage() {
           <thead>
             <tr style={{ textAlign: "left", borderBottom: "1px solid var(--border)" }}>
               <th style={{ padding: "10px 12px", width: 1 }}></th>
-              <th style={{ padding: "10px 12px" }}>Name</th>
-              <th style={{ padding: "10px 12px" }}>Funktion</th>
-              <th style={{ padding: "10px 12px" }}>Firma</th>
-              <th style={{ padding: "10px 12px" }}>E-Mail</th>
-              <th style={{ padding: "10px 12px" }}>Telefon</th>
-              <th style={{ padding: "10px 12px" }}>Herkunft</th>
+              {([["user", "Name"], ["tag", "Funktion"], ["building", "Firma"], ["mail", "E-Mail"],
+                 ["phone", "Telefon"], ["archive", "Herkunft"]] as const).map(([icon, label]) => (
+                <th key={label} style={{ padding: "10px 12px" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <Icon name={icon} size={14} /> {label}
+                  </span>
+                </th>
+              ))}
               <th></th>
             </tr>
           </thead>
           <tbody>
             {gefiltert.map((k) => (
-              <tr key={k.id} onClick={() => setAnsicht(k)} style={{ borderBottom: "1px solid var(--border)", cursor: "pointer" }}>
+              <tr key={k.id} onClick={() => zeige(k)} style={{ borderBottom: "1px solid var(--border)", cursor: "pointer" }}>
                 <td style={{ padding: "6px 8px" }} onClick={(e) => { e.stopPropagation(); stern(k); }}>
                   <button className="btn btn-icon" title={k.favorite ? "Aus der Schnellauswahl nehmen" : "In die Schnellauswahl"}
                     style={{ color: k.favorite ? "var(--accent)" : undefined }}>
@@ -244,7 +275,7 @@ export default function ContactsPage() {
                 <td style={{ padding: "10px 12px" }} className="muted">{HERKUNFT[k.source] || k.source}</td>
                 <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button className="btn btn-icon" title="Bearbeiten" onClick={() => setEditor({ ...k })}><Icon name="pencil" /></button>
+                    <button className="btn btn-icon" title="Bearbeiten" onClick={() => bearbeite({ ...k })}><Icon name="pencil" /></button>
                     <button className="btn btn-icon btn-danger" title="Entfernen" onClick={() => setLoeschen(k)}><Icon name="trash" /></button>
                   </div>
                 </td>
@@ -260,7 +291,7 @@ export default function ContactsPage() {
       {/* ── Karten (Handy) ── */}
       <div className="only-mobile" style={{ gap: 10 }}>
         {gefiltert.map((k) => (
-          <div key={k.id} className="card" onClick={() => setAnsicht(k)} style={{ padding: 14, display: "grid", gap: 6, cursor: "pointer" }}>
+          <div key={k.id} className="card" onClick={() => zeige(k)} style={{ padding: 14, display: "grid", gap: 6, cursor: "pointer" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontWeight: 600, flex: 1, minWidth: 0 }}><Hervorheben text={k.name} suche={suche} /></span>
               <span className="muted" style={{ fontSize: 12 }}>{ART_LABEL[k.ownerKind] || ""}</span>
@@ -321,6 +352,60 @@ export default function ContactsPage() {
                 </div>
               </div>
 
+              {/* Private Angaben – zugeklappt, damit sie nicht beiläufig mitgelesen werden */}
+              <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12 }}>
+                <button className="btn" onClick={() => setPrivatOffen((v) => !v)}>
+                  <Icon name="lock" /> Private Angaben
+                  <span className="muted" style={{ fontSize: 12 }}>
+                    {hatPrivates(ansicht) ? (privatOffen ? " · ausblenden" : " · anzeigen") : " · nichts hinterlegt"}
+                  </span>
+                </button>
+                {privatOffen && (
+                  <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+                    {([["Telefon privat", ansicht.privatePhone, "phone"],
+                       ["Mobil privat", ansicht.privateMobile, "smartphone"],
+                       ["E-Mail privat", ansicht.privateEmail, "mail"]] as const).map(([label, wert, icon]) => (
+                      <div key={label} style={{ display: "flex", gap: 12, fontSize: 14, alignItems: "center" }}>
+                        <span className="muted" style={{ minWidth: 120, display: "flex", alignItems: "center", gap: 6 }}>
+                          <Icon name={icon} size={14} /> {label}
+                        </span>
+                        <span style={{ flex: 1, minWidth: 0, wordBreak: "break-all" }}>{wert || "–"}</span>
+                        {wert && (
+                          <button className="btn btn-icon" title={`${label} kopieren`} onClick={() => kopieren(wert, label)}>
+                            <Icon name="copy" size={14} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <div style={{ display: "flex", gap: 12, fontSize: 14 }}>
+                      <span className="muted" style={{ minWidth: 120, display: "flex", alignItems: "center", gap: 6 }}>
+                        <Icon name="home" size={14} /> Privatanschrift
+                      </span>
+                      <span style={{ flex: 1 }}>
+                        {[ansicht.privateStreet, [ansicht.privateZip, ansicht.privateCity].filter(Boolean).join(" ")]
+                          .filter(Boolean).join(", ") || "–"}
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", gap: 12, fontSize: 14 }}>
+                      <span className="muted" style={{ minWidth: 120, display: "flex", alignItems: "center", gap: 6 }}>
+                        <Icon name="calendar" size={14} /> Geburtstag
+                      </span>
+                      <span style={{ flex: 1 }}>{datum(ansicht.birthday) || "–"}</span>
+                    </div>
+                    {ansicht.privateNotes && (
+                      <div style={{ display: "flex", gap: 12, fontSize: 14 }}>
+                        <span className="muted" style={{ minWidth: 120 }}>Notiz privat</span>
+                        <span style={{ flex: 1, whiteSpace: "pre-wrap" }}>{ansicht.privateNotes}</span>
+                      </div>
+                    )}
+                    <div className="muted" style={{ fontSize: 12 }}>
+                      Private Angaben bleiben ausschließlich in Nexus – sie werden nicht nach kontor,
+                      clocker oder ProjectEye übertragen.
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Firmenansicht: weitere Ansprechpartner derselben Firma */}
               {ansicht.ownerId && (
                 <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12 }}>
@@ -332,7 +417,7 @@ export default function ContactsPage() {
                   )}
                   <div style={{ display: "grid", gap: 6 }}>
                     {firmenKontakte(ansicht).map((k) => (
-                      <button key={k.id} onClick={() => setAnsicht(k)}
+                      <button key={k.id} onClick={() => zeige(k)}
                         style={{ textAlign: "left", padding: "7px 9px", borderRadius: 8, fontSize: 13.5, cursor: "pointer",
                                  border: "1px solid var(--border)", background: "var(--bg)", color: "var(--fg)" }}>
                         <b>{k.name}</b>
@@ -342,7 +427,7 @@ export default function ContactsPage() {
                     ))}
                   </div>
                   <button className="btn" style={{ marginTop: 8 }}
-                    onClick={() => setEditor({ ...leer(), ownerKind: ansicht.ownerKind, ownerId: ansicht.ownerId })}>
+                    onClick={() => bearbeite({ ...leer(), ownerKind: ansicht.ownerKind, ownerId: ansicht.ownerId })}>
                     <Icon name="plus" /> Ansprechpartner bei dieser Firma
                   </button>
                 </div>
@@ -351,7 +436,7 @@ export default function ContactsPage() {
 
             <div style={{ padding: "12px 20px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "flex-end" }}>
               <button className="btn btn-danger" onClick={() => setLoeschen(ansicht)}><Icon name="trash" /> Entfernen</button>
-              <button className="btn btn-primary" onClick={() => { setEditor({ ...ansicht }); setAnsicht(null); }}>
+              <button className="btn btn-primary" onClick={() => { bearbeite({ ...ansicht }); setAnsicht(null); }}>
                 <Icon name="pencil" /> Bearbeiten
               </button>
             </div>
@@ -449,6 +534,65 @@ export default function ContactsPage() {
                 <input type="checkbox" checked={!!editor.favorite} onChange={(e) => setEditor({ ...editor, favorite: e.target.checked })} />
                 In die Schnellauswahl aufnehmen
               </label>
+
+              {/* Private Angaben – zugeklappt; bleiben ausschließlich in Nexus */}
+              <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, display: "grid", gap: 10 }}>
+                <button type="button" className="btn" onClick={() => setPrivatOffen((v) => !v)} style={{ justifySelf: "start" }}>
+                  <Icon name="lock" /> Private Angaben {privatOffen ? "ausblenden" : "hinterlegen"}
+                </button>
+                {privatOffen && (
+                  <>
+                    <div className="feld-zeile feld-zeile-2">
+                      <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
+                        <span className="muted">Telefon privat</span>
+                        <input className="input" value={editor.privatePhone || ""}
+                          onChange={(e) => setEditor({ ...editor, privatePhone: e.target.value })} />
+                      </label>
+                      <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
+                        <span className="muted">Mobil privat</span>
+                        <input className="input" value={editor.privateMobile || ""}
+                          onChange={(e) => setEditor({ ...editor, privateMobile: e.target.value })} />
+                      </label>
+                    </div>
+                    <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
+                      <span className="muted">E-Mail privat</span>
+                      <input className="input" type="email" value={editor.privateEmail || ""}
+                        onChange={(e) => setEditor({ ...editor, privateEmail: e.target.value })} />
+                    </label>
+                    <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
+                      <span className="muted">Straße und Hausnummer (privat)</span>
+                      <input className="input" value={editor.privateStreet || ""}
+                        onChange={(e) => setEditor({ ...editor, privateStreet: e.target.value })} />
+                    </label>
+                    <div className="feld-zeile feld-zeile-2">
+                      <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
+                        <span className="muted">PLZ</span>
+                        <input className="input" value={editor.privateZip || ""}
+                          onChange={(e) => setEditor({ ...editor, privateZip: e.target.value })} />
+                      </label>
+                      <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
+                        <span className="muted">Ort</span>
+                        <input className="input" value={editor.privateCity || ""}
+                          onChange={(e) => setEditor({ ...editor, privateCity: e.target.value })} />
+                      </label>
+                    </div>
+                    <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
+                      <span className="muted">Geburtstag</span>
+                      <input className="input" type="date" value={editor.birthday ? String(editor.birthday).slice(0, 10) : ""}
+                        onChange={(e) => setEditor({ ...editor, birthday: e.target.value ? new Date(e.target.value).toISOString() : null })} />
+                    </label>
+                    <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
+                      <span className="muted">Notiz privat</span>
+                      <textarea className="input" rows={3} value={editor.privateNotes || ""}
+                        onChange={(e) => setEditor({ ...editor, privateNotes: e.target.value })} />
+                    </label>
+                    <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
+                      Diese Angaben bleiben <b>ausschließlich in Nexus</b> – der Abgleich überträgt nur die
+                      geschäftlichen Felder.
+                    </div>
+                  </>
+                )}
+              </div>
               <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
                 Kontakte einer <b>Kundenfirma</b> laufen automatisch nach kontor und clocker, Ansprechpartner von
                 <b> Lieferanten</b> nach ProjectEye – und Änderungen von dort kommen hierher zurück.

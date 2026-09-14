@@ -10,6 +10,7 @@ import AnsprechpartnerListe from "@/components/AnsprechpartnerListe";
 import Toggle from "@/components/Toggle";
 import Icon from "@/components/Icon";
 import ColorPicker from "@/components/ColorPicker";
+import { spaltenIcon } from "@/lib/spaltenIcons";
 import TextField from "@/components/TextField";
 
 const LOGO_RESOURCES = ["customers", "organizations"];
@@ -144,12 +145,20 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
           <thead>
             <tr style={{ textAlign: "left", borderBottom: "1px solid var(--border)" }}>
-              <th style={{ padding: "10px 12px", width: 1, whiteSpace: "nowrap" }}>Nr.</th>
+              <th style={{ padding: "10px 12px", width: 1, whiteSpace: "nowrap" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="tag" size={14} /> Nr.</span>
+              </th>
               {hasLogo && <th style={{ padding: "10px 12px", width: 44 }}></th>}
               {thumbField && !R.thumbAfter && <th style={{ padding: "10px 12px", width: 48 }}></th>}
               {R.columns.map((c) => (
                 <Fragment key={c.key}>
-                  <th style={{ padding: "10px 12px" }}>{c.label}</th>
+                  {/* Symbol im Kopf – macht die Spalte auf einen Blick erkennbar */}
+                  <th style={{ padding: "10px 12px" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      {spaltenIcon(c.key, c.label) && <Icon name={spaltenIcon(c.key, c.label) as string} size={14} />}
+                      {c.label}
+                    </span>
+                  </th>
                   {thumbField && R.thumbAfter === c.key && <th style={{ padding: "10px 12px", width: 48 }}>Bild</th>}
                 </Fragment>
               ))}

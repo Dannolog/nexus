@@ -175,13 +175,15 @@ export default function IdentitiesPage() {
       <div className="card only-desktop" style={{ overflow: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
           <thead><tr style={{ textAlign: "left", borderBottom: "1px solid var(--border)" }}>
-            <th style={{ padding: "10px 12px", width: 1, whiteSpace: "nowrap" }}>Nr.</th>
-            <th style={{ padding: "10px 12px" }}>Name</th>
-            <th style={{ padding: "10px 12px" }}>E-Mail</th>
-            <th style={{ padding: "10px 12px" }}>Globale Rolle</th>
-            <th style={{ padding: "10px 12px" }}>App-Zugriff</th>
-            <th style={{ padding: "10px 12px" }}>Passwort</th>
-            <th style={{ padding: "10px 12px" }}>Herkunft</th>
+            {/* Symbol je Spalte – macht den Kopf auf einen Blick lesbar */}
+            {([["tag", "Nr."], ["user", "Name"], ["mail", "E-Mail"], ["shield", "Globale Rolle"],
+               ["command", "App-Zugriff"], ["lock", "Passwort"], ["archive", "Herkunft"]] as const).map(([icon, label], i) => (
+              <th key={label} style={{ padding: "10px 12px", ...(i === 0 ? { width: 1, whiteSpace: "nowrap" as const } : {}) }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <Icon name={icon} size={14} /> {label}
+                </span>
+              </th>
+            ))}
             <th></th>
           </tr></thead>
           <tbody>

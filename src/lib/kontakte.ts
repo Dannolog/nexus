@@ -60,5 +60,14 @@ export async function findeKontakt(ownerKind: string, ownerId: string, name: str
 export const KONTAKT_FELDER = {
   id: true, name: true, role: true, email: true, phone: true, mobile: true, notes: true, category: true,
   ownerKind: true, ownerId: true, ownerName: true, source: true, favorite: true,
-  kontorId: true, projecteyeId: true, version: true, createdAt: true, updatedAt: true,
+  kontorId: true, clockerId: true, projecteyeId: true, version: true, createdAt: true, updatedAt: true,
+  // Private Angaben – bleiben in Nexus, werden nie in die Fachanwendungen gespiegelt
+  privatePhone: true, privateMobile: true, privateEmail: true,
+  privateStreet: true, privateZip: true, privateCity: true, birthday: true, privateNotes: true,
 } as const;
+
+/** Private Felder eines Kontakts – Schreibweg und Dokumentation an einer Stelle. */
+export const PRIVATE_TEXTFELDER = [
+  "privatePhone", "privateMobile", "privateEmail",
+  "privateStreet", "privateZip", "privateCity", "privateNotes",
+] as const;

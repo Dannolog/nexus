@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { json, handle, ApiError } from "@/lib/http";
 import { requireApp, requireAuth } from "@/lib/auth";
-import { KONTAKT_FELDER, ownerFelder } from "@/lib/kontakte";
+import { KONTAKT_FELDER, PRIVATE_TEXTFELDER, ownerFelder } from "@/lib/kontakte";
 
 export const dynamic = "force-dynamic";
 
@@ -28,9 +28,11 @@ export const PATCH = (req: NextRequest, { params }: { params: { id: string } }) 
     }
 
     const data: Record<string, unknown> = {};
-    for (const f of ["name", "role", "email", "phone", "mobile", "notes", "category", "kontorId", "projecteyeId", "source"]) {
+    for (const f of ["name", "role", "email", "phone", "mobile", "notes", "category", "kontorId", "clockerId", "projecteyeId", "source", ...PRIVATE_TEXTFELDER]) {
       if (typeof body[f] === "string") data[f] = body[f];
     }
+    // Geburtstag: leerer Wert entfernt ihn wieder
+    if (body.birthday !== undefined) data.birthday = body.birthday ? new Date(String(body.birthday)) : null;
     if (typeof body.favorite === "boolean") data.favorite = body.favorite;
     if (body.ownerKind != null || body.customerId != null || body.supplierId != null) {
       const art = body.customerId ? "customer" : body.supplierId ? "supplier" : String(body.ownerKind || "frei");

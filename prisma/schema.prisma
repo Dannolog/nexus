@@ -203,6 +203,17 @@ model Contact {
   kontorId     String   @default("")            // kontor "ClientContact".id
   clockerId    String   @default("")            // clocker "ClientContact".id
   projecteyeId String   @default("")            // ProjectEye suppliers[].id bzw. savedEmails-Schlüssel
+  // ---- Private Angaben ----
+  // Bleiben **ausschließlich in Nexus**: Der Abgleich mit kontor, clocker und ProjectEye
+  // überträgt nur die geschäftlichen Felder. In der Oberfläche sind sie zugeklappt.
+  privatePhone  String   @default("")
+  privateMobile String   @default("")
+  privateEmail  String   @default("")
+  privateStreet String   @default("")
+  privateZip    String   @default("")
+  privateCity   String   @default("")
+  birthday      DateTime?                        // Geburtstag
+  privateNotes  String   @default("") @db.Text
   favorite     Boolean  @default(false)         // Schnellauswahl
   version      Int      @default(1)
   deletedAt    DateTime?

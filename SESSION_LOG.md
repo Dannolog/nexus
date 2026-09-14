@@ -466,3 +466,16 @@
   - `GET /api/contacts?category=…` filtert serverseitig.
   - Klarstellung in der Oberfläche: Kontakte einer Kundenfirma laufen nach kontor/clocker,
     Lieferanten-Ansprechpartner nach ProjectEye, **freie Kontakte bleiben nur in Nexus**.
+- **Nachtrag: private Angaben am Kontakt + Symbole in den Tabellenköpfen.**
+  - `Contact` um `privatePhone`, `privateMobile`, `privateEmail`, `privateStreet`, `privateZip`,
+    `privateCity`, `birthday`, `privateNotes` erweitert. Sie bleiben **ausschließlich in Nexus** –
+    der Abgleich überträgt weiterhin nur die geschäftlichen Felder.
+  - Oberfläche: im Pop-up ein zugeklappter Bereich „Private Angaben hinterlegen", in der
+    Kontaktansicht eine zugeklappte Rubrik mit Schloss-Symbol (erst auf Klick sichtbar, damit
+    nichts beiläufig mitgelesen wird) – mit Hinweis, dass die Daten nicht synchronisiert werden.
+  - Suche: private Rufnummern/E-Mail/Ort sind **mit**durchsuchbar (Rückwärtssuche „wer ruft da an?"),
+    angezeigt werden sie aber nur in der aufgeklappten Rubrik.
+  - **Tabellenköpfe mit Symbolen:** neues `src/lib/spaltenIcons.ts` ordnet jeder Spalte anhand von
+    Feldname bzw. Beschriftung ein Symbol zu (E-Mail, Telefon, Firma, Datum, Nummer, Rolle …).
+    Wirkt in allen Listen (`ResourceView`), im Kontaktregister und in der Userverwaltung.
+    Neue Icons: `mail`, `tag`, `lock`, `calendar`.
