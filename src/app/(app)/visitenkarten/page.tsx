@@ -33,6 +33,8 @@ const FIRMEN: Record<FirmaSchluessel, {
 type Person = {
   id: string; name: string; rolle: string; tel: string;
   mail: string; firma: FirmaSchluessel; ort: string;
+  /** Eigene Webadresse nur für diese Karte – leer bedeutet: die der Firma. */
+  web?: string;
 };
 
 const SPEICHER = "nexus-visitenkarten";
@@ -158,7 +160,7 @@ function Karte({ person, seite, karteRef, firmen = FIRMEN, anschrift = ANSCHRIFT
         </div>
         <div className="fuss">
           <span className="telefon">{telefonGliedern(person.tel)}</span>
-          <span className="web">{f.web}</span>
+          <span className="web">{person.web?.trim() || f.web}</span>
           <span className="mail"><MailText wert={person.mail || f.mail} /></span>
           <span className="ort">{person.ort}</span>
         </div>
@@ -576,6 +578,18 @@ export default function Page() {
           <label style={{ display: "grid", gap: 4 }}>
             <span className="muted" style={{ fontSize: 12 }}>Ort</span>
             <input className="input" value={person.ort} onChange={e => aendern("ort", e.target.value)} />
+          </label>
+        </div>
+
+        <div className="feld-zeile feld-zeile-2">
+          <label style={{ display: "grid", gap: 4 }}>
+            <span className="muted" style={{ fontSize: 12 }}>Webadresse auf dieser Karte</span>
+            <input className="input" value={person.web || ""} placeholder={FIRMEN[person.firma].web}
+                   onChange={e => aendern("web", e.target.value)} />
+            <span className="muted" style={{ fontSize: 11.5 }}>
+              Leer lassen = Adresse der gewählten Firma. Die Adressen aller Firmen ändert
+              der Knopf „Firmenangaben".
+            </span>
           </label>
         </div>
 

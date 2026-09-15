@@ -584,3 +584,8 @@
   - **Vorderseite:** Fußzeile hat jetzt eine breitere linke Spalte (Telefon, E-Mail);
     Webadresse und Ort rücken nach rechts – damit passt die E-Mail in eine Zeile. Ist sie doch
     zu lang, bricht sie **am @** um (`<wbr>` vor dem @, kein Bruch mitten im Namen).
+- **Nachtrag: Webadresse ändern.** Rückmeldung „ich kann die URL nicht ändern" – der Knopf
+  „Firmenangaben" war zwar gebaut und ausgeliefert (Bundle geprüft), im Browser lief aber noch die
+  alte Seite. Zusätzlich gibt es jetzt im Personen-Formular das Feld **„Webadresse auf dieser Karte"**:
+  leer = Adresse der gewählten Firma, gefüllt = gilt nur für diese Karte (`Person.web`).
+  Damit lässt sich die Adresse sowohl **je Firma** (Knopf „Firmenangaben") als auch **je Karte** setzen.
