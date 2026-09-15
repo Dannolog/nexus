@@ -534,3 +534,14 @@
     seit der Kaskade schlägt eine Änderung überall durch.
   - Geprüft mit einem temporären Prüfkonto: Login über Haupt- **und** Zweitadresse HTTP 200,
     falsches Passwort 401, Konto danach wieder entfernt.
+- **Nachtrag: Visitenkarten beidseitig drucken.** Neuer Knopf „Beidseitig drucken" (Hauptleiste
+  und Großansicht) öffnet die Druckeinstellungen: **10 Karten je Bogen (2 × 5)** oder **1 Karte
+  mittig**, dazu die **Wendekante** des Druckers (lange Kante = Standard, oder kurze Kante).
+  - Es entstehen genau zwei Seiten: Blatt 1 Vorderseiten, Blatt 2 Rückseiten. Die Rückseiten
+    werden passend umsortiert (`rueckseitenFolge`) – lange Kante spiegelt die Spalten, kurze
+    Kante die Zeilen –, damit nach dem Wenden jede Rückseite auf ihrer Vorderseite liegt.
+  - Druck-CSS (`visitenkarte.css`): fester Millimeterraster `repeat(2, 85mm)` × `55mm` auf
+    210 × 297 mm mit 20 mm Seiten- und 11 mm Kopfrand, `break-after:page` zwischen den Bögen,
+    helle gestrichelte Schnitthilfen; der bisherige einseitige Druck bleibt unverändert.
+  - Hinweis im Dialog: im Druckdialog beidseitig einschalten, Skalierung 100 %, Ränder „keine" –
+    die Ränder bringt das Layout selbst mit.

@@ -167,6 +167,12 @@ export default function Page() {
   const [gross, setGross] = useState<null | "vorn" | "hinten">(null);
   const [loeschFrage, setLoeschFrage] = useState(false);
   const [druckt, setDruckt] = useState(false);
+  // Beidseitiger Druck: Vorderseiten auf Blatt 1, Rückseiten auf Blatt 2 – passend zur
+  // Wendekante des Druckers, damit Vorder- und Rückseite deckungsgleich liegen.
+  const [duplex, setDuplex] = useState(false);
+  const [duplexDialog, setDuplexDialog] = useState(false);
+  const [proBogen, setProBogen] = useState(10);          // 1 = eine Karte mittig, 10 = 2 × 5
+  const [wendekante, setWendekante] = useState<"lang" | "kurz">("lang");
   const [massstab, setMassstab] = useState(2);
   const [grafiken, setGrafiken] = useState<Record<string, string>>({});
   const wurzelRef = useRef<HTMLDivElement>(null);
@@ -236,7 +242,31 @@ export default function Page() {
   // Die beiden Karten kommen für den Druck auf ein eigenes Blatt, das direkt
   // am Body hängt. Innerhalb der Anwendungsstruktur ließe sich nur mit
   // `position:fixed` mitteln – das druckt Chrome aber auf jeder Seite erneut.
-  function drucken() { setDruckt(true); }
+  function drucken() { setDuplex(false); setDruckt(true); }
+
+  /** Beidseitig drucken: erst die Einstellungen abfragen, dann das zweiseitige Blatt bauen. */
+  function beidseitigDrucken() { setDuplexDialog(false); setDuplex(true); setDruckt(true); }
+
+  /**
+   * Reihenfolge der Rückseiten. Beim Duplexdruck wird das Blatt gewendet – dadurch
+   * landet die Rückseite spiegelverkehrt. Damit jede Rückseite auf ihrer Vorderseite
+   * liegt, wird das Raster hier entsprechend umsortiert:
+   *   lange Kante  → Spalten spiegeln (Drehung um die senkrechte Achse)
+   *   kurze Kante  → Zeilen spiegeln (Drehung um die waagerechte Achse)
+   */
+  function rueckseitenFolge(anzahl: number, spalten: number, kante: "lang" | "kurz") {
+    const zeilen = Math.ceil(anzahl / spalten);
+    const folge: number[] = [];
+    for (let z = 0; z < zeilen; z++) {
+      for (let sp = 0; sp < spalten; sp++) {
+        const quelleZ = kante === "kurz" ? zeilen - 1 - z : z;
+        const quelleS = kante === "lang" ? spalten - 1 - sp : sp;
+        const index = quelleZ * spalten + quelleS;
+        if (index < anzahl) folge.push(index);
+      }
+    }
+    return folge;
+  }
 
   useEffect(() => {
     if (!druckt) return;
@@ -250,6 +280,7 @@ export default function Page() {
       document.documentElement.classList.remove("vk-druck");
       document.title = alt;
       setDruckt(false);
+      setDuplex(false);
     };
     window.addEventListener("afterprint", aufraeumen, { once: true });
     // erst drucken, wenn das Druckblatt wirklich im Dokument steht
@@ -503,6 +534,9 @@ export default function Page() {
         </div>
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <button className="btn" onClick={() => setDuplexDialog(true)}>
+            <Icon name="printer" size={16} /> Beidseitig drucken
+          </button>
           <button className="btn" onClick={drucken}>
             <Icon name="printer" size={16} /> Karten drucken
           </button>
@@ -550,6 +584,7 @@ export default function Page() {
             <button className="kbtn" onClick={() => setMassstab(passenderMassstab())}>Anpassen</button>
             <button className="kbtn" onClick={() => zoomen(1)} aria-label="Größer">+</button>
             <button className="kbtn" onClick={drucken}>Drucken</button>
+            <button className="kbtn" onClick={() => setDuplexDialog(true)}>Beidseitig</button>
           </div>
           <div className="hinweis">
             Zwei Finger oder +/− zoomen · Doppeltipp wechselt die Lupe · Esc schließt
@@ -558,12 +593,83 @@ export default function Page() {
       )}
 
       {/* ── Druckblatt: hängt direkt am Body, damit es genau eine Seite füllt ── */}
-      {druckt && createPortal(
+      {druckt && !duplex && createPortal(
         <div className="vk-wurzel vk-druckblatt" style={variablen}>
           <Karte person={person} seite="vorn" />
           <Karte person={person} seite="hinten" />
         </div>,
         document.body,
+      )}
+
+      {/* Beidseitig: Blatt 1 trägt die Vorderseiten, Blatt 2 die Rückseiten – in der
+          Reihenfolge, die zum Wenden des Druckers passt. */}
+      {druckt && duplex && createPortal(
+        <div className="vk-wurzel vk-druckblatt vk-duplex" style={variablen}>
+          <section className={`vk-bogen${proBogen === 1 ? " einzeln" : ""}`}>
+            {Array.from({ length: proBogen }).map((_, i) => (
+              <Karte key={"v" + i} person={person} seite="vorn" />
+            ))}
+          </section>
+          <section className={`vk-bogen${proBogen === 1 ? " einzeln" : ""}`}>
+            {rueckseitenFolge(proBogen, proBogen === 1 ? 1 : 2, wendekante).map((i) => (
+              <Karte key={"h" + i} person={person} seite="hinten" />
+            ))}
+          </section>
+        </div>,
+        document.body,
+      )}
+
+      {/* ── Einstellungen für den beidseitigen Druck ── */}
+      {duplexDialog && (
+        <div onClick={() => setDuplexDialog(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", display: "grid", placeItems: "center", padding: 16, zIndex: 70 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster"
+            style={{ width: 520, maxWidth: "94vw", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
+              <h2 style={{ fontSize: 17, fontWeight: 700, flex: 1 }}>Beidseitig drucken</h2>
+              <button className="btn btn-icon" aria-label="Schließen" onClick={() => setDuplexDialog(false)}>
+                <Icon name="x" />
+              </button>
+            </div>
+            <div style={{ padding: 20, display: "grid", gap: 14 }}>
+              <div style={{ display: "grid", gap: 6 }}>
+                <span className="muted" style={{ fontSize: 13 }}>Karten je Bogen</span>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {[[10, "10 Stück (2 × 5)"], [1, "1 Stück (mittig)"]].map(([wert, text]) => (
+                    <button key={String(wert)} className="btn" onClick={() => setProBogen(Number(wert))}
+                      style={{ background: proBogen === wert ? "var(--accent)" : undefined, color: proBogen === wert ? "#fff" : undefined }}>
+                      {text}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ display: "grid", gap: 6 }}>
+                <span className="muted" style={{ fontSize: 13 }}>Wie wendet der Drucker?</span>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {[["lang", "Lange Kante (Standard)"], ["kurz", "Kurze Kante"]].map(([wert, text]) => (
+                    <button key={wert} className="btn" onClick={() => setWendekante(wert as "lang" | "kurz")}
+                      style={{ background: wendekante === wert ? "var(--accent)" : undefined, color: wendekante === wert ? "#fff" : undefined }}>
+                      {text}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="muted" style={{ fontSize: 12.5, lineHeight: 1.6 }}>
+                Es entstehen <b>zwei Seiten</b>: Blatt 1 mit den Vorderseiten, Blatt 2 mit den
+                Rückseiten – bereits so angeordnet, dass sie nach dem Wenden genau übereinander liegen.
+                Im Druckdialog bitte <b>beidseitig</b> einschalten, <b>Skalierung 100 %</b> und
+                <b> Ränder: keine</b> wählen; die Ränder bringt das Layout selbst mit.
+                Die gestrichelten Linien sind Schnitthilfen und werden hell gedruckt.
+              </div>
+            </div>
+            <div style={{ padding: "12px 20px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button className="btn" onClick={() => setDuplexDialog(false)}>Abbrechen</button>
+              <button className="btn btn-primary" onClick={beidseitigDrucken}>
+                <Icon name="printer" /> Drucken
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <ConfirmDialog

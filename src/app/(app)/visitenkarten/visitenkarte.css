@@ -216,4 +216,23 @@
     -webkit-print-color-adjust:exact;print-color-adjust:exact}
   .vk-wurzel .karte *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   @page{size:A4;margin:18mm}
+
+  /* ── Beidseitiger Druck ───────────────────────────────────────────────
+     Zwei Bögen: Blatt 1 Vorderseiten, Blatt 2 Rückseiten. Die Karten sitzen in
+     einem festen Raster aus Millimeterwerten, damit beide Seiten nach dem Wenden
+     deckungsgleich liegen. Der Rand kommt aus dem Layout (10,5 mm seitlich bei
+     2 × 85 mm), deshalb hier @page ohne eigenen Rand. */
+  body.vk-druck > .vk-druckblatt.vk-duplex{display:block!important;height:auto;gap:0}
+  .vk-duplex .vk-bogen{
+    width:210mm;height:297mm;margin:0;padding:11mm 20mm;box-sizing:border-box;
+    display:grid;grid-template-columns:repeat(2,85mm);grid-auto-rows:55mm;
+    justify-content:center;align-content:center;gap:0;
+    break-after:page;page-break-after:always}
+  .vk-duplex .vk-bogen:last-child{break-after:auto;page-break-after:auto}
+  /* Eine einzelne Karte steht mittig auf dem Bogen – vorne wie hinten an derselben Stelle */
+  .vk-duplex .vk-bogen.einzeln{grid-template-columns:85mm;align-content:center;justify-content:center}
+  .vk-duplex .karte{
+    box-shadow:none;border-radius:0;margin:0;
+    /* Schnitthilfe: hell, damit sie beim Beschnitt nicht stört */
+    outline:.2mm dashed #ccc;outline-offset:0}
 }
