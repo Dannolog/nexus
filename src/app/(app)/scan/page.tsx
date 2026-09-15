@@ -7,6 +7,7 @@ import Hervorheben, { sucheBegriffe } from "@/components/Hervorheben";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import SuchSelect from "@/components/SuchSelect";
 import PdfViewerModal from "@/components/PdfViewerModal";
+import { Feld } from "@/components/KontaktFeld";
 
 /**
  * Scannen und Posteingang.
@@ -87,8 +88,13 @@ export default function ScanPage() {
   const [nurOffen, setNurOffen] = useState(true);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState("");
+  // Scanner-Verwaltung und Einstellungen liegen in Pop-ups – die Seite zeigt nur das Gerät.
   const [neuerScanner, setNeuerScanner] = useState("");
+  const [neuerName, setNeuerName] = useState("");
   const [scannerOffen, setScannerOffen] = useState(false);
+  const [einstellungenOffen, setEinstellungenOffen] = useState(false);
+  const [bearbeite, setBearbeite] = useState<{ id: string; name: string; host: string; note: string } | null>(null);
+  const [scannerLoeschen, setScannerLoeschen] = useState<Geraet | null>(null);
   const [umbenennen, setUmbenennen] = useState<{ id: string; titel: string } | null>(null);
   const [zuordnen, setZuordnen] = useState<{ scan: Scan; employeeId: string; groupId: string } | null>(null);
   const [loeschen, setLoeschen] = useState<Scan | null>(null);
@@ -137,14 +143,39 @@ export default function ScanPage() {
     if (!host) return;
     setBusy("scanner");
     try {
-      const s = await api("/api/scanners", { method: "POST", body: JSON.stringify({ host }) });
+      const s = await api("/api/scanners", { method: "POST", body: JSON.stringify({ host, name: neuerName.trim() }) });
       setMsg(`Scanner „${s.name}" eingerichtet.`);
       setNeuerScanner("");
-      setScannerOffen(false);
+      setNeuerName("");
       setGeraetId(s.id);
       ladeGeraete();
     } catch (e: any) { setMsg("Fehler: " + e.message); }
     finally { setBusy(""); }
+  }
+
+  /** Namen, Adresse oder Notiz eines Scanners ändern. */
+  async function scannerSpeichern() {
+    if (!bearbeite) return;
+    try {
+      await api(`/api/scanners/${bearbeite.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ name: bearbeite.name, host: bearbeite.host, note: bearbeite.note }),
+      });
+      setMsg(`Scanner „${bearbeite.name}" gespeichert.`);
+      setBearbeite(null);
+      ladeGeraete();
+    } catch (e: any) { setMsg("Fehler: " + e.message); }
+  }
+
+  async function scannerEntfernen() {
+    if (!scannerLoeschen) return;
+    try {
+      await api(`/api/scanners/${scannerLoeschen.id}`, { method: "DELETE" });
+      setMsg(`Scanner „${scannerLoeschen.name}" entfernt – gescannte Dokumente bleiben erhalten.`);
+      if (geraetId === scannerLoeschen.id) setGeraetId("");
+      ladeGeraete();
+    } catch (e: any) { setMsg("Fehler: " + e.message); }
+    finally { setScannerLoeschen(null); }
   }
 
   async function scannen() {
@@ -268,11 +299,13 @@ export default function ScanPage() {
 
       {msg && <div className="card" style={{ padding: "8px 12px", marginBottom: 12, fontSize: 14 }}>{msg}</div>}
 
-      {/* ── Gerät und Einstellungen ── */}
-      <div className="card" style={{ padding: 14, marginBottom: 12, display: "grid", gap: 12 }}>
-        <div className="feld-zeile feld-zeile-2">
+      {/* ── Gerät: nur die Auswahl und der Zustand, alles Weitere im Pop-up ── */}
+      <div className="card" style={{ padding: 14, marginBottom: 12, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <div style={{ flex: "1 1 260px", minWidth: 0 }}>
           <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-            <span className="muted">Scanner</span>
+            <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <Icon name="printer" size={14} /> Scanner
+            </span>
             <SuchSelect
               value={geraetId}
               onChange={setGeraetId}
@@ -281,66 +314,164 @@ export default function ScanPage() {
               options={geraete.map((g) => ({ value: g.id, label: g.name, hint: g.host }))}
             />
           </label>
-          <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-            <span className="muted">Vorlage</span>
-            <SuchSelect
-              value={quelle}
-              onChange={(v) => setQuelle(v as "Platen" | "Feeder")}
-              platzhalter="Quelle"
-              options={[
-                { value: "Platen", label: "Flachbett (Glas)" },
-                ...(faehig?.sources?.includes("Feeder") ? [{ value: "Feeder", label: "Einzug (mehrere Seiten)" }] : []),
-              ]}
-            />
-          </label>
         </div>
-        <div className="feld-zeile feld-zeile-2">
-          <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-            <span className="muted">Farbe</span>
-            <SuchSelect
-              value={farbe}
-              onChange={(v) => setFarbe(v as "RGB24" | "Grayscale8")}
-              platzhalter="Farbe"
-              options={[{ value: "RGB24", label: "Farbe" }, { value: "Grayscale8", label: "Graustufen" }]}
-            />
-          </label>
-          <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-            <span className="muted">Auflösung</span>
-            <SuchSelect
-              value={String(aufloesung)}
-              onChange={(v) => setAufloesung(Number(v))}
-              platzhalter="Auflösung"
-              options={(faehig?.resolutions || [150, 200, 300]).map((r) => ({ value: String(r), label: `${r} dpi` }))}
-            />
-          </label>
-        </div>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-          {quelle === "Feeder" && faehig?.duplex && (
-            <label style={{ fontSize: 13.5, display: "flex", alignItems: "center", gap: 8 }}>
-              <input type="checkbox" checked={duplex} onChange={(e) => setDuplex(e.target.checked)} />
-              Vorder- und Rückseite
-            </label>
-          )}
-          <span className="muted" style={{ fontSize: 12 }}>
-            {faehig ? `${faehig.model} bereit` : geraetId ? "Scanner antwortet nicht" : "Noch kein Scanner eingerichtet"}
-          </span>
-          <button className="btn" style={{ marginLeft: "auto" }} onClick={() => setScannerOffen((v) => !v)}>
-            <Icon name="plus" /> Scanner einrichten
+        <span className="muted" style={{ fontSize: 12.5, flex: "1 1 180px" }}>
+          {faehig
+            ? `${faehig.model} bereit · ${quelle === "Feeder" ? "Einzug" : "Flachbett"}, ${farbe === "RGB24" ? "Farbe" : "Graustufen"}, ${aufloesung} dpi${quelle === "Feeder" && duplex ? ", beidseitig" : ""}`
+            : geraetId ? "Scanner antwortet nicht" : "Noch kein Scanner eingerichtet"}
+        </span>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          <button className="btn" onClick={() => setEinstellungenOffen(true)} disabled={!geraetId}
+            title="Vorlage, Farbe, Auflösung">
+            <Icon name="tag" /> <span className="btn-label">Einstellungen</span>
+          </button>
+          <button className="btn" onClick={() => setScannerOffen(true)} title="Scanner hinzufügen oder ändern">
+            <Icon name="command" /> <span className="btn-label">Scanner verwalten</span>
           </button>
         </div>
-        {scannerOffen && (
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <input className="input" style={{ flex: "1 1 220px", minWidth: 0 }} autoFocus
-              placeholder="IP-Adresse des Scanners, z. B. 192.168.1.50"
-              value={neuerScanner}
-              onChange={(e) => setNeuerScanner(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") scannerHinzufuegen(); if (e.key === "Escape") setScannerOffen(false); }} />
-            <button className="btn btn-primary" disabled={busy === "scanner"} onClick={scannerHinzufuegen}>
-              <Icon name="check" /> {busy === "scanner" ? "Prüft…" : "Prüfen und speichern"}
-            </button>
-          </div>
-        )}
       </div>
+
+      {/* ── Pop-up: Scan-Einstellungen ── */}
+      {einstellungenOffen && (
+        <div onClick={() => setEinstellungenOffen(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "grid", placeItems: "center", padding: 16, zIndex: 60 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster"
+            style={{ width: 520, maxWidth: "94vw", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
+              <h2 style={{ fontSize: 17, fontWeight: 700, flex: 1 }}>Scan-Einstellungen</h2>
+              <button className="btn btn-icon" aria-label="Schließen" onClick={() => setEinstellungenOffen(false)}>
+                <Icon name="x" />
+              </button>
+            </div>
+            <div style={{ padding: 20, display: "grid", gap: 12 }}>
+              <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
+                <span className="muted">Vorlage</span>
+                <SuchSelect
+                  value={quelle}
+                  onChange={(v) => setQuelle(v as "Platen" | "Feeder")}
+                  platzhalter="Quelle"
+                  options={[
+                    { value: "Platen", label: "Flachbett (Glas)" },
+                    ...(faehig?.sources?.includes("Feeder") ? [{ value: "Feeder", label: "Einzug (mehrere Seiten)" }] : []),
+                  ]}
+                />
+              </label>
+              <div className="feld-zeile feld-zeile-2">
+                <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
+                  <span className="muted">Farbe</span>
+                  <SuchSelect
+                    value={farbe}
+                    onChange={(v) => setFarbe(v as "RGB24" | "Grayscale8")}
+                    platzhalter="Farbe"
+                    options={[{ value: "RGB24", label: "Farbe" }, { value: "Grayscale8", label: "Graustufen" }]}
+                  />
+                </label>
+                <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
+                  <span className="muted">Auflösung</span>
+                  <SuchSelect
+                    value={String(aufloesung)}
+                    onChange={(v) => setAufloesung(Number(v))}
+                    platzhalter="Auflösung"
+                    options={(faehig?.resolutions || [150, 200, 300]).map((r) => ({ value: String(r), label: `${r} dpi` }))}
+                  />
+                </label>
+              </div>
+              {quelle === "Feeder" && faehig?.duplex && (
+                <label style={{ fontSize: 13.5, display: "flex", alignItems: "center", gap: 8 }}>
+                  <input type="checkbox" checked={duplex} onChange={(e) => setDuplex(e.target.checked)} />
+                  Vorder- und Rückseite einlesen
+                </label>
+              )}
+            </div>
+            <div style={{ padding: "12px 20px", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "flex-end" }}>
+              <button className="btn btn-primary" onClick={() => setEinstellungenOffen(false)}>
+                <Icon name="check" /> Übernehmen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Pop-up: Scanner verwalten (anlegen, ändern, entfernen) ── */}
+      {scannerOffen && (
+        <div onClick={() => setScannerOffen(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "grid", placeItems: "center", padding: 16, zIndex: 60 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster"
+            style={{ width: 560, maxWidth: "94vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
+              <Icon name="printer" size={18} />
+              <h2 style={{ fontSize: 17, fontWeight: 700, flex: 1 }}>Scanner verwalten</h2>
+              <button className="btn btn-icon" aria-label="Schließen" onClick={() => setScannerOffen(false)}>
+                <Icon name="x" />
+              </button>
+            </div>
+
+            <div style={{ padding: 20, overflowY: "auto", display: "grid", gap: 12 }}>
+              {geraete.length === 0 && (
+                <div className="muted" style={{ fontSize: 13 }}>Noch kein Scanner eingerichtet.</div>
+              )}
+              {geraete.map((g) => (
+                <div key={g.id} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 10, display: "grid", gap: 6 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <Icon name="printer" size={15} />
+                    <span style={{ fontWeight: 600, fontSize: 14 }}>{g.name}</span>
+                    <span className="muted" style={{ fontSize: 12.5 }}>{g.host}</span>
+                    {g.model && <span className="muted" style={{ fontSize: 12 }}>· {g.model}</span>}
+                    <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+                      <button className="btn btn-icon" title="Bearbeiten"
+                        onClick={() => setBearbeite({ id: g.id, name: g.name, host: g.host, note: (g as any).note || "" })}>
+                        <Icon name="pencil" size={14} />
+                      </button>
+                      <button className="btn btn-icon btn-danger" title="Entfernen" onClick={() => setScannerLoeschen(g)}>
+                        <Icon name="trash" size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {bearbeite?.id === g.id && (
+                    <div style={{ display: "grid", gap: 8, borderTop: "1px solid var(--border)", paddingTop: 8 }}>
+                      <div className="feld-zeile feld-zeile-2">
+                        <Feld label="Name" icon="tag" wert={bearbeite.name}
+                          setWert={(v) => setBearbeite({ ...bearbeite, name: v })} />
+                        <Feld label="IP-Adresse" icon="command" wert={bearbeite.host}
+                          setWert={(v) => setBearbeite({ ...bearbeite, host: v })} />
+                      </div>
+                      <Feld label="Notiz" icon="file-text" wert={bearbeite.note} kopierbar={false}
+                        setWert={(v) => setBearbeite({ ...bearbeite, note: v })} />
+                      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                        <button className="btn" onClick={() => setBearbeite(null)}>Abbrechen</button>
+                        <button className="btn btn-primary" onClick={scannerSpeichern}>
+                          <Icon name="save" /> Speichern
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              <div style={{ borderTop: "1px solid var(--border)", paddingTop: 14, display: "grid", gap: 8 }}>
+                <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em" }}>
+                  Neuen Scanner einrichten
+                </div>
+                <div className="feld-zeile feld-zeile-2">
+                  <Feld label="IP-Adresse" icon="command" wert={neuerScanner} autoFocus
+                    platzhalter="z. B. 192.168.1.50" setWert={setNeuerScanner} />
+                  <Feld label="Name (frei)" icon="tag" wert={neuerName} kopierbar={false}
+                    platzhalter="z. B. Büro oben" setWert={setNeuerName} />
+                </div>
+                <button className="btn btn-primary" style={{ justifySelf: "start" }}
+                  disabled={!neuerScanner.trim() || busy === "scanner"} onClick={scannerHinzufuegen}>
+                  <Icon name="check" /> {busy === "scanner" ? "Prüft…" : "Prüfen und speichern"}
+                </button>
+                <span className="muted" style={{ fontSize: 12 }}>
+                  Das Gerät wird sofort angesprochen – antwortet es nicht, wird es nicht gespeichert.
+                  Ohne eigenen Namen trägt es die Modellbezeichnung.
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Posteingang, nach Tagen ── */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
@@ -507,6 +638,13 @@ export default function ScanPage() {
         />
       )}
 
+      <ConfirmDialog
+        open={!!scannerLoeschen}
+        title="Scanner entfernen?"
+        message={`„${scannerLoeschen?.name || ""}" wird aus der Liste entfernt. Bereits gescannte Dokumente bleiben erhalten.`}
+        onConfirm={scannerEntfernen}
+        onCancel={() => setScannerLoeschen(null)}
+      />
       <ConfirmDialog
         open={!!loeschen}
         title="Scan verwerfen?"

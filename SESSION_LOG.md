@@ -589,3 +589,12 @@
   alte Seite. Zusätzlich gibt es jetzt im Personen-Formular das Feld **„Webadresse auf dieser Karte"**:
   leer = Adresse der gewählten Firma, gefüllt = gilt nur für diese Karte (`Person.web`).
   Damit lässt sich die Adresse sowohl **je Firma** (Knopf „Firmenangaben") als auch **je Karte** setzen.
+- **Nachtrag Scan-Seite (Wunsch Daniel):** Die Einstellungen stehen nicht mehr offen auf der Seite –
+  oben ist nur noch das **Gerät** zu sehen (Auswahl + Zustandszeile „Modell bereit · Flachbett,
+  Farbe, 200 dpi"). Zwei Pop-ups dahinter:
+  - **Scan-Einstellungen** (Vorlage Flachbett/Einzug, Farbe, Auflösung, beidseitig) – die Auswahl
+    richtet sich weiterhin nach den gemeldeten Fähigkeiten des Geräts.
+  - **Scanner verwalten**: Liste aller Geräte mit **Bearbeiten** (Name, IP-Adresse, Notiz – direkt
+    in der Zeile aufklappend) und Entfernen (mit Rückfrage; gescannte Dokumente bleiben erhalten),
+    darunter **Neuen Scanner einrichten** mit IP und frei wählbarem Namen. Das Gerät wird beim
+    Anlegen sofort angesprochen; antwortet es nicht, wird nichts gespeichert.
