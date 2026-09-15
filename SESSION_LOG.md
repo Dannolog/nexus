@@ -572,3 +572,15 @@
   die Kontaktansicht listet alle Wege mit Symbol, Bezeichnung und Kopier-Knopf.
 - tsc sauber, Build + `pm2 restart nexus`, `/contacts`, `/identities`, `/` HTTP 200; Mehrfach-Kanäle
   mit einem Testkontakt geprüft (4 Wege, davon 2 E-Mails; Hauptwerte korrekt gesetzt; danach entfernt).
+- **Nachtrag Visitenkarten (Rückmeldungen Daniel):**
+  - **Rückseite lag 1 mm zu weit rechts und 1 mm zu hoch:** Die Karten sitzen jetzt in einem
+    inneren Raster (`.vk-raster`), das sich als Ganzes verschieben lässt. Voreingestellt
+    −1 mm / +1 mm; im Dialog „Beidseitig drucken" ist der **Feinabgleich in mm** (0,5er-Schritte,
+    waagerecht/senkrecht, „ohne Versatz") einstellbar und wird im Browser gemerkt.
+  - **Firmenangaben pflegbar:** Neuer Knopf „Firmenangaben" – Bezeichnung, Zusatz, **Webadresse**
+    und Standard-E-Mail je Firma (IngPro, Maschinen, Handel, Group) sowie **Anschrift**
+    (Straße, PLZ/Ort) und Schlusszeile der Rückseite. Vorher standen diese Angaben fest im Code.
+    Gespeichert im Browser, „Zurücksetzen" stellt die Ausgangswerte wieder her.
+  - **Vorderseite:** Fußzeile hat jetzt eine breitere linke Spalte (Telefon, E-Mail);
+    Webadresse und Ort rücken nach rechts – damit passt die E-Mail in eine Zeile. Ist sie doch
+    zu lang, bricht sie **am @** um (`<wbr>` vor dem @, kein Bruch mitten im Namen).

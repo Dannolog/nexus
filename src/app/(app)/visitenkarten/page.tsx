@@ -12,6 +12,7 @@ import { createPortal } from "react-dom";
 import Icon from "@/components/Icon";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import "./visitenkarte.css";
+import { Feld } from "@/components/KontaktFeld";
 
 // ── Firmen: je Firma eigene Akzentfarbe, Webadresse und Standard-Mail ──
 type FirmaSchluessel = "handel" | "ing" | "masch" | "group";
@@ -35,6 +36,15 @@ type Person = {
 };
 
 const SPEICHER = "nexus-visitenkarten";
+const SPEICHER_FIRMEN = "nexus-visitenkarten-firmen";
+
+/** Anschrift und Schlusszeile der Rückseite – ebenfalls pflegbar. */
+type Anschrift = { strasse: string; ort: string; zusatz: string };
+const ANSCHRIFT_STANDARD: Anschrift = {
+  strasse: "Philipp-Reis-Straße 3",
+  ort: "49661 Cloppenburg",
+  zusatz: "Planung, Fertigung und Vertrieb aus einer Hand",
+};
 const STANDARD: Person[] = [{
   id: "p1", name: "David Baier", rolle: "Inhaber", tel: "01575 2421157",
   mail: "d.baier@ingpro-baier.de", firma: "handel", ort: "49661 Cloppenburg",
@@ -84,9 +94,12 @@ function MailText({ wert }: { wert: string }) {
   // Ein umschließendes Feld ist nötig: die Zeile ist ein Flex-Kasten, ohne
   // Klammer würde jeder Textteil ein eigenes Feld und die Adresse zerfiele.
   if (stelle < 0) return <span className="wert">{wert}</span>;
+  // Ist die Adresse zu lang für eine Zeile, soll sie **am @** umbrechen und nicht
+  // mitten im Namen: `<wbr>` bietet genau dort die Bruchstelle an.
   return (
     <span className="wert">
       {wert.slice(0, stelle)}
+      <wbr />
       <span className="at">@</span>
       {wert.slice(stelle + 1)}
     </span>
@@ -94,10 +107,11 @@ function MailText({ wert }: { wert: string }) {
 }
 
 // ── Die Karte: Vorderseite mit Person, Rückseite mit der Gruppe ──
-function Karte({ person, seite, karteRef }: {
+function Karte({ person, seite, karteRef, firmen = FIRMEN, anschrift = ANSCHRIFT_STANDARD }: {
   person: Person; seite: "vorn" | "hinten"; karteRef?: React.Ref<HTMLDivElement>;
+  firmen?: typeof FIRMEN; anschrift?: Anschrift;
 }) {
-  const f = FIRMEN[person.firma] ?? FIRMEN.handel;
+  const f = firmen[person.firma] ?? firmen.handel;
   const klassen = ["karte", `f-${person.firma}`];
   if (seite === "hinten") klassen.push("rueckseite");
   if (person.firma === "group") klassen.push("group");
@@ -111,25 +125,19 @@ function Karte({ person, seite, karteRef }: {
           <div className="marke">Baier Group<small>Engineering · Maschinenbau · Handel</small></div>
         </div>
         <div className="firmen">
-          <div className="firma ing">
-            <div className="txt"><div className="n">IngPro Baier</div>
-              <div className="b">Automatisierung · Software · Konstruktion</div></div>
-            <span className="web">ingpro-baier.de</span>
-          </div>
-          <div className="firma masch">
-            <div className="txt"><div className="n">Baier Maschinen</div>
-              <div className="b">Sondermaschinen- &amp; Anlagenbau</div></div>
-            <span className="web">baier-maschinen.de</span>
-          </div>
-          <div className="firma handel">
-            <div className="txt"><div className="n">Baier Handel &amp; Vertrieb</div>
-              <div className="b">Branchenübergreifender Handel</div></div>
-            <span className="web">baier-handel.de</span>
-          </div>
+          {(["ing", "masch", "handel"] as const).map((sch) => (
+            <div key={sch} className={`firma ${sch}`}>
+              <div className="txt">
+                <div className="n">{firmen[sch].name}</div>
+                <div className="b">{firmen[sch].zusatz}</div>
+              </div>
+              <span className="web">{firmen[sch].web}</span>
+            </div>
+          ))}
         </div>
         <div className="schlusszeile">
-          <b>Philipp-Reis-Straße 3 · 49661 Cloppenburg</b><br />
-          Planung, Fertigung und Vertrieb aus einer Hand
+          <b>{[anschrift.strasse, anschrift.ort].filter(Boolean).join(" · ")}</b><br />
+          {anschrift.zusatz}
         </div>
       </div>
     </div>
@@ -161,6 +169,10 @@ function Karte({ person, seite, karteRef }: {
 
 export default function Page() {
   const [personen, setPersonen] = useState<Person[]>(STANDARD);
+  // Firmenangaben (Name, Zusatz, Webadresse, Standard-Mail) und Anschrift sind pflegbar
+  const [firmen, setFirmen] = useState<typeof FIRMEN>(FIRMEN);
+  const [anschrift, setAnschrift] = useState<Anschrift>(ANSCHRIFT_STANDARD);
+  const [firmenOffen, setFirmenOffen] = useState(false);
   const [aktiv, setAktiv] = useState(0);
   const [geladen, setGeladen] = useState(false);
   const [stand, setStand] = useState("");
@@ -173,6 +185,24 @@ export default function Page() {
   const [duplexDialog, setDuplexDialog] = useState(false);
   const [proBogen, setProBogen] = useState(10);          // 1 = eine Karte mittig, 10 = 2 × 5
   const [wendekante, setWendekante] = useState<"lang" | "kurz">("lang");
+  // Feinabgleich der Rückseite in Millimetern: Papier läuft im Duplexdruck nie exakt
+  // deckungsgleich. Positiv = nach rechts bzw. nach unten. Wird im Browser gemerkt.
+  const [versatzX, setVersatzX] = useState(-1);
+  const [versatzY, setVersatzY] = useState(1);
+
+  useEffect(() => {
+    try {
+      const gespeichert = JSON.parse(localStorage.getItem("nexus-vk-versatz") || "null");
+      if (gespeichert && typeof gespeichert.x === "number" && typeof gespeichert.y === "number") {
+        setVersatzX(gespeichert.x);
+        setVersatzY(gespeichert.y);
+      }
+    } catch { /* ohne gespeicherten Wert bleibt die Voreinstellung */ }
+  }, []);
+
+  useEffect(() => {
+    try { localStorage.setItem("nexus-vk-versatz", JSON.stringify({ x: versatzX, y: versatzY })); } catch { /* egal */ }
+  }, [versatzX, versatzY]);
   const [massstab, setMassstab] = useState(2);
   const [grafiken, setGrafiken] = useState<Record<string, string>>({});
   const wurzelRef = useRef<HTMLDivElement>(null);
@@ -188,6 +218,12 @@ export default function Page() {
       const liste = roh ? JSON.parse(roh) : null;
       if (Array.isArray(liste) && liste.length) setPersonen(liste);
     } catch { /* beschädigter Eintrag – dann mit dem Standard beginnen */ }
+    try {
+      const roh = localStorage.getItem(SPEICHER_FIRMEN);
+      const gespeichert = roh ? JSON.parse(roh) : null;
+      if (gespeichert?.firmen) setFirmen({ ...FIRMEN, ...gespeichert.firmen });
+      if (gespeichert?.anschrift) setAnschrift({ ...ANSCHRIFT_STANDARD, ...gespeichert.anschrift });
+    } catch { /* wie oben: dann gelten die Standardwerte */ }
     setGeladen(true);
   }, []);
 
@@ -196,6 +232,16 @@ export default function Page() {
     if (!geladen) return;
     localStorage.setItem(SPEICHER, JSON.stringify(personen));
   }, [personen, geladen]);
+
+  useEffect(() => {
+    if (!geladen) return;
+    localStorage.setItem(SPEICHER_FIRMEN, JSON.stringify({ firmen, anschrift }));
+  }, [firmen, anschrift, geladen]);
+
+  /** Eine Angabe einer Firma ändern (Name, Zusatz, Webadresse, Standard-Mail). */
+  function firmaAendern(schluessel: FirmaSchluessel, feld: "name" | "zusatz" | "web" | "mail", wert: string) {
+    setFirmen((f) => ({ ...f, [schluessel]: { ...f[schluessel], [feld]: wert } }));
+  }
 
   // ── Grafiken als Daten-URI vorhalten ──
   useEffect(() => {
@@ -534,6 +580,10 @@ export default function Page() {
         </div>
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <button className="btn" onClick={() => setFirmenOffen((v) => !v)}
+            title="Webadressen, Firmenbezeichnungen und Anschrift der Rückseite ändern">
+            <Icon name="building" size={16} /> Firmenangaben
+          </button>
           <button className="btn" onClick={() => setDuplexDialog(true)}>
             <Icon name="printer" size={16} /> Beidseitig drucken
           </button>
@@ -558,11 +608,11 @@ export default function Page() {
       {/* ── Vorschau: beide Seiten, Klick öffnet die Großansicht ── */}
       <div className="karten-paar">
         <figure onClick={() => setGross("vorn")}>
-          <Karte person={person} seite="vorn" karteRef={vornRef} />
+          <Karte person={person} seite="vorn" karteRef={vornRef} firmen={firmen} anschrift={anschrift} />
           <figcaption>Vorderseite</figcaption>
         </figure>
         <figure onClick={() => setGross("hinten")}>
-          <Karte person={person} seite="hinten" karteRef={hintenRef} />
+          <Karte person={person} seite="hinten" karteRef={hintenRef} firmen={firmen} anschrift={anschrift} />
           <figcaption>Rückseite</figcaption>
         </figure>
       </div>
@@ -573,7 +623,7 @@ export default function Page() {
              onClick={e => { if (e.target === e.currentTarget) setGross(null); }}>
           <button className="zu" onClick={() => setGross(null)} aria-label="Schließen">×</button>
           <div className="buehne" style={{ zoom: massstab }}>
-            <Karte person={person} seite={gross} />
+            <Karte person={person} seite={gross} firmen={firmen} anschrift={anschrift} />
           </div>
           <div className="werkzeuge">
             <button className={"kbtn" + (gross === "vorn" ? " aktiv" : "")}
@@ -595,8 +645,8 @@ export default function Page() {
       {/* ── Druckblatt: hängt direkt am Body, damit es genau eine Seite füllt ── */}
       {druckt && !duplex && createPortal(
         <div className="vk-wurzel vk-druckblatt" style={variablen}>
-          <Karte person={person} seite="vorn" />
-          <Karte person={person} seite="hinten" />
+          <Karte person={person} seite="vorn" firmen={firmen} anschrift={anschrift} />
+          <Karte person={person} seite="hinten" firmen={firmen} anschrift={anschrift} />
         </div>,
         document.body,
       )}
@@ -605,18 +655,94 @@ export default function Page() {
           Reihenfolge, die zum Wenden des Druckers passt. */}
       {druckt && duplex && createPortal(
         <div className="vk-wurzel vk-druckblatt vk-duplex" style={variablen}>
-          <section className={`vk-bogen${proBogen === 1 ? " einzeln" : ""}`}>
-            {Array.from({ length: proBogen }).map((_, i) => (
-              <Karte key={"v" + i} person={person} seite="vorn" />
-            ))}
+          <section className="vk-bogen">
+            <div className={`vk-raster${proBogen === 1 ? " einzeln" : ""}`}>
+              {Array.from({ length: proBogen }).map((_, i) => (
+                <Karte key={"v" + i} person={person} seite="vorn" firmen={firmen} anschrift={anschrift} />
+              ))}
+            </div>
           </section>
-          <section className={`vk-bogen${proBogen === 1 ? " einzeln" : ""}`}>
-            {rueckseitenFolge(proBogen, proBogen === 1 ? 1 : 2, wendekante).map((i) => (
-              <Karte key={"h" + i} person={person} seite="hinten" />
-            ))}
+          <section className="vk-bogen">
+            {/* Feinabgleich: verschiebt nur die Rückseiten, damit sie auf den Vorderseiten liegen */}
+            <div className={`vk-raster${proBogen === 1 ? " einzeln" : ""}`}
+              style={{ transform: `translate(${versatzX}mm, ${versatzY}mm)` }}>
+              {rueckseitenFolge(proBogen, proBogen === 1 ? 1 : 2, wendekante).map((i) => (
+                <Karte key={"h" + i} person={person} seite="hinten" firmen={firmen} anschrift={anschrift} />
+              ))}
+            </div>
           </section>
         </div>,
         document.body,
+      )}
+
+      {/* ── Firmenangaben: Webadresse, Bezeichnung, Standard-Mail, Anschrift ── */}
+      {firmenOffen && (
+        <div onClick={() => setFirmenOffen(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", display: "grid", placeItems: "center", padding: 16, zIndex: 70 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster"
+            style={{ width: 640, maxWidth: "94vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
+              <Icon name="building" size={18} />
+              <h2 style={{ fontSize: 17, fontWeight: 700, flex: 1 }}>Firmenangaben und Anschrift</h2>
+              <button className="btn btn-icon" aria-label="Schließen" onClick={() => setFirmenOffen(false)}>
+                <Icon name="x" />
+              </button>
+            </div>
+
+            <div style={{ padding: 20, overflowY: "auto", display: "grid", gap: 18 }}>
+              {(["ing", "masch", "handel", "group"] as const).map((sch) => (
+                <section key={sch} style={{ display: "grid", gap: 8 }}>
+                  <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em" }}>
+                    {sch === "group" ? "Baier Group (Rückseite/Kopf)" : firmen[sch].name}
+                  </div>
+                  <div className="feld-zeile feld-zeile-2">
+                    <Feld label="Bezeichnung" icon="building" wert={firmen[sch].name}
+                      setWert={(v) => firmaAendern(sch, "name", v)} />
+                    <Feld label="Zusatz" icon="tag" wert={firmen[sch].zusatz}
+                      setWert={(v) => firmaAendern(sch, "zusatz", v)} />
+                  </div>
+                  <div className="feld-zeile feld-zeile-2">
+                    <Feld label="Webadresse" icon="command" wert={firmen[sch].web}
+                      platzhalter="z. B. baier-handel.de"
+                      setWert={(v) => firmaAendern(sch, "web", v)} />
+                    <Feld label="Standard-E-Mail" icon="mail" typ="email" wert={firmen[sch].mail}
+                      setWert={(v) => firmaAendern(sch, "mail", v)} />
+                  </div>
+                </section>
+              ))}
+
+              <section style={{ display: "grid", gap: 8, borderTop: "1px solid var(--border)", paddingTop: 14 }}>
+                <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em" }}>
+                  Anschrift auf der Rückseite
+                </div>
+                <div className="feld-zeile feld-zeile-2">
+                  <Feld label="Straße und Hausnummer" icon="home" wert={anschrift.strasse}
+                    setWert={(v) => setAnschrift({ ...anschrift, strasse: v })} />
+                  <Feld label="PLZ und Ort" icon="home" wert={anschrift.ort}
+                    setWert={(v) => setAnschrift({ ...anschrift, ort: v })} />
+                </div>
+                <Feld label="Schlusszeile" icon="file-text" wert={anschrift.zusatz}
+                  hinweis="Steht unter der Anschrift, z. B. Planung, Fertigung und Vertrieb aus einer Hand."
+                  setWert={(v) => setAnschrift({ ...anschrift, zusatz: v })} />
+              </section>
+
+              <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
+                Die Angaben gelten für alle Karten und werden in diesem Browser gespeichert.
+                Die Webadresse der <b>Vorderseite</b> kommt aus der Firma, die bei der Person gewählt ist;
+                die <b>Rückseite</b> zeigt alle drei Firmen und die Anschrift.
+              </div>
+            </div>
+
+            <div style={{ padding: "12px 20px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button className="btn" onClick={() => { setFirmen(FIRMEN); setAnschrift(ANSCHRIFT_STANDARD); }}>
+                <Icon name="undo" /> Zurücksetzen
+              </button>
+              <button className="btn btn-primary" onClick={() => setFirmenOffen(false)}>
+                <Icon name="check" /> Fertig
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── Einstellungen für den beidseitigen Druck ── */}
@@ -654,6 +780,31 @@ export default function Page() {
                   ))}
                 </div>
               </div>
+              <div style={{ display: "grid", gap: 6 }}>
+                <span className="muted" style={{ fontSize: 13 }}>
+                  Feinabgleich der Rückseite (mm) – positiv schiebt nach rechts bzw. nach unten
+                </span>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                  <label style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                    waagerecht
+                    <input className="input" type="number" step={0.5} style={{ width: 90 }}
+                      value={versatzX} onChange={(e) => setVersatzX(Number(e.target.value) || 0)} />
+                  </label>
+                  <label style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                    senkrecht
+                    <input className="input" type="number" step={0.5} style={{ width: 90 }}
+                      value={versatzY} onChange={(e) => setVersatzY(Number(e.target.value) || 0)} />
+                  </label>
+                  <button className="btn" onClick={() => { setVersatzX(0); setVersatzY(0); }}>
+                    <Icon name="undo" /> ohne Versatz
+                  </button>
+                </div>
+                <span className="muted" style={{ fontSize: 12 }}>
+                  Voreingestellt sind −1 mm / +1 mm – das gleicht aus, dass die Rückseite bisher
+                  1 mm zu weit rechts und 1 mm zu hoch lag. Der Wert wird gemerkt.
+                </span>
+              </div>
+
               <div className="muted" style={{ fontSize: 12.5, lineHeight: 1.6 }}>
                 Es entstehen <b>zwei Seiten</b>: Blatt 1 mit den Vorderseiten, Blatt 2 mit den
                 Rückseiten – bereits so angeordnet, dass sie nach dem Wenden genau übereinander liegen.
