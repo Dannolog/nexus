@@ -58,11 +58,10 @@ export const POST = (req: NextRequest) =>
       return json({ ...t, ersetzt: true });
     }
 
-    // Für den bekannten Personalfragebogen gleich die Standard-Zuordnung hinterlegen –
-    // beschränkt auf Felder, die im PDF wirklich befüllbar sind.
-    const passendeZuordnung = felder.some((f) => f.name === "Vorname (Minijob)")
-      ? JSON.stringify(filtereAufVorhandene(STANDARD_FELDZUORDNUNG, felder))
-      : "{}";
+    // Bekannte Feldnamen gleich zuordnen – gefiltert auf das, was im PDF wirklich
+    // befüllbar ist. Greift für den Minijob- wie für den Lexware-Personalfragebogen;
+    // bei Formularen ohne passende Felder bleibt die Zuordnung leer.
+    const passendeZuordnung = JSON.stringify(filtereAufVorhandene(STANDARD_FELDZUORDNUNG, felder));
 
     const t = await prisma.documentTemplate.create({
       data: {

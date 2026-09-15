@@ -244,11 +244,27 @@ model Identity {
   globalRole   String @default("user")
   employeeId   String?
   appAccess    IdentityAppAccess[]
+  emails       IdentityEmail[]                  // weitere Anmelde-Adressen
   version      Int      @default(1)
   origin       String  @default("central")
   deletedAt    DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+// ---- Weitere Anmelde-Adressen einer Identität ----
+// Jeder darf sich mit mehreren Adressen anmelden – Firmen-Adresse, private Adresse und
+// beliebige weitere. `Identity.email` bleibt die **Haupt**adresse: Sie geht an den
+// Mitarbeiterstammsatz und in die Fachanwendungen; die übrigen gelten für die Anmeldung.
+model IdentityEmail {
+  id         String   @id @default(cuid())
+  identityId String
+  identity   Identity @relation(fields: [identityId], references: [id], onDelete: Cascade)
+  email      String   @unique
+  label      String   @default("")            // z. B. „privat", „alt", „Werkstatt"
+  createdAt  DateTime @default(now())
+
+  @@index([identityId])
 }
 
 model IdentityAppAccess {

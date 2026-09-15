@@ -94,6 +94,19 @@ export const STANDARD_FELDZUORDNUNG: Record<string, string> = {
   "Vorname des Arbeitnehmers": "{vorname}",
   "Name des Arbeitgebers": "{firma}",
   "Arbeitgeber 1 (Minijob)": "{firma}",
+
+  // Lexware-Personalfragebogen (gleiche Angaben, aber ohne den Zusatz „(Minijob)").
+  // Bank-, Steuer- und Sozialversicherungsdaten bleiben auch hier bewusst außen vor.
+  "Vorname": "{vorname}",
+  "Nachname": "{nachname}",
+  "Geburtsdatum": "{geburtsdatum}",
+  "Straße und Hausnummer": "{strasse}",
+  "Postleitzahl": "{plz}",
+  "Ort": "{ort}",
+  "Telefonnummer": "{telefon}",
+  "E-Mail-Adresse": "{email}",
+  "Staatsangehörigkeit": "{staatsangehoerigkeit}",
+  "Ort, Datum 1. Seite": "{ort}, {heute}",
 };
 
 /** Behält nur Zuordnungen, deren Feld im PDF tatsächlich existiert und befüllbar ist. */
@@ -141,6 +154,7 @@ export function werteAusMitarbeiter(emp: any, org: any | null): Record<string, s
     geburtsdatum: geb && !isNaN(geb.getTime())
       ? geb.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" })
       : "",
+    heute: new Date().toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }),
     firma: org?.name || "",
     firmaStrasse: org?.street || "",
     firmaOrt: [org?.zip, org?.city].filter(Boolean).join(" "),

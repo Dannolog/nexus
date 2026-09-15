@@ -509,3 +509,28 @@
   Ein echter Scan wurde bewusst **nicht** ausgelöst – das ist eine Aktion am Gerät.
 - tsc sauber, Build + `pm2 restart nexus`, `/scan`, `/documents`, `/contacts` HTTP 200,
   `/api/scanners` ohne Token 401.
+
+## 15.09.2026 — Lexware-Personalfragebogen als Vorlage + mehrere Anmelde-Adressen
+- **Vorlage eingespielt:** `.share/lexware_personalfragebogen_mustervorlage.pdf` liegt jetzt unter
+  **Dokumente** als „Personalfragebogen (Lexware)" (37 Formularfelder). **10 Felder werden aus den
+  Mitarbeiter-Stammdaten vorausgefüllt**: Vorname, Nachname, Geburtsdatum, Straße, PLZ, Ort,
+  Telefon, E-Mail, Staatsangehörigkeit sowie „Ort, Datum" (mit heutigem Datum – dafür gibt es den
+  neuen Platzhalter `{heute}`). **Bewusst nicht** befüllt: IBAN/Kontoinhaber/Kreditinstitut,
+  Steuer-ID, Sozial-/Rentenversicherungsnummer – die trägt der Mitarbeiter selbst ein.
+  Das PDF bleibt ausfüllbar; Ablegen, Zwischenspeichern (neue Version) und Herunterladen laufen
+  wie beim Minijob-Bogen. `STANDARD_FELDZUORDNUNG` deckt jetzt beide Formulare ab, und beim
+  Hochladen jeder Vorlage wird die passende Zuordnung automatisch gesetzt (gefiltert auf
+  tatsächlich befüllbare Felder).
+- **Mehrere Anmelde-Adressen je Zugang:** neues `IdentityEmail` (Adresse eindeutig, freie
+  Bezeichnung wie „privat"). Anmeldung klappt mit der **Hauptadresse und jeder weiteren** –
+  gleiches Passwort. Nur die Hauptadresse wandert in den Mitarbeiterstammsatz und nach
+  kontor/clocker/ProjectEye.
+  - `POST /api/auth/login` sucht jetzt auch über die Zweitadressen.
+  - Neu: `/api/identities/[id]/emails` (Liste, Hinzufügen) und `…/emails/[mailId]`
+    (Bezeichnung ändern, **zur Hauptadresse machen** – dabei tauschen die Adressen die Plätze und
+    die Kaskade zieht Mitarbeiter und Apps nach –, entfernen).
+  - Userverwaltung: Abschnitt „Weitere Anmelde-Adressen" mit Liste, Kopieren, „Haupt", Entfernen
+    und Feld zum Hinzufügen. Das E-Mail-Feld bestehender Zugänge ist **nicht mehr gesperrt** –
+    seit der Kaskade schlägt eine Änderung überall durch.
+  - Geprüft mit einem temporären Prüfkonto: Login über Haupt- **und** Zweitadresse HTTP 200,
+    falsches Passwort 401, Konto danach wieder entfernt.

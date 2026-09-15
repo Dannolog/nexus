@@ -45,6 +45,10 @@ export default function IdentitiesPage() {
   // Ergebnis der Sammelvergabe — die Werte gibt es nur dieses eine Mal zu sehen
   const [sammel, setSammel] = useState<{ id: string; name: string; email: string; passwort: string }[] | null>(null);
   const [frage, setFrage] = useState(false);
+  // Weitere Anmelde-Adressen des gerade geöffneten Zugangs (Firmen-, Privat-, …)
+  const [mails, setMails] = useState<any[]>([]);
+  const [neueMail, setNeueMail] = useState("");
+  const [neuesLabel, setNeuesLabel] = useState("");
   const [laeuft, setLaeuft] = useState(false);
 
   /**
@@ -101,7 +105,58 @@ export default function IdentitiesPage() {
       return [a, { appKey: a, allowed: ex?.allowed ?? false, role: ex?.role ?? "user" }];
     }));
     setPwSichtbar(false);
+    setMails(r.emails || []);
+    setNeueMail("");
+    setNeuesLabel("");
     setEditing({ id: r.id, email: r.email, name: r.name, password: "", globalRole: r.globalRole, version: r.version, access });
+  }
+
+  /** Adressen des Zugangs neu holen (nach Hinzufügen, Tauschen, Entfernen). */
+  async function ladeMails(id: string) {
+    try {
+      const d = await api(`/api/identities/${id}/emails`);
+      setMails(d.data || []);
+    } catch (e: any) { setMsg("Adressen: " + e.message); }
+  }
+
+  /** Weitere Anmelde-Adresse hinzufügen – damit kann sich der Mensch ebenfalls anmelden. */
+  async function mailHinzufuegen() {
+    if (!editing?.id) return;
+    const email = neueMail.trim();
+    if (!email) return;
+    try {
+      await api(`/api/identities/${editing.id}/emails`, {
+        method: "POST", body: JSON.stringify({ email, label: neuesLabel.trim() }),
+      });
+      setNeueMail("");
+      setNeuesLabel("");
+      setMsg(`„${email}" ist jetzt zusätzlich als Anmeldung möglich.`);
+      ladeMails(editing.id);
+      load();
+    } catch (e: any) { setMsg("Fehler: " + e.message); }
+  }
+
+  /** Zweitadresse zur Hauptadresse machen – sie zieht dann auch in Mitarbeiter und Apps mit. */
+  async function mailZurHaupt(mailId: string) {
+    if (!editing?.id) return;
+    try {
+      const d = await api(`/api/identities/${editing.id}/emails/${mailId}`, {
+        method: "PATCH", body: JSON.stringify({ haupt: true }),
+      });
+      setEditing({ ...editing, email: d.hauptadresse });
+      setMsg(`Hauptadresse ist jetzt ${d.hauptadresse} – sie wird in Mitarbeiter und Apps übernommen.`);
+      ladeMails(editing.id);
+      load();
+    } catch (e: any) { setMsg("Fehler: " + e.message); }
+  }
+
+  async function mailEntfernen(mailId: string) {
+    if (!editing?.id) return;
+    try {
+      await api(`/api/identities/${editing.id}/emails/${mailId}`, { method: "DELETE" });
+      ladeMails(editing.id);
+      load();
+    } catch (e: any) { setMsg("Fehler: " + e.message); }
   }
 
   async function save() {
@@ -368,10 +423,10 @@ export default function IdentitiesPage() {
             </div>
             <div style={{ padding: 24, overflowY: "auto", flex: 1 }}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12 }}>
-              <label style={{ fontSize: 13 }}>E-Mail
+              <label style={{ fontSize: 13 }}>E-Mail (Hauptadresse)
                 <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4 }}>
                   <input className="input" style={{ flex: 1, minWidth: 0 }} type="email" value={editing.email}
-                    disabled={!!editing.id} onChange={(e) => setEditing({ ...editing, email: e.target.value })} />
+                    onChange={(e) => setEditing({ ...editing, email: e.target.value })} />
                   <button type="button" className="btn btn-icon" title="E-Mail kopieren" disabled={!editing.email}
                     onClick={() => inZwischenablage(editing.email, "E-Mail", "dm")}>
                     <Icon name={kopiert === "dm" ? "check" : "copy"} />
@@ -381,6 +436,60 @@ export default function IdentitiesPage() {
               <label style={{ fontSize: 13 }}>Name
                 <TextField value={editing.name} onChange={(v) => setEditing({ ...editing, name: v })} />
               </label>
+
+              {/* Weitere Anmelde-Adressen: Firmen-, Privat- und beliebige weitere Adressen.
+                  Mit jeder davon ist die Anmeldung möglich – das Passwort bleibt dasselbe. */}
+              {editing.id && (
+                <div style={{ gridColumn: "1 / -1", border: "1px solid var(--border)", borderRadius: 10, padding: 12, display: "grid", gap: 8 }}>
+                  <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em", display: "flex", alignItems: "center", gap: 6 }}>
+                    <Icon name="mail" size={14} /> Weitere Anmelde-Adressen
+                  </div>
+                  <div style={{ fontSize: 12.5, color: "var(--muted)" }}>
+                    Anmeldung ist mit der Hauptadresse <b>und</b> jeder hier hinterlegten Adresse möglich –
+                    mit demselben Passwort. Nur die Hauptadresse wandert in den Mitarbeiterstammsatz
+                    und in kontor, clocker und ProjectEye.
+                  </div>
+
+                  {mails.length === 0 && (
+                    <div className="muted" style={{ fontSize: 13 }}>Noch keine weitere Adresse hinterlegt.</div>
+                  )}
+                  {mails.map((m: any) => (
+                    <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+                                             border: "1px solid var(--border)", borderRadius: 8, padding: "6px 8px" }}>
+                      <span style={{ fontSize: 13.5, flex: "1 1 180px", minWidth: 0, wordBreak: "break-all" }}>{m.email}</span>
+                      {m.label && <span className="muted" style={{ fontSize: 12 }}>{m.label}</span>}
+                      <button type="button" className="btn btn-icon" title="E-Mail kopieren"
+                        onClick={() => inZwischenablage(m.email, "E-Mail", "w" + m.id)}>
+                        <Icon name={kopiert === "w" + m.id ? "check" : "copy"} size={14} />
+                      </button>
+                      <button type="button" className="btn" title="Diese Adresse zur Hauptadresse machen"
+                        onClick={() => mailZurHaupt(m.id)}>
+                        <Icon name="check" /> <span className="btn-label">Haupt</span>
+                      </button>
+                      <button type="button" className="btn btn-icon btn-danger" title="Adresse entfernen"
+                        onClick={() => mailEntfernen(m.id)}>
+                        <Icon name="trash" size={14} />
+                      </button>
+                    </div>
+                  ))}
+
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    <input className="input" style={{ flex: "2 1 200px", minWidth: 0 }} type="email"
+                      placeholder="weitere Adresse, z. B. privat@web.de"
+                      value={neueMail}
+                      onChange={(e) => setNeueMail(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); mailHinzufuegen(); } }} />
+                    <input className="input" style={{ flex: "1 1 120px", minWidth: 0 }}
+                      placeholder="Bezeichnung (privat …)"
+                      value={neuesLabel}
+                      onChange={(e) => setNeuesLabel(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); mailHinzufuegen(); } }} />
+                    <button type="button" className="btn" disabled={!neueMail.trim()} onClick={mailHinzufuegen}>
+                      <Icon name="plus" /> Hinzufügen
+                    </button>
+                  </div>
+                </div>
+              )}
               <label style={{ fontSize: 13, gridColumn: "1 / -1" }}>
                 Passwort {editing.id && <span className="muted">(leer = unverändert)</span>}
                 <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4, flexWrap: "wrap" }}>

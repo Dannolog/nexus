@@ -16,7 +16,10 @@ export const GET = (req: NextRequest) =>
     const appKey = req.nextUrl.searchParams.get("appKey");
     const identities = await prisma.identity.findMany({
       where: { deletedAt: null },
-      include: { appAccess: appKey ? { where: { appKey } } : true },
+      include: {
+        appAccess: appKey ? { where: { appKey } } : true,
+        emails: { orderBy: { createdAt: "asc" } },   // weitere Anmelde-Adressen
+      },
       orderBy: { name: "asc" },
     });
     return json({
