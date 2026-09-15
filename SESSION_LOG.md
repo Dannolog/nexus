@@ -598,3 +598,10 @@
     in der Zeile aufklappend) und Entfernen (mit Rückfrage; gescannte Dokumente bleiben erhalten),
     darunter **Neuen Scanner einrichten** mit IP und frei wählbarem Namen. Das Gerät wird beim
     Anlegen sofort angesprochen; antwortet es nicht, wird nichts gespeichert.
+- **Nachtrag: QR-Code folgt der Webadresse.** Bisher waren die QR-Codes feste SVG-Dateien – eine
+  geänderte Adresse führte ins Leere. Jetzt wird der Code **zur Laufzeit aus der tatsächlich
+  eingetragenen Adresse erzeugt** (`qrcode`, neu als Abhängigkeit): erst die Adresse der Person
+  („Webadresse auf dieser Karte"), sonst die der gewählten Firma; fehlt `https://`, wird es ergänzt.
+  Darstellung wie bisher – weiße Module auf durchsichtigem Grund, als CSS-Variable der jeweiligen
+  Firma. Der **Bildexport** (PNG/SVG) nutzt denselben erzeugten Code; die mitgelieferten
+  QR-Grafiken bleiben nur noch Rückfallebene, falls keine Adresse hinterlegt ist.

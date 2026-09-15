@@ -13,6 +13,7 @@ import Icon from "@/components/Icon";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import "./visitenkarte.css";
 import { Feld } from "@/components/KontaktFeld";
+import QRCode from "qrcode";
 
 // ── Firmen: je Firma eigene Akzentfarbe, Webadresse und Standard-Mail ──
 type FirmaSchluessel = "handel" | "ing" | "masch" | "group";
@@ -175,6 +176,9 @@ export default function Page() {
   const [firmen, setFirmen] = useState<typeof FIRMEN>(FIRMEN);
   const [anschrift, setAnschrift] = useState<Anschrift>(ANSCHRIFT_STANDARD);
   const [firmenOffen, setFirmenOffen] = useState(false);
+  // QR-Code wird aus der **aktuell eingetragenen** Webadresse erzeugt – ändert sie sich,
+  // ändert sich auch der Code. Die mitgelieferten QR-Grafiken sind nur noch die Rückfallebene.
+  const [qrBild, setQrBild] = useState("");
   const [aktiv, setAktiv] = useState(0);
   const [geladen, setGeladen] = useState(false);
   const [stand, setStand] = useState("");
@@ -364,7 +368,7 @@ export default function Page() {
     inhalt.style.fontFamily = schrift;
     // Die Daten-URIs gehören in den Stilblock, nicht ins style-Attribut:
     // sie enthalten Anführungszeichen und würden das Attribut aufbrechen.
-    const variablen = `.vk-wurzel{${Object.entries(grafiken).map(([k, v]) => `${k}:${v}`).join(";")}}`;
+    const variablen = `.vk-wurzel{${Object.entries(grafikenAktuell).map(([k, v]) => `${k}:${v}`).join(";")}}`;
     // XML-konform ausgeben – im SVG gilt XHTML, `<br>` allein wäre ein Syntaxfehler
     const rumpf = new XMLSerializer().serializeToString(inhalt);
     return {
@@ -513,7 +517,34 @@ export default function Page() {
     };
   }, [gross]);
 
-  const variablen = useMemo(() => grafiken as React.CSSProperties, [grafiken]);
+  /** Adresse, die auf der Karte steht – erst die der Person, sonst die der Firma. */
+  const kartenWeb = (person.web?.trim() || firmen[person.firma]?.web || "").trim();
+
+  useEffect(() => {
+    if (!kartenWeb) { setQrBild(""); return; }
+    const ziel = /^https?:\/\//i.test(kartenWeb) ? kartenWeb : `https://${kartenWeb}`;
+    let abgebrochen = false;
+    QRCode.toString(ziel, {
+      type: "svg",
+      margin: 0,
+      errorCorrectionLevel: "M",
+      // Weiße Module auf durchsichtigem Grund – wie die bisherigen Grafiken
+      color: { dark: "#ffffff", light: "#0000" },
+    })
+      .then((svg) => {
+        if (!abgebrochen) setQrBild(`url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}")`);
+      })
+      .catch(() => { if (!abgebrochen) setQrBild(""); });
+    return () => { abgebrochen = true; };
+  }, [kartenWeb]);
+
+  /** Grafiken samt frisch erzeugtem QR-Code der gewählten Firma. */
+  const grafikenAktuell = useMemo(
+    () => (qrBild ? { ...grafiken, [`--qr-${person.firma}`]: qrBild } : grafiken),
+    [grafiken, qrBild, person.firma]
+  );
+
+  const variablen = useMemo(() => grafikenAktuell as React.CSSProperties, [grafikenAktuell]);
 
   return (
     <div className="vk-wurzel" ref={wurzelRef} style={variablen}>
