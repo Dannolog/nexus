@@ -6,6 +6,7 @@ import { getUser, clearSession } from "@/lib/clientApi";
 import AppLogo from "@/components/AppLogo";
 import Icon from "@/components/Icon";
 import CommandPalette from "@/components/CommandPalette";
+import SitzungsWaechter from "@/components/SitzungsWaechter";
 
 const NAV = [
   { href: "/", label: "Übersicht", icon: "home" },
@@ -136,6 +137,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </aside>
       <main className="main">{children}</main>
       <CommandPalette />
+      <SitzungsWaechter />
     </div>
   );
 }

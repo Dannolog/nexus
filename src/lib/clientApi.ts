@@ -25,6 +25,26 @@ export function clearSession() {
   localStorage.removeItem(USER_KEY);
 }
 
+/** Abgelaufene oder fehlende Anmeldung – wird nicht mehr still weitergeleitet. */
+export class SitzungAbgelaufenError extends Error {
+  constructor() {
+    super("Sitzung abgelaufen");
+    this.name = "SitzungAbgelaufenError";
+  }
+}
+
+/** Wann läuft das aktuelle Token ab? (Zeitstempel in ms; 0 = unbekannt) */
+export function tokenLaeuftAb(): number {
+  const t = getToken();
+  if (!t) return 0;
+  try {
+    const nutzlast = JSON.parse(atob(t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return nutzlast?.exp ? nutzlast.exp * 1000 : 0;
+  } catch {
+    return 0;
+  }
+}
+
 export class ConflictError extends Error {
   current: any;
   constructor(current: any) {
@@ -42,9 +62,12 @@ export async function api(path: string, opts: RequestInit = {}) {
   if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(path, { ...opts, headers });
   if (res.status === 401) {
-    clearSession();
-    if (typeof window !== "undefined") window.location.href = "/login";
-    throw new Error("Nicht angemeldet");
+    // Früher wurde hier sofort zur Anmeldung gesprungen – ungespeicherte Eingaben waren weg.
+    // Jetzt meldet sich der Sitzungswächter, sichert Entwürfe und fragt nach.
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("nexus-sitzung-abgelaufen"));
+    }
+    throw new SitzungAbgelaufenError();
   }
   const data = await res.json().catch(() => ({}));
   if (res.status === 409) throw new ConflictError(data.current);

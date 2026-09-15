@@ -545,3 +545,30 @@
     helle gestrichelte Schnitthilfen; der bisherige einseitige Druck bleibt unverändert.
   - Hinweis im Dialog: im Druckdialog beidseitig einschalten, Skalierung 100 %, Ränder „keine" –
     die Ränder bringt das Layout selbst mit.
+
+## 15.09.2026 (2) — Kontakte: Vor-/Nachname, mehrere Kontaktwege, Bedienung; Schutz vor Datenverlust bei Auto-Logout
+- **Wunsch Daniel:** Beim automatischen Abmelden anzeigen, was los ist (damit ein angelegter Kontakt
+  nicht verloren geht); im Kontakt Symbole an den Beschriftungen, überall Kreuz zum Leeren und
+  Kopier-Knöpfe (auch in der Übersicht), das Formular besser aufteilen, mehrere E-Mails und
+  Telefonnummern per **+** hinzufügen, Vor- und Nachname getrennt.
+- **Kein stiller Rauswurf mehr:** `api()` leitet bei 401 nicht mehr sofort zur Anmeldung um, sondern
+  meldet `SitzungAbgelaufenError` und löst ein Ereignis aus. Neuer `SitzungsWaechter` im Layout zeigt
+  (1) eine **Vorwarnung** 5 Minuten vor Ablauf des Tokens und (2) bei Ablauf ein Fenster mit Erklärung –
+  die Seite bleibt stehen, damit man noch etwas herauskopieren kann. Nach dem Anmelden geht es über
+  `?weiter=` zurück auf die Seite, auf der gearbeitet wurde.
+- **Entwurfsschutz:** neues `src/lib/entwurf.ts` (localStorage, 72 h). Der Kontaktdialog sichert
+  Eingaben laufend; beim Öffnen wird ein gefundener Entwurf angeboten („vor 5 Minuten begonnen") –
+  weiterbearbeiten oder verwerfen. Schließen ohne Speichern sichert ebenfalls und sagt es.
+  Nach erfolgreichem Speichern wird der Entwurf gelöscht.
+- **Datenmodell:** `Contact.firstName` / `lastName` (der Anzeigename `name` wird daraus gebildet und
+  bleibt Grundlage des Abgleichs) und neues `ContactChannel` – **beliebig viele** E-Mails, Telefon-,
+  Mobil-, Faxnummern und Webseiten je Kontakt, mit Bezeichnung („Zentrale", „privat"). Der **erste**
+  Eintrag je Art füllt weiterhin `email`/`phone`/`mobile` – nur diese Hauptwerte gehen nach
+  kontor, clocker und ProjectEye. Bestand umgestellt: 452 Namen aufgeteilt, 459 Wege übernommen.
+- **Oberfläche:** neue `KontaktFeld`-Bausteine (`Feld` mit Symbol, Kreuz zum Leeren, Kopier-Knopf;
+  `KopierKnopf` für Listen). Der Dialog ist jetzt in **Person · Firma · Erreichbarkeit · Notiz ·
+  Private Angaben** gegliedert; unter „Erreichbarkeit" fügen +-Knöpfe je Art neue Zeilen hinzu.
+  In der Übersicht haben E-Mail und Telefon einen Kopier-Knopf und zeigen „+n" für weitere Einträge;
+  die Kontaktansicht listet alle Wege mit Symbol, Bezeichnung und Kopier-Knopf.
+- tsc sauber, Build + `pm2 restart nexus`, `/contacts`, `/identities`, `/` HTTP 200; Mehrfach-Kanäle
+  mit einem Testkontakt geprüft (4 Wege, davon 2 E-Mails; Hauptwerte korrekt gesetzt; danach entfernt).

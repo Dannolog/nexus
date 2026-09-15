@@ -58,13 +58,43 @@ export async function findeKontakt(ownerKind: string, ownerId: string, name: str
 
 /** Felder, die eine Liste ausliefert (Notizen inklusive – sie gehören zum Kontakt). */
 export const KONTAKT_FELDER = {
-  id: true, name: true, role: true, email: true, phone: true, mobile: true, notes: true, category: true,
+  id: true, name: true, firstName: true, lastName: true, role: true, email: true, phone: true, mobile: true, notes: true, category: true,
   ownerKind: true, ownerId: true, ownerName: true, source: true, favorite: true,
   kontorId: true, clockerId: true, projecteyeId: true, version: true, createdAt: true, updatedAt: true,
   // Private Angaben – bleiben in Nexus, werden nie in die Fachanwendungen gespiegelt
   privatePhone: true, privateMobile: true, privateEmail: true,
   privateStreet: true, privateZip: true, privateCity: true, birthday: true, privateNotes: true,
 } as const;
+
+/**
+ * Mehrere Kommunikationswege je Kontakt. Der **erste** Eintrag je Art wird zusätzlich in
+ * die Hauptfelder `email`/`phone`/`mobile` geschrieben – nur die gehen in den Abgleich mit
+ * kontor, clocker und ProjectEye, die dort je ein Feld je Art führen.
+ */
+export type Kanal = { kind: string; value: string; label?: string };
+
+export const KANAL_ARTEN = ["email", "phone", "mobile", "fax", "web"] as const;
+
+/** Aus der Kanalliste die Hauptwerte ableiten (erster Eintrag je Art gewinnt). */
+export function hauptwerteAusKanaelen(kanaele: Kanal[]) {
+  const ersten = (art: string) =>
+    kanaele.find((k) => k.kind === art && String(k.value || "").trim())?.value.trim() || "";
+  return { email: ersten("email"), phone: ersten("phone"), mobile: ersten("mobile") };
+}
+
+/** Name zusammensetzen: „Vorname Nachname", sonst der übergebene Anzeigename. */
+export function nameAus(firstName?: string, lastName?: string, fallback?: string) {
+  const zusammen = [String(firstName || "").trim(), String(lastName || "").trim()].filter(Boolean).join(" ");
+  return zusammen || String(fallback || "").trim();
+}
+
+/** Anzeigenamen in Vor- und Nachnamen zerlegen (letzter Bestandteil = Nachname). */
+export function zerlegeName(name: string) {
+  const teile = String(name || "").trim().split(/\s+/).filter(Boolean);
+  if (teile.length === 0) return { firstName: "", lastName: "" };
+  if (teile.length === 1) return { firstName: "", lastName: teile[0] };
+  return { firstName: teile.slice(0, -1).join(" "), lastName: teile[teile.length - 1] };
+}
 
 /** Private Felder eines Kontakts – Schreibweg und Dokumentation an einer Stelle. */
 export const PRIVATE_TEXTFELDER = [

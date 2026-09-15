@@ -7,6 +7,8 @@ import Hervorheben from "@/components/Hervorheben";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import SuchSelect from "@/components/SuchSelect";
 import { kopiere } from "@/lib/kopieren";
+import { Feld, KopierKnopf } from "@/components/KontaktFeld";
+import { entwurfSpeichern, entwurfLesen, entwurfLoeschen, seitdem } from "@/lib/entwurf";
 
 /**
  * Kontaktregister – alle Ansprechpartner aller Apps an einer Stelle.
@@ -21,8 +23,12 @@ import { kopiere } from "@/lib/kopieren";
  * bleiben in Nexus und werden nicht in die Fachanwendungen geschoben.
  */
 
+type Kanal = { id?: string; kind: string; value: string; label?: string };
+
 type Kontakt = {
-  id: string; name: string; role: string; email: string; phone: string; mobile: string; notes: string;
+  id: string; name: string; firstName: string; lastName: string;
+  role: string; email: string; phone: string; mobile: string; notes: string;
+  channels?: Kanal[];
   category: string; ownerKind: string; ownerId: string; ownerName: string; source: string; favorite: boolean;
   version: number; updatedAt: string;
   // Private Angaben – bleiben in Nexus und werden nie in die Fachanwendungen gespiegelt
@@ -34,6 +40,18 @@ type Kontakt = {
 /** Übliche Einordnungen für Kontakte ohne Kunden-/Lieferantenstammsatz – frei ergänzbar. */
 const ARTEN = ["Vertreter", "Shop", "Handwerker", "Behörde", "Dienstleister", "Privat"];
 
+/** Kommunikationswege: Beschriftung und Symbol je Art. */
+const KANAL: Record<string, { label: string; icon: string; typ: string }> = {
+  email: { label: "E-Mail", icon: "mail", typ: "email" },
+  phone: { label: "Telefon", icon: "phone", typ: "tel" },
+  mobile: { label: "Mobil", icon: "smartphone", typ: "tel" },
+  fax: { label: "Fax", icon: "printer", typ: "tel" },
+  web: { label: "Webseite", icon: "command", typ: "text" },
+};
+
+/** Entwurfsschlüssel je Kontakt – ein neuer Kontakt hat einen eigenen. */
+const entwurfsSchluessel = (id?: string) => `kontakt:${id || "neu"}`;
+
 const ART_LABEL: Record<string, string> = {
   customer: "Kunde", supplier: "Lieferant", organization: "Mandant", frei: "frei",
 };
@@ -41,7 +59,8 @@ const ART_LABEL: Record<string, string> = {
 const HERKUNFT: Record<string, string> = { nexus: "Nexus", kontor: "kontor", clocker: "clocker", projecteye: "ProjectEye" };
 
 function leer(): Partial<Kontakt> {
-  return { name: "", role: "", email: "", phone: "", mobile: "", notes: "", category: "",
+  return { name: "", firstName: "", lastName: "", channels: [{ kind: "email", value: "", label: "" }],
+           role: "", email: "", phone: "", mobile: "", notes: "", category: "",
            ownerKind: "frei", ownerId: "", ownerName: "", favorite: false,
            privatePhone: "", privateMobile: "", privateEmail: "",
            privateStreet: "", privateZip: "", privateCity: "", privateNotes: "", birthday: null };
@@ -72,6 +91,8 @@ export default function ContactsPage() {
   const [firmen, setFirmen] = useState<{ customer: any[]; supplier: any[]; organization: any[] }>({ customer: [], supplier: [], organization: [] });
   // Private Angaben sind bewusst zugeklappt – sie werden erst auf Klick sichtbar
   const [privatOffen, setPrivatOffen] = useState(false);
+  // Nicht gespeicherter Entwurf, der beim Öffnen gefunden wurde
+  const [entwurfFrage, setEntwurfFrage] = useState<{ vorhanden: Partial<Kontakt>; zeit: number; original: Partial<Kontakt> } | null>(null);
 
   const laden = useCallback(async () => {
     setLaedt(true);
@@ -83,6 +104,13 @@ export default function ContactsPage() {
   }, [suche]);
 
   useEffect(() => { const t = setTimeout(laden, 200); return () => clearTimeout(t); }, [laden]);
+
+  // Offenes Formular laufend sichern – geht die Sitzung verloren, ist nichts weg.
+  useEffect(() => {
+    if (!editor) return;
+    const t = setTimeout(() => entwurfSpeichern(entwurfsSchluessel(editor.id), editor), 600);
+    return () => clearTimeout(t);
+  }, [editor]);
 
   useEffect(() => {
     Promise.all([
@@ -115,12 +143,16 @@ export default function ContactsPage() {
 
   async function speichern() {
     if (!editor) return;
-    const name = String(editor.name || "").trim();
-    if (!name) { setMsg("Bitte einen Namen eingeben."); return; }
+    const vorname = String(editor.firstName || "").trim();
+    const nachname = String(editor.lastName || "").trim();
+    const name = [vorname, nachname].filter(Boolean).join(" ") || String(editor.name || "").trim();
+    if (!name) { setMsg("Bitte mindestens einen Nachnamen eingeben."); return; }
     try {
+      const kanaele = (editor.channels || []).filter((k) => String(k.value || "").trim());
       const nutzlast = {
-        name, role: editor.role || "", email: editor.email || "", phone: editor.phone || "",
-        mobile: editor.mobile || "", notes: editor.notes || "", favorite: !!editor.favorite,
+        name, firstName: vorname, lastName: nachname,
+        channels: kanaele.map((k) => ({ kind: k.kind, value: String(k.value).trim(), label: k.label || "" })),
+        role: editor.role || "", notes: editor.notes || "", favorite: !!editor.favorite,
         category: (editor.category || "").trim(),
         ownerKind: editor.ownerKind || "frei", ownerId: editor.ownerId || "",
         // Bei „frei" zählt der eingetippte Firmen-/Shopname (es gibt keinen Stammsatz)
@@ -133,14 +165,23 @@ export default function ContactsPage() {
       };
       if (editor.id) {
         await api(`/api/contacts/${editor.id}`, { method: "PATCH", body: JSON.stringify(nutzlast) });
-        setMsg("Kontakt gespeichert – die Änderung läuft automatisch in kontor und ProjectEye.");
+        setMsg("Kontakt gespeichert – die Änderung läuft automatisch in kontor, clocker und ProjectEye.");
       } else {
         await api("/api/contacts", { method: "POST", body: JSON.stringify(nutzlast) });
         setMsg("Kontakt angelegt – er wird in die anderen Apps übernommen.");
       }
+      entwurfLoeschen(entwurfsSchluessel(editor.id));   // gespeichert → Entwurf weg
       setEditor(null);
       laden();
-    } catch (e: any) { setMsg("Fehler: " + e.message); }
+    } catch (e: any) {
+      // Bei abgelaufener Sitzung übernimmt der Sitzungswächter die Meldung – die Eingaben
+      // bleiben hier stehen und liegen zusätzlich als Entwurf im Browser.
+      if (e?.name === "SitzungAbgelaufenError") {
+        setMsg("Nicht gespeichert: die Anmeldung ist abgelaufen. Deine Eingaben bleiben erhalten – nach dem Anmelden erneut speichern.");
+        return;
+      }
+      setMsg("Fehler: " + e.message);
+    }
   }
 
   async function entfernen() {
@@ -157,7 +198,54 @@ export default function ContactsPage() {
   /** Schnellauswahl: Stern an/aus – die Markierten stehen oben. */
   /** Öffnet Ansicht oder Pop-up und klappt die privaten Angaben dabei wieder zu. */
   function zeige(k: Kontakt | null) { setPrivatOffen(false); setAnsicht(k); }
-  function bearbeite(k: Partial<Kontakt> | null) { setPrivatOffen(false); setEditor(k); }
+  function bearbeite(k: Partial<Kontakt> | null) {
+    setPrivatOffen(false);
+    if (k) {
+      // Liegt ein nicht gespeicherter Entwurf vor (z. B. nach abgelaufener Sitzung)? Anbieten.
+      const e = entwurfLesen<Partial<Kontakt>>(entwurfsSchluessel(k.id));
+      if (e) { setEntwurfFrage({ vorhanden: e.daten, zeit: e.zeit, original: k }); return; }
+      if (!k.channels || k.channels.length === 0) {
+        k = { ...k, channels: [
+          ...(k.email ? [{ kind: "email", value: k.email, label: "" }] : []),
+          ...(k.phone ? [{ kind: "phone", value: k.phone, label: "" }] : []),
+          ...(k.mobile ? [{ kind: "mobile", value: k.mobile, label: "" }] : []),
+        ] };
+        if (!k.channels!.length) k = { ...k, channels: [{ kind: "email", value: "", label: "" }] };
+      }
+    }
+    setEditor(k);
+  }
+
+  /** Editor schließen – der Entwurf bleibt liegen, solange etwas eingetragen ist. */
+  function editorSchliessen() {
+    if (editor) {
+      const etwasDrin = [editor.firstName, editor.lastName, editor.notes, editor.role, editor.ownerName]
+        .some((v) => String(v || "").trim()) || (editor.channels || []).some((k) => String(k.value || "").trim());
+      if (etwasDrin) {
+        entwurfSpeichern(entwurfsSchluessel(editor.id), editor);
+        setMsg("Nicht gespeichert – die Eingaben liegen als Entwurf bereit und werden beim nächsten Öffnen angeboten.");
+      } else {
+        entwurfLoeschen(entwurfsSchluessel(editor.id));
+      }
+    }
+    setEditor(null);
+  }
+
+  /** Kommunikationswege bearbeiten. */
+  function kanalSetzen(i: number, teil: Partial<Kanal>) {
+    if (!editor) return;
+    const liste = [...(editor.channels || [])];
+    liste[i] = { ...liste[i], ...teil };
+    setEditor({ ...editor, channels: liste });
+  }
+  function kanalHinzu(kind: string) {
+    if (!editor) return;
+    setEditor({ ...editor, channels: [...(editor.channels || []), { kind, value: "", label: "" }] });
+  }
+  function kanalWeg(i: number) {
+    if (!editor) return;
+    setEditor({ ...editor, channels: (editor.channels || []).filter((_, n) => n !== i) });
+  }
 
   async function stern(k: Kontakt) {
     try {
@@ -170,6 +258,10 @@ export default function ContactsPage() {
     if (!text) return;
     setMsg((await kopiere(text)) ? `${was} kopiert.` : `${was} konnte nicht kopiert werden.`);
   }
+
+  /** Wie viele **zusätzliche** Einträge gibt es je Art (über den Hauptwert hinaus)? */
+  const weitere = (k: Kontakt, art: string) =>
+    Math.max(0, (k.channels || []).filter((c) => c.kind === art && c.value).length - 1);
 
   /** Alle weiteren Ansprechpartner derselben Firma – für die Firmenansicht im Pop-up. */
   const firmenKontakte = (k: Kontakt) =>
@@ -270,8 +362,24 @@ export default function ContactsPage() {
                     {" "}{k.category ? <Hervorheben text={k.category} suche={suche} /> : ART_LABEL[k.ownerKind] || ""}
                   </span>
                 </td>
-                <td style={{ padding: "10px 12px" }}><Hervorheben text={k.email || "–"} suche={suche} /></td>
-                <td style={{ padding: "10px 12px" }}><Hervorheben text={k.phone || k.mobile || "–"} suche={suche} /></td>
+                <td style={{ padding: "10px 12px" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <Hervorheben text={k.email || "–"} suche={suche} />
+                    <KopierKnopf wert={k.email} was="E-Mail" klein />
+                    {weitere(k, "email") > 0 && (
+                      <span className="muted" style={{ fontSize: 11.5 }}>+{weitere(k, "email")}</span>
+                    )}
+                  </span>
+                </td>
+                <td style={{ padding: "10px 12px" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <Hervorheben text={k.phone || k.mobile || "–"} suche={suche} />
+                    <KopierKnopf wert={k.phone || k.mobile} was="Nummer" klein />
+                    {weitere(k, "phone") + weitere(k, "mobile") > 0 && (
+                      <span className="muted" style={{ fontSize: 11.5 }}>+{weitere(k, "phone") + weitere(k, "mobile")}</span>
+                    )}
+                  </span>
+                </td>
                 <td style={{ padding: "10px 12px" }} className="muted">{HERKUNFT[k.source] || k.source}</td>
                 <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
                   <div style={{ display: "flex", gap: 6 }}>
@@ -298,8 +406,18 @@ export default function ContactsPage() {
             </div>
             {k.ownerName && <div className="muted" style={{ fontSize: 13 }}><Hervorheben text={k.ownerName} suche={suche} /></div>}
             {k.role && <div className="muted" style={{ fontSize: 13 }}>{k.role}</div>}
-            {k.email && <div style={{ fontSize: 13, wordBreak: "break-all" }}><Hervorheben text={k.email} suche={suche} /></div>}
-            {(k.phone || k.mobile) && <div style={{ fontSize: 13 }}>{k.phone || k.mobile}</div>}
+            {k.email && (
+              <div style={{ fontSize: 13, wordBreak: "break-all", display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ flex: 1, minWidth: 0 }}><Hervorheben text={k.email} suche={suche} /></span>
+                <KopierKnopf wert={k.email} was="E-Mail" klein />
+              </div>
+            )}
+            {(k.phone || k.mobile) && (
+              <div style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ flex: 1, minWidth: 0 }}>{k.phone || k.mobile}</span>
+                <KopierKnopf wert={k.phone || k.mobile} was="Nummer" klein />
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -329,15 +447,24 @@ export default function ContactsPage() {
 
             <div style={{ padding: 20, overflowY: "auto", display: "grid", gap: 14 }}>
               <div style={{ display: "grid", gap: 8 }}>
-                {([["E-Mail", ansicht.email], ["Telefon", ansicht.phone], ["Mobil", ansicht.mobile]] as const).map(([label, wert]) => (
-                  <div key={label} style={{ display: "flex", gap: 12, fontSize: 14, alignItems: "center" }}>
-                    <span className="muted" style={{ minWidth: 96 }}>{label}</span>
-                    <span style={{ flex: 1, minWidth: 0, wordBreak: "break-all" }}>{wert || "–"}</span>
-                    {wert && (
-                      <button className="btn btn-icon" title={`${label} kopieren`} onClick={() => kopieren(wert, label)}>
-                        <Icon name="copy" size={14} />
-                      </button>
-                    )}
+                {/* Alle hinterlegten Wege – mehrere E-Mails und Nummern inklusive */}
+                {((ansicht.channels || []).length
+                  ? (ansicht.channels || []).filter((c) => c.value)
+                  : ([
+                      ...(ansicht.email ? [{ kind: "email", value: ansicht.email, label: "" }] : []),
+                      ...(ansicht.phone ? [{ kind: "phone", value: ansicht.phone, label: "" }] : []),
+                      ...(ansicht.mobile ? [{ kind: "mobile", value: ansicht.mobile, label: "" }] : []),
+                    ] as Kanal[])
+                ).map((c, i) => (
+                  <div key={c.id || i} style={{ display: "flex", gap: 12, fontSize: 14, alignItems: "center" }}>
+                    <span className="muted" style={{ minWidth: 96, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      <Icon name={KANAL[c.kind]?.icon || "mail"} size={14} /> {KANAL[c.kind]?.label || c.kind}
+                    </span>
+                    <span style={{ flex: 1, minWidth: 0, wordBreak: "break-all" }}>
+                      <Hervorheben text={c.value} suche={suche} />
+                      {c.label && <span className="muted" style={{ fontSize: 12 }}> · {c.label}</span>}
+                    </span>
+                    <KopierKnopf wert={c.value} was={KANAL[c.kind]?.label || "Wert"} />
                   </div>
                 ))}
                 {ansicht.notes && (
@@ -446,138 +573,181 @@ export default function ContactsPage() {
 
       {/* ── Bearbeiten/Anlegen (immer im Pop-up) ── */}
       {editor && (
-        <div onClick={() => setEditor(null)}
+        <div onClick={editorSchliessen}
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "grid", placeItems: "center", padding: 16, zIndex: 65 }}>
           <div onClick={(e) => e.stopPropagation()} className="card dm-fenster"
-            style={{ width: 560, maxWidth: "94vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            style={{ width: 620, maxWidth: "94vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
+              <Icon name="id-card" size={18} />
               <h2 style={{ fontSize: 17, fontWeight: 700, flex: 1 }}>{editor.id ? "Kontakt bearbeiten" : "Neuer Kontakt"}</h2>
-              <button className="btn btn-icon" aria-label="Schließen" onClick={() => setEditor(null)}><Icon name="x" /></button>
+              <button className="btn btn-icon" aria-label="Schließen" onClick={editorSchliessen}><Icon name="x" /></button>
             </div>
 
-            <div style={{ padding: 20, overflowY: "auto", display: "grid", gap: 12 }}>
-              <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                <span className="muted">Name</span>
-                <input className="input" autoFocus value={editor.name || ""} onChange={(e) => setEditor({ ...editor, name: e.target.value })} />
-              </label>
-              <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                <span className="muted">Funktion</span>
-                <input className="input" value={editor.role || ""} placeholder="z. B. Einkauf"
-                  onChange={(e) => setEditor({ ...editor, role: e.target.value })} />
-              </label>
+            <div style={{ padding: 20, overflowY: "auto", display: "grid", gap: 18 }}>
+              {/* ── Person ── */}
+              <section style={{ display: "grid", gap: 10 }}>
+                <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em",
+                                                display: "flex", alignItems: "center", gap: 6 }}>
+                  <Icon name="user" size={14} /> Person
+                </div>
+                <div className="feld-zeile feld-zeile-2">
+                  <Feld label="Vorname" icon="user" wert={editor.firstName || ""} autoFocus
+                    setWert={(v) => setEditor({ ...editor, firstName: v })} />
+                  <Feld label="Nachname" icon="user" wert={editor.lastName || ""}
+                    setWert={(v) => setEditor({ ...editor, lastName: v })} />
+                </div>
+                <Feld label="Funktion" icon="tag" wert={editor.role || ""} platzhalter="z. B. Einkauf"
+                  setWert={(v) => setEditor({ ...editor, role: v })} />
+              </section>
 
-              <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                <span className="muted">Gehört zu</span>
-                <SuchSelect
-                  value={editor.ownerKind || "frei"}
-                  onChange={(v) => setEditor({ ...editor, ownerKind: v, ownerId: "" })}
-                  platzhalter="Art wählen"
-                  options={[
-                    { value: "frei", label: "frei (keine Firma)" },
-                    { value: "customer", label: "Kunde" },
-                    { value: "supplier", label: "Lieferant" },
-                    { value: "organization", label: "Mandant" },
-                  ]}
-                />
-              </label>
-              {editor.ownerKind && editor.ownerKind !== "frei" ? (
+              {/* ── Firma ── */}
+              <section style={{ display: "grid", gap: 10, borderTop: "1px solid var(--border)", paddingTop: 14 }}>
+                <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em",
+                                                display: "flex", alignItems: "center", gap: 6 }}>
+                  <Icon name="building" size={14} /> Firma
+                </div>
                 <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                  <span className="muted">Firma</span>
+                  <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <Icon name="tag" size={14} /> Gehört zu
+                  </span>
                   <SuchSelect
-                    value={editor.ownerId || ""}
-                    onChange={(v) => setEditor({ ...editor, ownerId: v })}
-                    platzhalter="— Firma wählen —"
-                    suchePlatzhalter="Firma suchen…"
-                    options={firmenOptionen(editor.ownerKind)}
+                    value={editor.ownerKind || "frei"}
+                    onChange={(v) => setEditor({ ...editor, ownerKind: v, ownerId: "" })}
+                    platzhalter="Art wählen"
+                    options={[
+                      { value: "frei", label: "frei (keine Firma)" },
+                      { value: "customer", label: "Kunde" },
+                      { value: "supplier", label: "Lieferant" },
+                      { value: "organization", label: "Mandant" },
+                    ]}
                   />
                 </label>
-              ) : (
+                {editor.ownerKind && editor.ownerKind !== "frei" ? (
+                  <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
+                    <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      <Icon name="building" size={14} /> Firma
+                    </span>
+                    <SuchSelect
+                      value={editor.ownerId || ""}
+                      onChange={(v) => setEditor({ ...editor, ownerId: v })}
+                      platzhalter="— Firma wählen —"
+                      suchePlatzhalter="Firma suchen…"
+                      options={firmenOptionen(editor.ownerKind)}
+                    />
+                  </label>
+                ) : (
+                  <Feld label="Firma / Shop (frei eingetragen)" icon="building" wert={editor.ownerName || ""}
+                    platzhalter="z. B. Elektro Meier, Vertretung Nord"
+                    hinweis="Kein Kundenstammsatz nötig – der Name steht nur an diesem Kontakt."
+                    setWert={(v) => setEditor({ ...editor, ownerName: v })} />
+                )}
                 <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                  <span className="muted">Firma / Shop (frei eingetragen)</span>
-                  <input className="input" value={editor.ownerName || ""} placeholder="z. B. Elektro Meier, Vertretung Nord"
-                    onChange={(e) => setEditor({ ...editor, ownerName: e.target.value })} />
-                  <span className="muted" style={{ fontSize: 12 }}>
-                    Kein Kundenstammsatz nötig – der Name steht nur an diesem Kontakt.
+                  <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <Icon name="tag" size={14} /> Art des Kontakts
                   </span>
+                  <input className="input" list="kontaktarten" value={editor.category || ""}
+                    placeholder="z. B. Vertreter, Shop – frei wählbar"
+                    onChange={(e) => setEditor({ ...editor, category: e.target.value })} />
+                  <datalist id="kontaktarten">
+                    {Array.from(new Set([...ARTEN, ...kategorien])).map((k) => <option key={k} value={k} />)}
+                  </datalist>
                 </label>
-              )}
+              </section>
 
-              <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                <span className="muted">Art des Kontakts</span>
-                <input className="input" list="kontaktarten" value={editor.category || ""}
-                  placeholder="z. B. Vertreter, Shop – frei wählbar"
-                  onChange={(e) => setEditor({ ...editor, category: e.target.value })} />
-                <datalist id="kontaktarten">
-                  {Array.from(new Set([...ARTEN, ...kategorien])).map((k) => <option key={k} value={k} />)}
-                </datalist>
-              </label>
+              {/* ── Erreichbarkeit: beliebig viele E-Mails, Nummern, Webseiten ── */}
+              <section style={{ display: "grid", gap: 10, borderTop: "1px solid var(--border)", paddingTop: 14 }}>
+                <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em",
+                                                display: "flex", alignItems: "center", gap: 6 }}>
+                  <Icon name="mail" size={14} /> Erreichbarkeit
+                </div>
 
-              <div className="feld-zeile feld-zeile-2">
+                {(editor.channels || []).map((k, i) => (
+                  <div key={i} style={{ display: "flex", gap: 6, alignItems: "flex-end", flexWrap: "wrap" }}>
+                    <div style={{ width: 150, flexShrink: 0 }}>
+                      <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
+                        <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                          <Icon name={KANAL[k.kind]?.icon || "mail"} size={14} /> Art
+                        </span>
+                        <SuchSelect
+                          value={k.kind}
+                          onChange={(v) => kanalSetzen(i, { kind: v })}
+                          platzhalter="Art"
+                          options={Object.entries(KANAL).map(([wert, d]) => ({ value: wert, label: d.label }))}
+                        />
+                      </label>
+                    </div>
+                    <div style={{ flex: "2 1 220px", minWidth: 0 }}>
+                      <Feld label={KANAL[k.kind]?.label || "Wert"} icon={KANAL[k.kind]?.icon}
+                        typ={KANAL[k.kind]?.typ || "text"} wert={k.value}
+                        setWert={(v) => kanalSetzen(i, { value: v })} />
+                    </div>
+                    <div style={{ flex: "1 1 130px", minWidth: 0 }}>
+                      <Feld label="Bezeichnung" wert={k.label || ""} kopierbar={false}
+                        platzhalter="Zentrale, privat…" setWert={(v) => kanalSetzen(i, { label: v })} />
+                    </div>
+                    <button type="button" className="btn btn-icon btn-danger" title="Zeile entfernen"
+                      style={{ marginBottom: 1 }} onClick={() => kanalWeg(i)}>
+                      <Icon name="trash" size={14} />
+                    </button>
+                  </div>
+                ))}
+
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {Object.entries(KANAL).map(([wert, d]) => (
+                    <button key={wert} type="button" className="btn" onClick={() => kanalHinzu(wert)}>
+                      <Icon name="plus" size={14} /> {d.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
+                  Beliebig viele Einträge je Art möglich. Der <b>erste</b> Eintrag je Art gilt als Hauptwert –
+                  nur er geht in den Abgleich mit kontor, clocker und ProjectEye.
+                </div>
+              </section>
+
+              {/* ── Notiz und Schnellauswahl ── */}
+              <section style={{ display: "grid", gap: 10, borderTop: "1px solid var(--border)", paddingTop: 14 }}>
                 <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                  <span className="muted">E-Mail</span>
-                  <input className="input" type="email" value={editor.email || ""} onChange={(e) => setEditor({ ...editor, email: e.target.value })} />
+                  <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <Icon name="file-text" size={14} /> Notiz
+                  </span>
+                  <textarea className="input" rows={3} value={editor.notes || ""}
+                    onChange={(e) => setEditor({ ...editor, notes: e.target.value })} />
                 </label>
-                <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                  <span className="muted">Telefon</span>
-                  <input className="input" value={editor.phone || ""} onChange={(e) => setEditor({ ...editor, phone: e.target.value })} />
+                <label style={{ fontSize: 13.5, display: "flex", alignItems: "center", gap: 8 }}>
+                  <input type="checkbox" checked={!!editor.favorite}
+                    onChange={(e) => setEditor({ ...editor, favorite: e.target.checked })} />
+                  In die Schnellauswahl aufnehmen
                 </label>
-              </div>
-              <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                <span className="muted">Mobil</span>
-                <input className="input" value={editor.mobile || ""} onChange={(e) => setEditor({ ...editor, mobile: e.target.value })} />
-              </label>
-              <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                <span className="muted">Notiz</span>
-                <textarea className="input" rows={4} value={editor.notes || ""} onChange={(e) => setEditor({ ...editor, notes: e.target.value })} />
-              </label>
-              <label style={{ fontSize: 13.5, display: "flex", alignItems: "center", gap: 8 }}>
-                <input type="checkbox" checked={!!editor.favorite} onChange={(e) => setEditor({ ...editor, favorite: e.target.checked })} />
-                In die Schnellauswahl aufnehmen
-              </label>
+              </section>
 
-              {/* Private Angaben – zugeklappt; bleiben ausschließlich in Nexus */}
-              <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, display: "grid", gap: 10 }}>
+              {/* ── Private Angaben – zugeklappt; bleiben ausschließlich in Nexus ── */}
+              <section style={{ borderTop: "1px solid var(--border)", paddingTop: 14, display: "grid", gap: 10 }}>
                 <button type="button" className="btn" onClick={() => setPrivatOffen((v) => !v)} style={{ justifySelf: "start" }}>
                   <Icon name="lock" /> Private Angaben {privatOffen ? "ausblenden" : "hinterlegen"}
                 </button>
                 {privatOffen && (
                   <>
                     <div className="feld-zeile feld-zeile-2">
-                      <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                        <span className="muted">Telefon privat</span>
-                        <input className="input" value={editor.privatePhone || ""}
-                          onChange={(e) => setEditor({ ...editor, privatePhone: e.target.value })} />
-                      </label>
-                      <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                        <span className="muted">Mobil privat</span>
-                        <input className="input" value={editor.privateMobile || ""}
-                          onChange={(e) => setEditor({ ...editor, privateMobile: e.target.value })} />
-                      </label>
+                      <Feld label="Telefon privat" icon="phone" typ="tel" wert={editor.privatePhone || ""}
+                        setWert={(v) => setEditor({ ...editor, privatePhone: v })} />
+                      <Feld label="Mobil privat" icon="smartphone" typ="tel" wert={editor.privateMobile || ""}
+                        setWert={(v) => setEditor({ ...editor, privateMobile: v })} />
                     </div>
-                    <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                      <span className="muted">E-Mail privat</span>
-                      <input className="input" type="email" value={editor.privateEmail || ""}
-                        onChange={(e) => setEditor({ ...editor, privateEmail: e.target.value })} />
-                    </label>
-                    <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                      <span className="muted">Straße und Hausnummer (privat)</span>
-                      <input className="input" value={editor.privateStreet || ""}
-                        onChange={(e) => setEditor({ ...editor, privateStreet: e.target.value })} />
-                    </label>
+                    <Feld label="E-Mail privat" icon="mail" typ="email" wert={editor.privateEmail || ""}
+                      setWert={(v) => setEditor({ ...editor, privateEmail: v })} />
+                    <Feld label="Straße und Hausnummer (privat)" icon="home" wert={editor.privateStreet || ""}
+                      setWert={(v) => setEditor({ ...editor, privateStreet: v })} />
                     <div className="feld-zeile feld-zeile-2">
-                      <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                        <span className="muted">PLZ</span>
-                        <input className="input" value={editor.privateZip || ""}
-                          onChange={(e) => setEditor({ ...editor, privateZip: e.target.value })} />
-                      </label>
-                      <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                        <span className="muted">Ort</span>
-                        <input className="input" value={editor.privateCity || ""}
-                          onChange={(e) => setEditor({ ...editor, privateCity: e.target.value })} />
-                      </label>
+                      <Feld label="PLZ" icon="home" wert={editor.privateZip || ""}
+                        setWert={(v) => setEditor({ ...editor, privateZip: v })} />
+                      <Feld label="Ort" icon="home" wert={editor.privateCity || ""}
+                        setWert={(v) => setEditor({ ...editor, privateCity: v })} />
                     </div>
                     <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                      <span className="muted">Geburtstag</span>
+                      <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        <Icon name="calendar" size={14} /> Geburtstag
+                      </span>
                       <input className="input" type="date" value={editor.birthday ? String(editor.birthday).slice(0, 10) : ""}
                         onChange={(e) => setEditor({ ...editor, birthday: e.target.value ? new Date(e.target.value).toISOString() : null })} />
                     </label>
@@ -592,17 +762,44 @@ export default function ContactsPage() {
                     </div>
                   </>
                 )}
-              </div>
-              <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
-                Kontakte einer <b>Kundenfirma</b> laufen automatisch nach kontor und clocker, Ansprechpartner von
-                <b> Lieferanten</b> nach ProjectEye – und Änderungen von dort kommen hierher zurück.
-                <b> Freie</b> Kontakte (Vertreter, Shops) bleiben nur hier.
-              </div>
+              </section>
             </div>
 
-            <div style={{ padding: "12px 20px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button className="btn" onClick={() => setEditor(null)}>Abbrechen</button>
+            <div style={{ padding: "12px 20px", borderTop: "1px solid var(--border)", display: "flex", gap: 8,
+                          justifyContent: "flex-end", alignItems: "center", flexWrap: "wrap" }}>
+              <span className="muted" style={{ fontSize: 12, marginRight: "auto" }}>
+                Eingaben werden laufend als Entwurf gesichert.
+              </span>
+              <button className="btn" onClick={editorSchliessen}>Abbrechen</button>
               <button className="btn btn-primary" onClick={speichern}><Icon name="save" /> Speichern</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Gefundener Entwurf: weitermachen oder verwerfen ── */}
+      {entwurfFrage && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "grid", placeItems: "center", padding: 16, zIndex: 70 }}>
+          <div className="card dm-fenster" style={{ width: 460, maxWidth: "94vw", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
+              <Icon name="file-text" size={18} />
+              <h2 style={{ fontSize: 17, fontWeight: 700 }}>Nicht gespeicherter Entwurf</h2>
+            </div>
+            <div style={{ padding: 20, fontSize: 14, lineHeight: 1.55 }}>
+              Von diesem Kontakt liegt ein Entwurf {seitdem(entwurfFrage.zeit)} im Browser – etwa, weil die
+              Anmeldung abgelaufen war. Weitermachen oder mit dem gespeicherten Stand beginnen?
+            </div>
+            <div style={{ padding: "12px 20px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
+              <button className="btn btn-danger" onClick={() => {
+                entwurfLoeschen(entwurfsSchluessel(entwurfFrage.original.id));
+                setEditor(entwurfFrage.original);
+                setEntwurfFrage(null);
+              }}>
+                <Icon name="trash" /> Entwurf verwerfen
+              </button>
+              <button className="btn btn-primary" onClick={() => { setEditor(entwurfFrage.vorhanden); setEntwurfFrage(null); }}>
+                <Icon name="redo" /> Entwurf weiterbearbeiten
+              </button>
             </div>
           </div>
         </div>

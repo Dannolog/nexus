@@ -176,9 +176,28 @@ model Employee {
 // ---- Zentrales Kontaktregister (alle Ansprechpartner aller Apps) ----
 // Kontakte gehören Nexus: kontor (ClientContact) und ProjectEye (suppliers/savedEmails)
 // werden beidseitig abgeglichen – Protokoll: /mnt/devip3/shared/sync/KONTAKTE.md
+// Mehrere Kommunikationswege je Kontakt (mehrere E-Mails, Nummern, Webseiten).
+// Der **erste** Eintrag je Art landet zusätzlich in Contact.email/phone/mobile –
+// nur diese Hauptwerte gehen in den Abgleich mit kontor, clocker und ProjectEye.
+model ContactChannel {
+  id        String  @id @default(cuid())
+  contactId String
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  kind      String  @default("email")     // email | phone | mobile | fax | web
+  value     String
+  label     String  @default("")          // z. B. „Zentrale", „privat", „Werkstatt"
+  sort      Int     @default(0)
+
+  @@index([contactId])
+  @@index([value])
+}
+
 model Contact {
   id           String   @id @default(cuid())
+  // Anzeigename (aus Vor- und Nachname zusammengesetzt) – ist die Grundlage des Abgleichs
   name         String
+  firstName    String   @default("")
+  lastName     String   @default("")
   role         String   @default("")            // Funktion, z. B. „Einkauf"
   email        String   @default("")
   phone        String   @default("")
@@ -214,6 +233,7 @@ model Contact {
   privateCity   String   @default("")
   birthday      DateTime?                        // Geburtstag
   privateNotes  String   @default("") @db.Text
+  channels     ContactChannel[]                 // weitere E-Mails, Nummern, Webseiten
   favorite     Boolean  @default(false)         // Schnellauswahl
   version      Int      @default(1)
   deletedAt    DateTime?

@@ -24,7 +24,10 @@ export default function LoginPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Login fehlgeschlagen");
       setSession(data.token, data.identity);
-      window.location.href = "/";
+      // Nach abgelaufener Sitzung zurück auf die Seite, auf der gearbeitet wurde –
+      // dort werden gesicherte Entwürfe wieder angeboten.
+      const weiter = new URLSearchParams(window.location.search).get("weiter");
+      window.location.href = weiter && weiter.startsWith("/") ? weiter : "/";
     } catch (e: any) {
       setErr(e.message);
     } finally {
