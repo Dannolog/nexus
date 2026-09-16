@@ -742,3 +742,9 @@
   Gilt nur für die Vorlage „Minijob" – Standard und Vollständig bleiben unverändert.
   **Hinweis an Daniel gegeben:** Der gesetzliche Urlaubsanspruch besteht unabhängig davon weiter;
   nach § 2 NachwG gehört er zu den nachzuweisenden Vertragsbedingungen.
+- **Rücknahme (Entscheidung Daniel):** § 5 Urlaub und § 7 Bezahlte Freistellung (§ 616 BGB) bleiben
+  im Minijob-Vertrag doch enthalten – Grund: Der Urlaub gehört nach § 2 NachwG in die Niederschrift,
+  und ohne den § 616-Abschnitt würde die Entgeltfortzahlung bei kurzer Verhinderung wieder greifen.
+  Der Minijob-Vertrag hat damit wieder 14 Paragrafen; § 11 ist „Arbeitsergebnisse, Schutzrechte und
+  Arbeitnehmererfindungen". Einzige inhaltliche Änderung gegenüber dem ersten Stand bleibt der
+  entfernte Punkt 6 in § 3.
