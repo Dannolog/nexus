@@ -93,6 +93,9 @@ export function buildSections(form: Contract, befristet: boolean): Abschnitt[] {
   const stnd = form.salaryPeriod === "stündlich";
   // Arbeitszeitmodell: feste Zeiten oder Flexzeit mit Bandbreite und Arbeitszeitkonto
   const festzeit = form.workTimeModel === "fest";
+  // Minijob-Vertrag: schlanker Umfang wie „standard", aber mit den Besonderheiten der
+  // geringfügigen Beschäftigung – und ausdrücklich mit dem Abschnitt zu Arbeitsergebnissen.
+  const minijob = form.template === "minijob";
   // Gleitzeitklausel nur, wenn sie ausdrücklich gewählt und ein Rahmen hinterlegt ist
   const gleitzeit = form.flexTime === true
     && Boolean(String(form.flexTimeFrom || "").trim() && String(form.flexTimeTo || "").trim());
@@ -132,6 +135,14 @@ export function buildSections(form: Contract, befristet: boolean): Abschnitt[] {
       { segs: b`Geleistete Überstunden werden nach Wahl des Arbeitnehmers ausbezahlt oder durch Freizeit ausgeglichen („abgefeiert").` },
       { segs: b`Etwaige Zuschläge für Mehr-, Nacht-, Sonn- und Feiertagsarbeit richten sich nach den gesetzlichen sowie den jeweils geltenden betrieblichen Regelungen.` },
     ]},
+    ...(minijob ? [{ t: "Geringfügige Beschäftigung (Minijob)", items: [
+      { segs: b`Das Arbeitsverhältnis wird als ${"geringfügige Beschäftigung"} im Sinne des § 8 Abs. 1 Nr. 1 SGB IV geführt. Das regelmäßige monatliche Arbeitsentgelt überschreitet die jeweils geltende Geringfügigkeitsgrenze nicht; die Arbeitszeit wird so bemessen, dass diese Grenze eingehalten wird.` },
+      { segs: b`Ein gelegentliches und nicht vorhersehbares Überschreiten der Entgeltgrenze ist im gesetzlich zulässigen Rahmen unschädlich. Zeichnet sich ab, dass die Grenze dauerhaft überschritten wird, stimmen die Parteien die Arbeitszeit oder die Vergütung unverzüglich neu ab.` },
+      { segs: b`Der Arbeitnehmer versichert, dass er ${"keine weiteren geringfügigen Beschäftigungen"} ausübt, oder benennt diese dem Arbeitgeber vor Aufnahme der Tätigkeit. Er zeigt die Aufnahme jeder weiteren Beschäftigung unverzüglich an, da mehrere Beschäftigungen sozialversicherungsrechtlich zusammengerechnet werden.` },
+      { segs: b`Die Beschäftigung ist grundsätzlich ${"rentenversicherungspflichtig"}. Der Arbeitnehmer kann sich auf schriftlichen Antrag von der Versicherungspflicht befreien lassen (§ 6 Abs. 1b SGB VI); der Antrag ist dem Arbeitgeber auszuhändigen, der ihn zu den Entgeltunterlagen nimmt.` },
+      { segs: b`Beginn, Ende und Dauer der täglichen Arbeitszeit werden nach § 17 MiLoG spätestens ${"innerhalb von sieben Tagen"} aufgezeichnet und mindestens zwei Jahre aufbewahrt. Der Arbeitnehmer ist verpflichtet, seine Arbeitszeiten vollständig und richtig zu erfassen.` },
+      { segs: b`Im Übrigen gelten für den Arbeitnehmer dieselben Rechte wie für vollzeitbeschäftigte Arbeitnehmer, insbesondere auf ${"anteiligen Urlaub"}, Entgeltfortzahlung im Krankheitsfall und an Feiertagen.` },
+    ]}] : []),
     { t: "Kurzarbeit", full: true, items: [
       { segs: b`Der Arbeitgeber ist berechtigt, bei einem erheblichen Arbeitsausfall aus wirtschaftlichen Gründen oder infolge eines unabwendbaren Ereignisses unter Wahrung der gesetzlichen Voraussetzungen (§§ 95 ff. SGB III) Kurzarbeit einzuführen, wenn dies dem Arbeitnehmer mit einer Ankündigungsfrist von drei Wochen angezeigt wird.` },
       { segs: b`Für die Dauer der Kurzarbeit verringert sich die Arbeitszeit entsprechend; die Vergütung wird für die ausgefallene Arbeitszeit anteilig reduziert. Der Arbeitnehmer erklärt sich mit der Einführung von Kurzarbeit – auch bis auf null („Kurzarbeit Null") – einverstanden.` },
@@ -210,7 +221,11 @@ export function buildSections(form: Contract, befristet: boolean): Abschnitt[] {
     ]},
   ];
   // Standard-Vorlage = ohne die zusätzlich abgesicherten §§; Vollständig = alle.
-  return form.template === "standard" ? all.filter((s) => !s.full) : all;
+  // „standard" lässt die ausführlichen Abschnitte weg. „minijob" ebenso – **außer**
+  // den Arbeitsergebnissen: Nutzungsrechte an allem Erstellten gelten auch im Minijob.
+  if (form.template === "standard") return all.filter((s) => !s.full);
+  if (minijob) return all.filter((s) => !s.full || s.t.startsWith("Arbeitsergebnisse"));
+  return all;
 }
 
 // ── einzelne Bausteine ──
@@ -320,8 +335,9 @@ function A4Seite({ page, total, docRef, nr, children }: { page: number; total: n
                 Vertragsnummer {nr}
               </p>
             )}
-            <p style={{ fontSize: 10, color: "#666", margin: "6px 0 0", fontStyle: "italic" }}>
-              Die Bezeichnungen „Arbeitnehmer" / „Arbeitgeber" gelten für Beschäftigte jeglichen Geschlechts.
+            {/* Hinweis bewusst schlicht: kleine graue Zeile statt kursiver Klammerbemerkung */}
+            <p style={{ fontSize: 9.5, color: "#8a8a8a", margin: "9px auto 0", maxWidth: 430, lineHeight: 1.45 }}>
+              Die Bezeichnungen Arbeitnehmer und Arbeitgeber gelten für Beschäftigte jeglichen Geschlechts.
             </p>
           </div>
         </>
@@ -347,13 +363,15 @@ export default function VertragDokument({ form, befristet }: { form: Contract; b
     <div>
       <p style={{ margin: "0 0 4px" }}>Zwischen</p>
       <p style={{ margin: "0 0 3px", paddingLeft: 24 }}><b>{ARBEITGEBER.name}</b>, {ARBEITGEBER.inhaber}, {ARBEITGEBER.strasse}, {ARBEITGEBER.ort}</p>
-      <p style={{ margin: "0 0 10px", paddingLeft: 24, fontStyle: "italic" }}>– nachfolgend „Arbeitgeber" –</p>
+      <p style={{ margin: "1px 0 12px", paddingLeft: 24, fontSize: 9.5, color: "#7a7a7a",
+                  letterSpacing: ".14em", textTransform: "uppercase" }}>nachfolgend Arbeitgeber</p>
       <p style={{ margin: "0 0 4px" }}>und</p>
       <p style={{ margin: "0 0 3px", paddingLeft: 24 }}>
         <b>{txt(form.employeeName)}</b>{form.employeeAddress ? <>, {txt(form.employeeAddress).split(/\n/).map((z: string, i: number) => <span key={i}>{i > 0 ? ", " : ""}{z}</span>)}</> : ""}
         {form.employeeBirth ? <>, geboren am <b>{form.employeeBirth}</b></> : ""}
       </p>
-      <p style={{ margin: "0 0 10px", paddingLeft: 24, fontStyle: "italic" }}>– nachfolgend „Arbeitnehmer" –</p>
+      <p style={{ margin: "1px 0 12px", paddingLeft: 24, fontSize: 9.5, color: "#7a7a7a",
+                  letterSpacing: ".14em", textTransform: "uppercase" }}>nachfolgend Arbeitnehmer</p>
       <p style={{ margin: 0 }}>wird folgender {befristet ? "befristeter" : "unbefristeter"} Arbeitsvertrag geschlossen:</p>
     </div>
   )});

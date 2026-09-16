@@ -171,8 +171,8 @@ export async function generateVertragPdf(form: Contract): Promise<Blob> {
       doc.text(`Vertragsnummer ${nr}`, PAGE_W / 2, ty + 5.5, { align: "center" });
       ty += 5.5;
     }
-    doc.setFont("helvetica", "italic"); doc.setFontSize(7.5); doc.setTextColor(110);
-    doc.text('Die Bezeichnungen „Arbeitnehmer" / „Arbeitgeber" gelten für Beschäftigte jeglichen Geschlechts.',
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(140);
+    doc.text("Die Bezeichnungen Arbeitnehmer und Arbeitgeber gelten für Beschäftigte jeglichen Geschlechts.",
       PAGE_W / 2, ty + 5, { align: "center" });
     doc.setTextColor(20);
     y = ty + 12;
@@ -215,10 +215,11 @@ export async function generateVertragPdf(form: Contract): Promise<Blob> {
     umbrechen(doc, zuWoertern(agSegs).flat(), CONTENT_W - 8, SIZE).forEach((z) => {
       zeileZeichnen(doc, z, MX + 8, y, CONTENT_W - 8, SIZE, false); y += zeilenHoehe;
     });
-    doc.setFont("helvetica", "italic"); doc.setFontSize(SIZE); doc.setTextColor(70);
-    doc.text('– nachfolgend „Arbeitgeber" –', MX + 8, y); y += zeilenHoehe + 1.5;
+    // Gesperrte Kapitälchen wirken ruhiger als eine kursive Klammerbemerkung
+    doc.setFont("helvetica", "normal"); doc.setFontSize(SIZE - 2.5); doc.setTextColor(125);
+    doc.text("NACHFOLGEND ARBEITGEBER", MX + 8, y + 0.5, { charSpace: 0.6 }); y += zeilenHoehe + 1.5;
 
-    doc.setFont("helvetica", "normal"); doc.setTextColor(20);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(SIZE); doc.setTextColor(20);
     doc.text("und", MX, y); y += zeilenHoehe;
 
     const anTeile: Seg[] = [{ t: txt(form.employeeName), b: true }];
@@ -227,10 +228,10 @@ export async function generateVertragPdf(form: Contract): Promise<Blob> {
     umbrechen(doc, zuWoertern(anTeile).flat(), CONTENT_W - 8, SIZE).forEach((z) => {
       zeileZeichnen(doc, z, MX + 8, y, CONTENT_W - 8, SIZE, false); y += zeilenHoehe;
     });
-    doc.setFont("helvetica", "italic"); doc.setTextColor(70);
-    doc.text('– nachfolgend „Arbeitnehmer" –', MX + 8, y); y += zeilenHoehe + 1.5;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(SIZE - 2.5); doc.setTextColor(125);
+    doc.text("NACHFOLGEND ARBEITNEHMER", MX + 8, y + 0.5, { charSpace: 0.6 }); y += zeilenHoehe + 1.5;
 
-    doc.setFont("helvetica", "normal"); doc.setTextColor(20);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(SIZE); doc.setTextColor(20);
     doc.text(`wird folgender ${befristet ? "befristeter" : "unbefristeter"} Arbeitsvertrag geschlossen:`, MX, y);
     y += zeilenHoehe + 2;
   }

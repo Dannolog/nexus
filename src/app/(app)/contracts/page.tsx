@@ -292,6 +292,7 @@ export default function ContractsPage() {
               <select className="input" value={form.template || "vollstaendig"} onChange={(e) => set("template", e.target.value)}>
                 <option value="vollstaendig">Vollständig – alle rechtlichen Absicherungen</option>
                 <option value="standard">Standard – Grundvertrag</option>
+                <option value="minijob">Minijob – geringfügige Beschäftigung</option>
               </select>
             </Feld>
             <Feld label="Mitarbeiter">

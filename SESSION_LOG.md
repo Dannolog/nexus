@@ -686,3 +686,21 @@
   (Vorgabe 06:00–19:00) und die Klausel im Vertrag. Ohne Haken entfällt beides vollständig.
   Bestehende Verträge sind damit unverändert ohne Gleitzeit (Vorgabe `false`); neue Verträge
   starten mit gesetztem Haken. Beide Fälle im erzeugten Vertragstext geprüft.
+
+## 16.09.2026 (4) — Minijob-Vorlage und ruhigere Typografie auf Seite 1
+- **Minijob-Vertrag (Wunsch Daniel, „§ 11 Punkt 1 muss drin sein"):** neue Vorlage `minijob` in der
+  Vorlagenauswahl. Umfang wie „Standard", **plus** dem Abschnitt *Arbeitsergebnisse, Schutzrechte und
+  Arbeitnehmererfindungen* (steht dort wieder als **§ 11**), plus neuem **§ 3 Geringfügige
+  Beschäftigung (Minijob)** mit sechs Punkten: Einordnung nach § 8 Abs. 1 Nr. 1 SGB IV und Einhaltung
+  der Geringfügigkeitsgrenze, gelegentliches Überschreiten, Anzeigepflicht weiterer Minijobs
+  (Zusammenrechnung), Rentenversicherungspflicht mit Befreiung nach § 6 Abs. 1b SGB VI,
+  Arbeitszeitaufzeichnung nach § 17 MiLoG, Gleichstellung bei Urlaub und Entgeltfortzahlung.
+  Bewusst **keine feste Euro-Grenze** im Text – es gilt jeweils die aktuelle Geringfügigkeitsgrenze.
+- **Angelegt: AV-0005** (Entwurf, Vorlage Minijob): Festzeit 10 h/Woche, 08:00–12:00, keine Gleitzeit,
+  kein Arbeitszeitkonto, 6 Monate Probezeit, 30 Urlaubstage (anteilig). Offen: Person, Tätigkeit,
+  Beginn, Stundenlohn.
+- **Typografie Seite 1 (Rückmeldung „schöner, ohne Anführungsstriche"):** Die kursiven Zeilen sind weg.
+  Die Parteibezeichnungen stehen jetzt als **gesperrte Kapitälchen in Grau** („NACHFOLGEND
+  ARBEITGEBER" / „NACHFOLGEND ARBEITNEHMER") ohne Gedankenstriche und ohne Anführungszeichen;
+  der Gleichbehandlungshinweis unter dem Titel ist eine kleine graue Zeile in Normalschrift,
+  ebenfalls ohne Anführungszeichen. Vorschau und PDF gleich angepasst.
