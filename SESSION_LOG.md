@@ -704,3 +704,30 @@
   ARBEITGEBER" / „NACHFOLGEND ARBEITNEHMER") ohne Gedankenstriche und ohne Anführungszeichen;
   der Gleichbehandlungshinweis unter dem Titel ist eine kleine graue Zeile in Normalschrift,
   ebenfalls ohne Anführungszeichen. Vorschau und PDF gleich angepasst.
+
+## 16.09.2026 (5) — Datensicherung mit Zeitplan, Vorschau und Wiederherstellung
+- **Wunsch Daniel:** Backup-Funktion wie in ProjectEye – regelmäßig, mit Wiederherstellung und Vorschau.
+- **`src/lib/backup.ts` (neu):** Sicherung der **ganzen Datenbank** per `pg_dump` (Custom-Format) –
+  damit sind Dokumente, Scans, Vorlagen und Logos enthalten. Zu jeder Sicherung entsteht eine
+  Begleitdatei (`.json`) mit Zeitpunkt, Art und **Zeilenzahlen je Tabelle**; sie ist die Grundlage
+  der Vorschau. Arten: `auto`, `manuell`, `sicherheitskopie`.
+- **Aufbewahrung Großvater–Vater–Sohn** (wie ProjectEye): Vorgabe 7 Tage täglich · 8 Wochen ·
+  12 Monate · 5 Jahre; manuelle Sicherungen und Sicherheitskopien werden **nie** automatisch
+  entfernt. Logik geprüft: aus 371 Sicherungen bleiben 31, die jüngsten 7 Tage vollständig.
+- **Vorschau ohne Einspielen:** zeigt je Tabelle „in der Sicherung / jetzt / Unterschied"
+  („3 neuer" = diese Datensätze gingen beim Einspielen verloren) und prüft über
+  `pg_restore -l`, ob die Datei lesbar und vollständig ist.
+- **Wiederherstellung:** legt **immer zuerst eine Sicherheitskopie** des aktuellen Standes an,
+  spielt dann mit `pg_restore --clean --if-exists` ein. In der Oberfläche muss zusätzlich das Wort
+  WIEDERHERSTELLEN eingetippt werden. Der Weg wurde gegen eine **Testdatenbank** geprüft
+  (0 Fehlerzeilen, Bestand vollständig), die Live-Datenbank blieb dabei unberührt.
+- **API:** `/api/backups` (Liste + Zeitplan + Bestand, POST = jetzt sichern, PATCH = Zeitplan),
+  `/api/backups/[name]` (GET Vorschau, `?datei=1` Download, POST Wiederherstellen, DELETE).
+- **Seite `/backups`:** Sicherungen als Tabelle (Desktop) bzw. Karten (Handy), „Jetzt sichern",
+  Zeitplan mit Schalter und Uhrzeit, Aufbewahrungsregeln, Vorschau-Dialog, Herunterladen,
+  Entfernen. In Navigation und Befehlspalette eingetragen.
+- **Zeitplan:** `scripts/backup-auto.js` (stündlich per Cron, `/var/log/nexus-backup.log`) sichert,
+  sobald die eingestellte Uhrzeit erreicht ist und an diesem Tag noch nichts gesichert wurde;
+  danach wird ausgedünnt. Das Skript lädt die Datenbank-Adresse selbst aus der `.env` und legt den
+  Ablageort fest – geprüft mit einem Lauf aus fremdem Verzeichnis und leerer Umgebung.
+- Erste Sicherung: 3,7 MB, 1303 Datensätze. `backups/` ist in `.gitignore` (Personendaten).

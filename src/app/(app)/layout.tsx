@@ -23,6 +23,7 @@ const NAV = [
   { href: "/scan", label: "Scannen", icon: "printer" },
   { href: "/organizations", label: "Mandanten", icon: "building" },
   { href: "/identities", label: "Userverwaltung", icon: "shield" },
+  { href: "/backups", label: "Datensicherung", icon: "archive" },
   { href: "/history", label: "Verlauf (Undo/Redo)", icon: "history" },
 ];
 
