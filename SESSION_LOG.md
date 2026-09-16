@@ -636,3 +636,15 @@
   nicht; das Ergebnis erscheint dank Live-Aktualisierung von selbst im Posteingang.
   Rücksicht auf `prefers-reduced-motion`.
 - tsc sauber, Build + `pm2 restart nexus`, `/scan`, `/documents`, `/contacts`, `/` HTTP 200.
+
+## 16.09.2026 (2) — Zweiter Arbeitsvertrag angelegt
+- **Auftrag:** zweiter Vertrag, aufgebaut wie AV-0001, Tätigkeit **Konstrukteur/Programmierer**.
+- **Vorgabe Daniel:** „Alles privat halten, wir arbeiten mit IDs wegen Datenschutz — Mitarbeiter,
+  Verträge ebenfalls." Deshalb stehen in diesem Protokoll **keine Namen**.
+- **Angelegt: AV-0002** (Status *entwurf*) mit den Konditionen aus AV-0001: unbefristet,
+  6 Monate Probezeit, Vorlage „vollständig", 40 h/Woche (flexibel 32–42 h), Arbeitszeitkonto
+  07:00–17:00, 30 Urlaubstage, gesetzliche Kündigungsfristen (§ 622 BGB), Arbeitsort und
+  Unterschriftsort Cloppenburg.
+- **Bewusst offen gelassen** (trägt Daniel im Formular ein): **Mitarbeiter** (keine Zuordnung durch
+  mich – Datenschutz), **Stundenlohn** (0,00 als Platzhalter) und Unterschriftsdatum.
+- **Gesetzt:** Beginn **01.11.2026**, Tätigkeit **Konstrukteur/Programmierer**.
