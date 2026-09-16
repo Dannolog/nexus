@@ -93,8 +93,9 @@ export function buildSections(form: Contract, befristet: boolean): Abschnitt[] {
   const stnd = form.salaryPeriod === "stündlich";
   // Arbeitszeitmodell: feste Zeiten oder Flexzeit mit Bandbreite und Arbeitszeitkonto
   const festzeit = form.workTimeModel === "fest";
-  // Gleitzeitrahmen nur aufnehmen, wenn beide Zeiten gepflegt sind
-  const gleitzeit = Boolean(String(form.flexTimeFrom || "").trim() && String(form.flexTimeTo || "").trim());
+  // Gleitzeitklausel nur, wenn sie ausdrücklich gewählt und ein Rahmen hinterlegt ist
+  const gleitzeit = form.flexTime === true
+    && Boolean(String(form.flexTimeFrom || "").trim() && String(form.flexTimeTo || "").trim());
   const all: Abschnitt[] = [
     { t: "Beginn des Arbeitsverhältnisses, Tätigkeit und Probezeit", items: [
       { segs: [

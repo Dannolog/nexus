@@ -354,8 +354,9 @@ model EmploymentContract {
   template        String   @default("vollstaendig")      // "standard" | "vollstaendig" (Klausel-Vorlage)
   // Arbeitszeitmodell: "flex" = Bandbreite mit Arbeitszeitkonto, "fest" = feste Zeiten
   workTimeModel   String   @default("flex")
-  // Gleitzeitrahmen: frühester Beginn und spätestes Ende der täglichen Arbeitszeit.
-  // Leer = keine Gleitzeitklausel im Vertrag.
+  // Gleitzeit: an-/abwählbar. Ist sie aus, entfällt die Klausel im Vertrag.
+  flexTime        Boolean  @default(false)
+  // Gleitzeitrahmen: frühester Beginn und spätestes Ende der täglichen Arbeitszeit
   flexTimeFrom    String   @default("")
   flexTimeTo      String   @default("")
   weeklyHours     Float    @default(40)                  // Wochenarbeitszeit (Legacy)

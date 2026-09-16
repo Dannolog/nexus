@@ -21,6 +21,7 @@ const LEER: Contract = {
   endDate: null,
   probationMonths: 6,
   workTimeModel: "flex",     // "flex" = Bandbreite + Arbeitszeitkonto, "fest" = feste Zeiten
+  flexTime: true,            // Gleitzeit an-/abwählbar
   flexTimeFrom: "06:00",     // Gleitzeitrahmen: frühester Beginn
   flexTimeTo: "19:00",       // Gleitzeitrahmen: spätestes Ende
   weeklyHours: 40,
@@ -408,18 +409,27 @@ export default function ContractsPage() {
               </>
             )}
 
-            {/* Gleitzeitrahmen: frühester Beginn und spätestes Ende der täglichen Arbeitszeit.
-                Beide Felder leer lassen = keine Gleitzeitklausel im Vertrag. */}
-            <div className="feld-zeile feld-zeile-2">
-              <Feld label="Gleitzeit von">
-                <input className="input" type="time" value={form.flexTimeFrom || ""}
-                  onChange={(e) => set("flexTimeFrom", e.target.value)} />
-              </Feld>
-              <Feld label="Gleitzeit bis">
-                <input className="input" type="time" value={form.flexTimeTo || ""}
-                  onChange={(e) => set("flexTimeTo", e.target.value)} />
-              </Feld>
-            </div>
+            {/* Gleitzeit lässt sich an- und abwählen. Ist sie aus, entfällt die Klausel im Vertrag. */}
+            <Feld label="Gleitzeit">
+              <label style={{ fontSize: 13.5, display: "flex", alignItems: "center", gap: 8 }}>
+                <input type="checkbox" checked={form.flexTime === true}
+                  onChange={(e) => set("flexTime", e.target.checked)} />
+                <span>Gleitzeit vereinbaren (freie Wahl von Beginn und Ende im Rahmen)</span>
+              </label>
+            </Feld>
+
+            {form.flexTime === true && (
+              <div className="feld-zeile feld-zeile-2">
+                <Feld label="Gleitzeit von">
+                  <input className="input" type="time" value={form.flexTimeFrom || "06:00"}
+                    onChange={(e) => set("flexTimeFrom", e.target.value)} />
+                </Feld>
+                <Feld label="Gleitzeit bis">
+                  <input className="input" type="time" value={form.flexTimeTo || "19:00"}
+                    onChange={(e) => set("flexTimeTo", e.target.value)} />
+                </Feld>
+              </div>
+            )}
 
             <div className="feld-zeile feld-zeile-2">
               <Feld label="Bruttoentgelt (€)">

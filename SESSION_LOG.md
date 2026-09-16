@@ -681,3 +681,8 @@
   Arbeitszeit selbst bestimmen, soweit betriebliche Belange … nicht entgegenstehen."
   Leer lassen = keine Gleitzeitklausel. Gilt für beide Modelle (bei Festzeit bezieht sich der Satz
   auf die festgelegte Arbeitszeit). Klauseltext für beide Fälle geprüft.
+- **Nachtrag: Gleitzeit an-/abwählbar.** Neues Feld `flexTime` (Boolean). Im Formular ein Haken
+  „Gleitzeit vereinbaren"; erst wenn er gesetzt ist, erscheinen die Felder „Gleitzeit von / bis"
+  (Vorgabe 06:00–19:00) und die Klausel im Vertrag. Ohne Haken entfällt beides vollständig.
+  Bestehende Verträge sind damit unverändert ohne Gleitzeit (Vorgabe `false`); neue Verträge
+  starten mit gesetztem Haken. Beide Fälle im erzeugten Vertragstext geprüft.
