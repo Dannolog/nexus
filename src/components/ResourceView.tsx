@@ -11,6 +11,7 @@ import Toggle from "@/components/Toggle";
 import Icon from "@/components/Icon";
 import ColorPicker from "@/components/ColorPicker";
 import { spaltenIcon } from "@/lib/spaltenIcons";
+import { useLive } from "@/lib/live";
 import TextField from "@/components/TextField";
 
 const LOGO_RESOURCES = ["customers", "organizations"];
@@ -87,6 +88,10 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
   }, [R.key, search, hasLogo]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Änderungen aus anderen Fenstern oder aus dem Abgleich sofort übernehmen –
+  // die Entität dieser Liste plus die Ansprechpartner, die in ihr mit angezeigt werden.
+  useLive([R.entity, "Contact"], load);
 
   async function save(form: any) {
     try {

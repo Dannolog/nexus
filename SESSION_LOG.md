@@ -605,3 +605,34 @@
   Darstellung wie bisher – weiße Module auf durchsichtigem Grund, als CSS-Variable der jeweiligen
   Firma. Der **Bildexport** (PNG/SVG) nutzt denselben erzeugten Code; die mitgelieferten
   QR-Grafiken bleiben nur noch Rückfallebene, falls keine Adresse hinterlegt ist.
+
+## 16.09.2026 — Live-Aktualisierung, Auswahllisten über den Fenstern, Scan-Bedienung
+- **Alle offenen Seiten aktualisieren sich selbst (Wunsch Daniel):** Neue Postgres-Funktion
+  `nexus_live_notify()` + Trigger `nexus_live_trg` auf **19 Tabellen** (Kontakte, Kunden,
+  Mitarbeiter, Dokumente, Notizen, Rubriken, Scans, Scanner, Zugänge, Projekte, Artikel …).
+  Bewusst ein **eigener Kanal** neben `nexus_sync`, damit der Abgleich-Dienst nicht bei jeder
+  Dokumentänderung anläuft. Neue Route `GET /api/events` liefert die Meldungen als
+  Server-Sent Events (eine gemeinsame DB-Verbindung für alle Browser, Lebenszeichen alle 25 s,
+  Token als Query-Parameter, da `EventSource` keine Kopfzeilen kann).
+  Client: `src/lib/live.ts` mit `useLive(tabellen, neuLaden)` – gebündelt (400 ms), automatische
+  Neuverbindung mit wachsendem Abstand. Eingehängt in Kontakte, Dokumente/Akte, Scan-Posteingang,
+  Userverwaltung, alle Listen (`ResourceView`) und das Dashboard. Geprüft: Änderung an `Contact`
+  kam als `event: aenderung {"tabelle":"Contact"}` im Strom an.
+- **Auswahllisten öffnen jetzt über den Fenstern:** `SuchSelect` rendert die Liste per Portal am
+  Dokument (`position:fixed`, z-index 200) statt im Feld – dadurch wird sie in Pop-ups nicht mehr
+  abgeschnitten. Ist unter dem Feld zu wenig Platz, klappt sie **nach oben**; Breite und Höhe
+  richten sich nach Feld und Fenster, bei Scrollen/Größenänderung wird neu ausgerichtet.
+- **Rubriken direkt in der Auswahl anlegen:** `SuchSelect` kennt `erlaubeNeu`/`onNeu` – einfach den
+  Namen eintippen und „als neue Rubrik anlegen". Gilt beim **Scan zuordnen**, beim Einsortieren
+  eines Dokuments, bei Notizen und in der Ablage. Im Zuordnen-Dialog lässt sich die gewählte
+  Rubrik zusätzlich **umbenennen**; neue Rubriken stehen sofort überall zur Verfügung.
+- **Scan-Einstellungen wieder sichtbar** (Rückmeldung Daniel), aber kompakt: Schiebeschalter
+  **Flachbett ⇄ Einzug** und **Graustufen ⇄ Farbe**, Schieberegler für die **Auflösung** über die
+  Stufen, die das Gerät meldet (mit Hinweis „schnell / guter Mittelweg / fein, größere Datei"),
+  Schalter für Vorder- und Rückseite beim Einzug. Das Einstellungs-Pop-up entfällt; „Scanner
+  verwalten" (anlegen, bearbeiten, entfernen) bleibt im Pop-up.
+- **Anzeige während des Scans:** neue `ScanAnimation` – ein Blatt, über das ein Lichtbalken wandert,
+  dazu „Läuft im Hintergrund – du kannst hier weiterarbeiten". Der Scan blockiert die Oberfläche
+  nicht; das Ergebnis erscheint dank Live-Aktualisierung von selbst im Posteingang.
+  Rücksicht auf `prefers-reduced-motion`.
+- tsc sauber, Build + `pm2 restart nexus`, `/scan`, `/documents`, `/contacts`, `/` HTTP 200.

@@ -8,6 +8,9 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import SuchSelect from "@/components/SuchSelect";
 import PdfViewerModal from "@/components/PdfViewerModal";
 import { Feld } from "@/components/KontaktFeld";
+import Toggle from "@/components/Toggle";
+import ScanAnimation from "@/components/ScanAnimation";
+import { useLive } from "@/lib/live";
 
 /**
  * Scannen und Posteingang.
@@ -92,7 +95,6 @@ export default function ScanPage() {
   const [neuerScanner, setNeuerScanner] = useState("");
   const [neuerName, setNeuerName] = useState("");
   const [scannerOffen, setScannerOffen] = useState(false);
-  const [einstellungenOffen, setEinstellungenOffen] = useState(false);
   const [bearbeite, setBearbeite] = useState<{ id: string; name: string; host: string; note: string } | null>(null);
   const [scannerLoeschen, setScannerLoeschen] = useState<Geraet | null>(null);
   const [umbenennen, setUmbenennen] = useState<{ id: string; titel: string } | null>(null);
@@ -118,6 +120,11 @@ export default function ScanPage() {
   }, [geraetId]);
 
   useEffect(() => { ladeGeraete(); ladeScans(); }, [ladeGeraete, ladeScans]);
+
+  // Neue Scans und Zuordnungen erscheinen in jedem offenen Fenster
+  useLive(["ScanDocument", "EmployeeDocument"], ladeScans);
+  useLive(["Scanner"], ladeGeraete);
+  useLive(["DocumentGroup"], () => { api("/api/doc-groups").then((d) => setGruppen(d.data || [])).catch(() => {}); });
   useEffect(() => {
     api("/api/employees").then((d) => setMitarbeiter(d.data || [])).catch(() => {});
     api("/api/doc-groups").then((d) => setGruppen(d.data || [])).catch(() => {});
@@ -226,6 +233,30 @@ export default function ScanPage() {
     finally { setBusy(""); }
   }
 
+  /** Neue Rubrik anlegen – direkt aus der Auswahl heraus, danach überall nutzbar. */
+  async function rubrikAnlegen(name: string) {
+    try {
+      const g = await api("/api/doc-groups", { method: "POST", body: JSON.stringify({ name }) });
+      const d = await api("/api/doc-groups");
+      setGruppen(d.data || []);
+      setMsg(`Rubrik „${g.name}" angelegt.`);
+      return g.id as string;
+    } catch (e: any) { setMsg("Fehler: " + e.message); }
+  }
+
+  /** Bestehende Rubrik umbenennen (wirkt überall, wo sie verwendet wird). */
+  async function rubrikUmbenennen(id: string) {
+    const alt = gruppen.find((g: any) => g.id === id);
+    const name = window.prompt("Rubrik umbenennen:", alt?.name || "")?.trim();
+    if (!name || name === alt?.name) return;
+    try {
+      await api(`/api/doc-groups/${id}`, { method: "PATCH", body: JSON.stringify({ name }) });
+      const d = await api("/api/doc-groups");
+      setGruppen(d.data || []);
+      setMsg(`Rubrik heißt jetzt „${name}".`);
+    } catch (e: any) { setMsg("Fehler: " + e.message); }
+  }
+
   async function zuordnenSpeichern() {
     if (!zuordnen?.employeeId) { setMsg("Bitte einen Mitarbeiter wählen."); return; }
     setBusy("zuordnen");
@@ -274,6 +305,8 @@ export default function ScanPage() {
   }, [gefiltert]);
 
   const offeneAnzahl = scans.filter((s) => s.status === "offen").length;
+  // Auflösungsstufen des Geräts – Grundlage für den Schieberegler
+  const stufen = faehig?.resolutions?.length ? faehig.resolutions : [150, 200, 300, 600];
 
   return (
     <div>
@@ -283,7 +316,7 @@ export default function ScanPage() {
             <Icon name="printer" size={24} /> Scannen
           </h1>
           <button className="btn btn-primary" disabled={!geraetId || busy === "scan"} onClick={scannen}>
-            <Icon name="printer" /> {busy === "scan" ? "Scannt…" : "Scannen"}
+            <Icon name="printer" /> {busy === "scan" ? <span>Scannt<span className="scan-punkte" /></span> : "Scannen"}
           </button>
           <label className="btn" style={{ cursor: "pointer" }} title="Vorhandene Datei in den Posteingang legen">
             <Icon name="plus" /> <span className="btn-label">Datei</span>
@@ -299,98 +332,93 @@ export default function ScanPage() {
 
       {msg && <div className="card" style={{ padding: "8px 12px", marginBottom: 12, fontSize: 14 }}>{msg}</div>}
 
-      {/* ── Gerät: nur die Auswahl und der Zustand, alles Weitere im Pop-up ── */}
-      <div className="card" style={{ padding: 14, marginBottom: 12, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <div style={{ flex: "1 1 260px", minWidth: 0 }}>
-          <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-            <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <Icon name="printer" size={14} /> Scanner
-            </span>
-            <SuchSelect
-              value={geraetId}
-              onChange={setGeraetId}
-              platzhalter="— kein Scanner eingerichtet —"
-              suchePlatzhalter="Scanner suchen…"
-              options={geraete.map((g) => ({ value: g.id, label: g.name, hint: g.host }))}
-            />
-          </label>
-        </div>
-        <span className="muted" style={{ fontSize: 12.5, flex: "1 1 180px" }}>
-          {faehig
-            ? `${faehig.model} bereit · ${quelle === "Feeder" ? "Einzug" : "Flachbett"}, ${farbe === "RGB24" ? "Farbe" : "Graustufen"}, ${aufloesung} dpi${quelle === "Feeder" && duplex ? ", beidseitig" : ""}`
-            : geraetId ? "Scanner antwortet nicht" : "Noch kein Scanner eingerichtet"}
-        </span>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          <button className="btn" onClick={() => setEinstellungenOffen(true)} disabled={!geraetId}
-            title="Vorlage, Farbe, Auflösung">
-            <Icon name="tag" /> <span className="btn-label">Einstellungen</span>
-          </button>
+      {/* ── Gerät und Einstellungen: alles auf einen Blick, mit Schaltern statt Listen ── */}
+      <div className="card" style={{ padding: 14, marginBottom: 12, display: "grid", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ flex: "1 1 260px", minWidth: 0 }}>
+            <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
+              <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <Icon name="printer" size={14} /> Scanner
+              </span>
+              <SuchSelect
+                value={geraetId}
+                onChange={setGeraetId}
+                platzhalter="— kein Scanner eingerichtet —"
+                suchePlatzhalter="Scanner suchen…"
+                options={geraete.map((g) => ({ value: g.id, label: g.name, hint: g.host }))}
+              />
+            </label>
+          </div>
           <button className="btn" onClick={() => setScannerOffen(true)} title="Scanner hinzufügen oder ändern">
             <Icon name="command" /> <span className="btn-label">Scanner verwalten</span>
           </button>
         </div>
-      </div>
 
-      {/* ── Pop-up: Scan-Einstellungen ── */}
-      {einstellungenOffen && (
-        <div onClick={() => setEinstellungenOffen(false)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "grid", placeItems: "center", padding: 16, zIndex: 60 }}>
-          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster"
-            style={{ width: 520, maxWidth: "94vw", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
-              <h2 style={{ fontSize: 17, fontWeight: 700, flex: 1 }}>Scan-Einstellungen</h2>
-              <button className="btn btn-icon" aria-label="Schließen" onClick={() => setEinstellungenOffen(false)}>
-                <Icon name="x" />
-              </button>
-            </div>
-            <div style={{ padding: 20, display: "grid", gap: 12 }}>
-              <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                <span className="muted">Vorlage</span>
-                <SuchSelect
-                  value={quelle}
-                  onChange={(v) => setQuelle(v as "Platen" | "Feeder")}
-                  platzhalter="Quelle"
-                  options={[
-                    { value: "Platen", label: "Flachbett (Glas)" },
-                    ...(faehig?.sources?.includes("Feeder") ? [{ value: "Feeder", label: "Einzug (mehrere Seiten)" }] : []),
-                  ]}
-                />
-              </label>
-              <div className="feld-zeile feld-zeile-2">
-                <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                  <span className="muted">Farbe</span>
-                  <SuchSelect
-                    value={farbe}
-                    onChange={(v) => setFarbe(v as "RGB24" | "Grayscale8")}
-                    platzhalter="Farbe"
-                    options={[{ value: "RGB24", label: "Farbe" }, { value: "Grayscale8", label: "Graustufen" }]}
-                  />
-                </label>
-                <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                  <span className="muted">Auflösung</span>
-                  <SuchSelect
-                    value={String(aufloesung)}
-                    onChange={(v) => setAufloesung(Number(v))}
-                    platzhalter="Auflösung"
-                    options={(faehig?.resolutions || [150, 200, 300]).map((r) => ({ value: String(r), label: `${r} dpi` }))}
-                  />
-                </label>
-              </div>
-              {quelle === "Feeder" && faehig?.duplex && (
-                <label style={{ fontSize: 13.5, display: "flex", alignItems: "center", gap: 8 }}>
-                  <input type="checkbox" checked={duplex} onChange={(e) => setDuplex(e.target.checked)} />
-                  Vorder- und Rückseite einlesen
-                </label>
-              )}
-            </div>
-            <div style={{ padding: "12px 20px", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "flex-end" }}>
-              <button className="btn btn-primary" onClick={() => setEinstellungenOffen(false)}>
-                <Icon name="check" /> Übernehmen
-              </button>
-            </div>
+        <div style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "center" }}>
+          {/* Vorlage: Flachbett oder Einzug – ein Schalter statt zweier Listeneinträge */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5 }}>
+            <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <Icon name="file-text" size={14} /> Flachbett
+            </span>
+            <Toggle
+              checked={quelle === "Feeder"}
+              disabled={!faehig?.sources?.includes("Feeder")}
+              onChange={(an) => setQuelle(an ? "Feeder" : "Platen")}
+              label={<span style={{ fontSize: 13.5 }}>Einzug</span>}
+            />
           </div>
+
+          {/* Farbe oder Graustufen */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5 }}>
+            <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <Icon name="image" size={14} /> Graustufen
+            </span>
+            <Toggle
+              checked={farbe === "RGB24"}
+              onChange={(an) => setFarbe(an ? "RGB24" : "Grayscale8")}
+              label={<span style={{ fontSize: 13.5 }}>Farbe</span>}
+            />
+          </div>
+
+          {quelle === "Feeder" && faehig?.duplex && (
+            <Toggle checked={duplex} onChange={setDuplex}
+              label={<span style={{ fontSize: 13.5 }}>Vorder- und Rückseite</span>} />
+          )}
         </div>
-      )}
+
+        {/* Auflösung als Schieberegler über die Stufen, die das Gerät kann */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <span className="muted" style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6, minWidth: 96 }}>
+            <Icon name="maximize" size={14} /> Auflösung
+          </span>
+          <input
+            type="range"
+            min={0}
+            max={Math.max(0, stufen.length - 1)}
+            step={1}
+            value={Math.max(0, stufen.indexOf(aufloesung))}
+            onChange={(e) => setAufloesung(stufen[Number(e.target.value)] ?? stufen[0])}
+            style={{ flex: "1 1 220px", maxWidth: 360, accentColor: "var(--accent)" }}
+          />
+          <span style={{ fontSize: 13.5, fontVariantNumeric: "tabular-nums", minWidth: 70 }}>{aufloesung} dpi</span>
+          <span className="muted" style={{ fontSize: 12 }}>
+            {aufloesung <= 150 ? "schnell" : aufloesung >= 300 ? "fein, größere Datei" : "guter Mittelweg"}
+          </span>
+        </div>
+
+        {busy === "scan" ? (
+          <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12 }}>
+            <ScanAnimation
+              text={quelle === "Feeder" ? "Zieht die Seiten ein" : "Scannt die Vorlage"}
+              untertext="Läuft im Hintergrund – du kannst hier weiterarbeiten. Das Ergebnis erscheint gleich im Posteingang."
+            />
+          </div>
+        ) : (
+          <div className="muted" style={{ fontSize: 12.5 }}>
+            {faehig ? `${faehig.model} bereit` : geraetId ? "Scanner antwortet nicht" : "Noch kein Scanner eingerichtet"}
+          </div>
+        )}
+      </div>
 
       {/* ── Pop-up: Scanner verwalten (anlegen, ändern, entfernen) ── */}
       {scannerOffen && (
@@ -607,13 +635,29 @@ export default function ScanPage() {
               </label>
               <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
                 <span className="muted">Rubrik in der Akte</span>
-                <SuchSelect
-                  value={zuordnen.groupId}
-                  onChange={(v) => setZuordnen({ ...zuordnen, groupId: v })}
-                  platzhalter="— ohne Zuordnung —"
-                  suchePlatzhalter="Rubrik suchen…"
-                  options={gruppen.map((g: any) => ({ value: g.id, label: g.name }))}
-                />
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <SuchSelect
+                      value={zuordnen.groupId}
+                      onChange={(v) => setZuordnen({ ...zuordnen, groupId: v })}
+                      platzhalter="— ohne Zuordnung —"
+                      suchePlatzhalter="Rubrik suchen oder neue eintippen…"
+                      options={gruppen.map((g: any) => ({ value: g.id, label: g.name }))}
+                      erlaubeNeu
+                      neuText="als neue Rubrik anlegen"
+                      onNeu={rubrikAnlegen}
+                    />
+                  </div>
+                  {zuordnen.groupId && (
+                    <button className="btn btn-icon" title="Rubrik umbenennen"
+                      onClick={() => rubrikUmbenennen(zuordnen.groupId)}>
+                      <Icon name="pencil" size={14} />
+                    </button>
+                  )}
+                </div>
+                <span className="muted" style={{ fontSize: 12 }}>
+                  Neue Rubrik einfach eintippen – sie steht danach überall zur Verfügung.
+                </span>
               </label>
               <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
                 Der Scan wird als Dokument in die Akte gelegt (Dateiname nach dem üblichen Schema)

@@ -9,6 +9,7 @@ import SuchSelect from "@/components/SuchSelect";
 import { kopiere } from "@/lib/kopieren";
 import { Feld, KopierKnopf } from "@/components/KontaktFeld";
 import { entwurfSpeichern, entwurfLesen, entwurfLoeschen, seitdem } from "@/lib/entwurf";
+import { useLive } from "@/lib/live";
 
 /**
  * Kontaktregister – alle Ansprechpartner aller Apps an einer Stelle.
@@ -104,6 +105,9 @@ export default function ContactsPage() {
   }, [suche]);
 
   useEffect(() => { const t = setTimeout(laden, 200); return () => clearTimeout(t); }, [laden]);
+
+  // Änderungen aus anderen Fenstern, anderen Sitzungen oder dem Abgleich sofort übernehmen
+  useLive(["Contact", "ContactChannel", "Customer", "Supplier", "Organization"], laden);
 
   // Offenes Formular laufend sichern – geht die Sitzung verloren, ist nichts weg.
   useEffect(() => {

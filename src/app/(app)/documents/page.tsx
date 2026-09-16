@@ -6,6 +6,7 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import PdfViewerModal from "@/components/PdfViewerModal";
 import SuchSelect from "@/components/SuchSelect";
 import MitarbeiterAkte, { Gruppe } from "@/components/MitarbeiterAkte";
+import { useLive } from "@/lib/live";
 
 // ── Dokumentenablage ──
 // Links: Vorlagen (z. B. Personalfragebogen) hochladen und versionieren.
@@ -118,6 +119,11 @@ export default function DocumentsPage() {
   }, []);
 
   useEffect(() => { ladeDokumente(empId); }, [empId, ladeDokumente]);
+
+  // Änderungen an Dokumenten, Rubriken oder Vorlagen erreichen alle offenen Fenster
+  useLive(["EmployeeDocument", "ScanDocument"], () => ladeDokumente(empId));
+  useLive(["DocumentGroup"], ladeGruppen);
+  useLive(["DocumentTemplate"], ladeVorlagen);
 
   // Sprung aus der Mitarbeiterliste: /documents?employee=<id> öffnet dessen Akte direkt
   useEffect(() => {
@@ -379,8 +385,18 @@ export default function DocumentsPage() {
                 value={gruppeId}
                 onChange={setGruppeId}
                 platzhalter="— ohne Zuordnung —"
-                suchePlatzhalter="Rubrik suchen…"
+                suchePlatzhalter="Rubrik suchen oder neue eintippen…"
                 options={gruppen.map((g) => ({ value: g.id, label: g.name }))}
+                erlaubeNeu
+                neuText="als neue Rubrik anlegen"
+                onNeu={async (name: string) => {
+                  try {
+                    const g = await api("/api/doc-groups", { method: "POST", body: JSON.stringify({ name }) });
+                    setMsg(`Rubrik „${g.name}" angelegt.`);
+                    ladeGruppen();
+                    return g.id as string;
+                  } catch (e: any) { setMsg("Fehler: " + e.message); }
+                }}
               />
             </label>
 

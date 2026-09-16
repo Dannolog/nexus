@@ -1,8 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/clientApi";
 import Icon from "@/components/Icon";
+import { useLive } from "@/lib/live";
 
 const TILES = [
   { href: "/customers", label: "Kunden", key: "customers", icon: "users" },
@@ -17,9 +18,13 @@ const TILES = [
 
 export default function Dashboard() {
   const [counts, setCounts] = useState<any>(null);
-  useEffect(() => {
+  const laden = useCallback(() => {
     api("/api/health").then((d) => setCounts(d.counts)).catch(() => {});
   }, []);
+  useEffect(() => { laden(); }, [laden]);
+
+  // Zahlen aktuell halten, sobald irgendwo etwas angelegt oder gelöscht wird
+  useLive([], laden);
   return (
     <div>
       <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 10 }}>

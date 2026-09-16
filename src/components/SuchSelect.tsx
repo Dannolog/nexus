@@ -1,10 +1,14 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Icon from "@/components/Icon";
 
 // Auswahlfeld mit Suche – ersetzt <select> dort, wo Listen lang werden.
-// Desktop: Panel unter dem Feld. Handy: Blatt von unten über die volle Breite,
-// mit großer Suchleiste und fingerfreundlichen Einträgen.
+// Desktop: Die Liste hängt am Dokument (Portal) und liegt damit **über** Pop-ups –
+// sie wird nicht mehr vom Fensterrand abgeschnitten. Ist unter dem Feld zu wenig
+// Platz, klappt sie nach oben auf.
+// Handy: Blatt von unten über die volle Breite, mit großer Suchleiste.
+// Optional lassen sich neue Einträge direkt hier anlegen (`erlaubeNeu`).
 
 export type SuchOption = { value: string; label: string; hint?: string };
 
@@ -17,6 +21,9 @@ export default function SuchSelect({
   leerText = "Kein Treffer",
   disabled,
   id,
+  erlaubeNeu = false,
+  neuText = "neu anlegen",
+  onNeu,
 }: {
   value: string;
   options: SuchOption[];
@@ -26,12 +33,23 @@ export default function SuchSelect({
   leerText?: string;
   disabled?: boolean;
   id?: string;
+  /** Erlaubt, einen nicht vorhandenen Eintrag direkt anzulegen. */
+  erlaubeNeu?: boolean;
+  neuText?: string;
+  /** Legt den Eintrag an und liefert dessen Wert zurück (oder nichts bei Fehler). */
+  onNeu?: (text: string) => Promise<string | void> | string | void;
 }) {
   const [offen, setOffen] = useState(false);
   const [q, setQ] = useState("");
   const [mobil, setMobil] = useState(false);
   const wurzel = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const sucheRef = useRef<HTMLInputElement>(null);
+  // Lage der Liste: unter dem Feld – oder darüber, wenn unten zu wenig Platz ist
+  const [lage, setLage] = useState<{ top: number; left: number; breite: number; maxHoehe: number }>(
+    { top: 0, left: 0, breite: 240, maxHoehe: 320 }
+  );
+  const [legtAn, setLegtAn] = useState(false);
 
   useEffect(() => {
     const messen = () => setMobil(window.innerWidth <= 768);
@@ -40,10 +58,43 @@ export default function SuchSelect({
     return () => window.removeEventListener("resize", messen);
   }, []);
 
+  /** Liste am Feld ausrichten – notfalls nach oben, immer innerhalb des Fensters. */
+  const messenLage = useCallback(() => {
+    const feld = wurzel.current?.getBoundingClientRect();
+    if (!feld) return;
+    const platzUnten = window.innerHeight - feld.bottom - 12;
+    const platzOben = feld.top - 12;
+    const nachOben = platzUnten < 240 && platzOben > platzUnten;
+    const maxHoehe = Math.max(160, Math.min(360, nachOben ? platzOben : platzUnten));
+    const breite = Math.max(feld.width, 240);
+    const left = Math.min(Math.max(8, feld.left), Math.max(8, window.innerWidth - breite - 8));
+    setLage({
+      top: nachOben ? Math.max(8, feld.top - maxHoehe - 6) : feld.bottom + 6,
+      left,
+      breite,
+      maxHoehe,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!offen || mobil) return;
+    messenLage();
+    const beiBewegung = () => messenLage();
+    window.addEventListener("resize", beiBewegung);
+    window.addEventListener("scroll", beiBewegung, true);
+    return () => {
+      window.removeEventListener("resize", beiBewegung);
+      window.removeEventListener("scroll", beiBewegung, true);
+    };
+  }, [offen, mobil, messenLage]);
+
   useEffect(() => {
     if (!offen) return;
     const beiKlick = (e: MouseEvent) => {
-      if (!mobil && wurzel.current && !wurzel.current.contains(e.target as Node)) setOffen(false);
+      const ziel = e.target as Node;
+      const imFeld = wurzel.current?.contains(ziel);
+      const imPanel = panelRef.current?.contains(ziel);
+      if (!mobil && !imFeld && !imPanel) setOffen(false);
     };
     const beiTaste = (e: KeyboardEvent) => { if (e.key === "Escape") setOffen(false); };
     document.addEventListener("mousedown", beiKlick);
@@ -105,7 +156,24 @@ export default function SuchSelect({
             {o.value === value && <Icon name="check" size={16} />}
           </button>
         ))}
-        {treffer.length === 0 && <div className="muted" style={{ padding: "10px 4px", fontSize: 13.5 }}>{leerText}</div>}
+        {/* Nicht dabei? Dann direkt hier anlegen – der Eintrag steht danach überall zur Verfügung. */}
+        {erlaubeNeu && q.trim() && !options.some((o) => o.label.toLowerCase() === q.trim().toLowerCase()) && (
+          <button type="button" className="ss-eintrag" disabled={legtAn}
+            onClick={async () => {
+              if (!onNeu) return;
+              setLegtAn(true);
+              try {
+                const wert = await onNeu(q.trim());
+                if (typeof wert === "string" && wert) waehlen(wert);
+                else { setOffen(false); setQ(""); }
+              } finally { setLegtAn(false); }
+            }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <Icon name="plus" size={15} /> „{q.trim()}" {legtAn ? "wird angelegt…" : neuText}
+            </span>
+          </button>
+        )}
+        {treffer.length === 0 && !erlaubeNeu && <div className="muted" style={{ padding: "10px 4px", fontSize: 13.5 }}>{leerText}</div>}
       </div>
     </>
   );
@@ -119,8 +187,12 @@ export default function SuchSelect({
         <Icon name="chevron-down" size={16} />
       </button>
 
-      {offen && !mobil && (
-        <div className="card ss-panel">{liste}</div>
+      {offen && !mobil && typeof document !== "undefined" && createPortal(
+        <div ref={panelRef} className="card ss-panel"
+          style={{ top: lage.top, left: lage.left, width: lage.breite, maxHeight: lage.maxHoehe }}>
+          {liste}
+        </div>,
+        document.body,
       )}
 
       {offen && mobil && (

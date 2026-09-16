@@ -168,6 +168,16 @@ export default function MitarbeiterAkte({
     } catch (e: any) { melde("Fehler: " + e.message); }
   }
 
+  /** Rubrik direkt aus einer Auswahlliste heraus anlegen – danach überall nutzbar. */
+  async function rubrikAusAuswahl(name: string) {
+    try {
+      const g = await api("/api/doc-groups", { method: "POST", body: JSON.stringify({ name }) });
+      melde(`Rubrik „${g.name}" angelegt.`);
+      neuLadenGruppen();
+      return g.id as string;
+    } catch (e: any) { melde("Fehler: " + e.message); }
+  }
+
   const rubrikOptionen = [
     ...gruppen.map((g) => ({ value: g.id, label: g.name })),
     { value: OHNE, label: "Ohne Zuordnung" },
@@ -312,8 +322,11 @@ export default function MitarbeiterAkte({
                           value={d.groupId && gruppen.some((g) => g.id === d.groupId) ? d.groupId : OHNE}
                           onChange={(v: string) => dokumentVerschieben(d, v)}
                           platzhalter="Rubrik"
-                          suchePlatzhalter="Rubrik suchen…"
+                          suchePlatzhalter="Rubrik suchen oder neue eintippen…"
                           options={rubrikOptionen}
+                          erlaubeNeu
+                          neuText="als neue Rubrik anlegen"
+                          onNeu={rubrikAusAuswahl}
                         />
                       </div>
                       <button className="btn btn-icon btn-danger" title="Dokument entfernen" onClick={() => onLoeschen(d)}>
@@ -350,8 +363,11 @@ export default function MitarbeiterAkte({
                   value={notizEditor.groupId || OHNE}
                   onChange={(v: string) => setNotizEditor({ ...notizEditor, groupId: v === OHNE ? "" : v })}
                   platzhalter="Rubrik"
-                  suchePlatzhalter="Rubrik suchen…"
+                  suchePlatzhalter="Rubrik suchen oder neue eintippen…"
                   options={rubrikOptionen}
+                  erlaubeNeu
+                  neuText="als neue Rubrik anlegen"
+                  onNeu={rubrikAusAuswahl}
                 />
               </label>
               <label style={{ fontSize: 13, display: "grid", gap: 4 }}>

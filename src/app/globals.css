@@ -242,9 +242,12 @@ mark.treffer {
   width: 100%; text-align: left; cursor: pointer;
 }
 .ss-feld:disabled { opacity: .55; cursor: default; }
+/* Die Liste hängt am Dokument, nicht am Feld: dadurch liegt sie über Pop-ups und wird
+   nicht abgeschnitten. Lage und Höhe setzt die Komponente (unten oder oben). */
 .ss-panel {
-  position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 120;
-  padding: 10px; box-shadow: 0 14px 38px rgba(0,0,0,.28);
+  position: fixed; z-index: 200; padding: 10px; overflow: hidden;
+  display: flex; flex-direction: column;
+  box-shadow: 0 14px 38px rgba(0,0,0,.28);
 }
 .ss-eintrag {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -299,4 +302,38 @@ mark.treffer {
 @media (max-width: 430px) {
   /* Sehr schmale Geräte: Eingaben untereinander */
   .feld-zeile-2, .feld-zeile-3 { grid-template-columns: 1fr; }
+}
+
+
+/* ---- Anzeige während eines laufenden Scans ---- */
+.scan-blatt {
+  position: relative; width: 46px; height: 62px; flex-shrink: 0;
+  border: 1px solid var(--border); border-radius: 4px; background: var(--bg);
+  padding: 8px 7px; display: grid; align-content: start; gap: 5px; overflow: hidden;
+}
+.scan-blatt .scan-zeile { display: block; height: 3px; border-radius: 2px; background: var(--border); }
+.scan-blatt .scan-zeile.kurz { width: 62%; }
+/* Lichtbalken wandert über das Blatt – wie der Scankopf über die Vorlage */
+.scan-blatt .scan-licht {
+  position: absolute; left: 0; right: 0; height: 12px; top: -12px;
+  background: linear-gradient(180deg, transparent, var(--accent), transparent);
+  opacity: .85; animation: scan-lauf 1.6s ease-in-out infinite;
+}
+@keyframes scan-lauf {
+  0%   { top: -12px; }
+  50%  { top: 58px; }
+  100% { top: -12px; }
+}
+/* „Scannt…" bekommt laufende Punkte */
+.scan-punkte::after { content: ""; animation: scan-punkte 1.4s steps(4, end) infinite; }
+@keyframes scan-punkte {
+  0%   { content: ""; }
+  25%  { content: "."; }
+  50%  { content: ".."; }
+  75%  { content: "..."; }
+  100% { content: ""; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scan-blatt .scan-licht { animation-duration: 3.2s; }
+  .scan-punkte::after { animation: none; content: "…"; }
 }

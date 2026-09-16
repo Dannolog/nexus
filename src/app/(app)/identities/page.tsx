@@ -7,6 +7,7 @@ import { kopiere, erzeugePasswort } from "@/lib/kopieren";
 import SearchInput from "@/components/SearchInput";
 import Hervorheben, { sucheBegriffe } from "@/components/Hervorheben";
 import TextField from "@/components/TextField";
+import { useLive } from "@/lib/live";
 
 const APPS = ["kontor", "clocker", "cnc", "schaltplan", "projecteye", "vision"];
 
@@ -97,6 +98,9 @@ export default function IdentitiesPage() {
     setRows(d.data);
   }, []);
   useEffect(() => { load(); }, [load]);
+
+  // Zugänge, Freigaben und Anmelde-Adressen live nachziehen
+  useLive(["Identity", "IdentityAppAccess", "IdentityEmail"], load);
 
   function openNew() { setEditing(emptyForm()); }
   function openEdit(r: any) {
