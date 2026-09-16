@@ -674,3 +674,10 @@
   Der Abschnitt heißt bei Festzeit „Arbeitszeit", bei Flexzeit „Arbeitszeit und Arbeitszeitkonto";
   die Absätze zum Arbeitszeitkonto entfallen bei Festzeit vollständig.
 - Bestehende Verträge bleiben unverändert auf Flexzeit. tsc sauber, Build + Neustart, `/contracts` 200.
+- **Nachtrag: Gleitzeitrahmen.** Neue Felder `flexTimeFrom` / `flexTimeTo` – im Formular unter den
+  Arbeitszeiten das Paar **„Gleitzeit von / bis"** (Vorgabe 06:00–19:00 bei neuen Verträgen).
+  Sind beide gefüllt, erscheint im Vertrag die Klausel: „Es gilt **Gleitzeit**: Innerhalb des
+  Gleitzeitrahmens von HH:MM bis HH:MM Uhr kann der Arbeitnehmer Beginn und Ende der täglichen
+  Arbeitszeit selbst bestimmen, soweit betriebliche Belange … nicht entgegenstehen."
+  Leer lassen = keine Gleitzeitklausel. Gilt für beide Modelle (bei Festzeit bezieht sich der Satz
+  auf die festgelegte Arbeitszeit). Klauseltext für beide Fälle geprüft.

@@ -93,6 +93,8 @@ export function buildSections(form: Contract, befristet: boolean): Abschnitt[] {
   const stnd = form.salaryPeriod === "stündlich";
   // Arbeitszeitmodell: feste Zeiten oder Flexzeit mit Bandbreite und Arbeitszeitkonto
   const festzeit = form.workTimeModel === "fest";
+  // Gleitzeitrahmen nur aufnehmen, wenn beide Zeiten gepflegt sind
+  const gleitzeit = Boolean(String(form.flexTimeFrom || "").trim() && String(form.flexTimeTo || "").trim());
   const all: Abschnitt[] = [
     { t: "Beginn des Arbeitsverhältnisses, Tätigkeit und Probezeit", items: [
       { segs: [
@@ -117,6 +119,9 @@ export function buildSections(form: Contract, befristet: boolean): Abschnitt[] {
       festzeit
         ? { segs: b`Die tägliche Arbeitszeit ist auf ${`${txt(form.coreTimeFrom || "07:00")} bis ${txt(form.coreTimeTo || "16:00")} Uhr`} festgelegt. Abweichungen sind bei betrieblichem Bedarf – insbesondere bei Montage-, Service- und Auswärtseinsätzen – nach vorheriger Absprache möglich.` }
         : { segs: b`Die regelmäßige tägliche Arbeitszeit liegt im Rahmen von ${`${txt(form.coreTimeFrom || "07:00")} bis ${txt(form.coreTimeTo || "17:00")} Uhr`}. Beginn und Ende der täglichen Arbeitszeit werden innerhalb dieses Rahmens ${"nach Absprache"} zwischen Arbeitgeber und Arbeitnehmer festgelegt und können bei betrieblichem Bedarf – insbesondere bei Montage-, Service- und Auswärtseinsätzen – abweichend vereinbart werden.` },
+      ...(gleitzeit ? [
+        { segs: b`Es gilt ${"Gleitzeit"}: Innerhalb des Gleitzeitrahmens von ${`${txt(form.flexTimeFrom)} bis ${txt(form.flexTimeTo)} Uhr`} kann der Arbeitnehmer Beginn und Ende der täglichen Arbeitszeit selbst bestimmen, soweit betriebliche Belange – insbesondere Termine, Montage- und Serviceeinsätze sowie die Erreichbarkeit während der ${festzeit ? "festgelegten Arbeitszeit" : "Regelarbeitszeit"} – nicht entgegenstehen.` },
+      ] : []),
       { segs: b`Die Dauer und Lage der Pausen richten sich nach den gesetzlichen Vorgaben (Arbeitszeitgesetz) sowie der jeweils gültigen betrieblichen Regelung.` },
       ...(!festzeit && form.timeAccount !== false ? [
         { segs: b`Für den Arbeitnehmer wird ein ${"Arbeitszeitkonto"} geführt. Auf ihm werden die tatsächlich geleisteten Arbeitsstunden erfasst; Abweichungen von der vereinbarten Wochenarbeitszeit werden als Plus- oder Minusstunden fortgeschrieben. Der Arbeitnehmer ist verpflichtet, seine Arbeitszeiten arbeitstäglich vollständig und richtig zu erfassen.` },
