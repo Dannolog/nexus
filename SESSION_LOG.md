@@ -756,3 +756,6 @@
   Zeiterfassung. Flexzeit, Festzeit und Arbeitszeitkonto entfallen in dieser Vorlage.
   **Grund für die Wochenstundenangabe:** Ohne sie gelten nach § 12 Abs. 1 S. 3 TzBfG **20 Stunden
   je Woche** als vereinbart – damit wäre die Geringfügigkeitsgrenze gerissen.
+- **Minijob § 2:** Punkt 3 entfernt (Bandbreite 25 % mehr / 20 % weniger nach § 12 Abs. 2 TzBfG und
+  Vergütung der vereinbarten Zeit). Der Abschnitt hat jetzt 5 Punkte. Hinweis an Daniel: Die
+  Bandbreite gilt kraft Gesetzes weiter, sie steht nur nicht mehr im Vertragstext.
