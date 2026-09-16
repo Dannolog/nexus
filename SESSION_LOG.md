@@ -759,3 +759,17 @@
 - **Minijob § 2:** Punkt 3 entfernt (Bandbreite 25 % mehr / 20 % weniger nach § 12 Abs. 2 TzBfG und
   Vergütung der vereinbarten Zeit). Der Abschnitt hat jetzt 5 Punkte. Hinweis an Daniel: Die
   Bandbreite gilt kraft Gesetzes weiter, sie steht nur nicht mehr im Vertragstext.
+
+## 16.09.2026 (6) — Verträge in der Mitarbeiterakte ablegen (mit Ständen)
+- **Wunsch Daniel:** Erstellte Verträge sollen beim Mitarbeiter unter Dokumenten liegen – mehrere
+  möglich, mit Versionen/Ständen, wenn im Laufe der Zeit Änderungen kommen.
+- **Neuer Knopf im Vertragsformular:** „In die Akte ablegen" bzw. „In die Akte (Version N)".
+  Er erzeugt das PDF des aktuellen Standes und legt es als `EmployeeDocument` in der Akte des
+  zugeordneten Mitarbeiters ab – in der Rubrik **Arbeitsvertrag**, sofern vorhanden.
+- **Versionen je Vertrag:** Der Dokumentschlüssel ist `vertrag-<Vertragsnummer>`. Dadurch zählt
+  jeder Vertrag seine **eigene** Versionsreihe hoch (v1, v2, …); ältere Stände bleiben vollständig
+  erhalten, mehrere Verträge desselben Mitarbeiters kommen sich nicht ins Gehege. Die Notiz am
+  Dokument hält Zeitpunkt und Vertragsstatus fest.
+- **Im Formular sichtbar:** Abschnitt „In der Akte abgelegte Stände" listet alle Versionen mit
+  Zeitpunkt und Notiz, dazu ein Knopf „Akte öffnen" (`/documents?employee=…`).
+- Versionszählung mit zwei Prüfablagen getestet (v1, v2 – danach entfernt). Build + Neustart, 200.

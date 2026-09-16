@@ -4,6 +4,7 @@ import Link from "next/link";
 import { api, ConflictError } from "@/lib/clientApi";
 import Icon from "@/components/Icon";
 import VertragDokument, { A4_W, vertragsNr, type Contract } from "@/components/VertragDokument";
+import { generateVertragPdf } from "@/lib/vertragPdf";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import SuchSelect from "@/components/SuchSelect";
 
@@ -73,6 +74,9 @@ export default function ContractsPage() {
   const [deleting, setDeleting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState("");
+  // Bereits in der Mitarbeiterakte abgelegte Stände dieses Vertrags (für „Version N")
+  const [staende, setStaende] = useState<any[]>([]);
+  const [ablegen, setAblegen] = useState(false);
   // Auf dem Handy ist die A4-Vorschau stark verkleinert und damit kaum lesbar – dort
   // startet sie eingeklappt; gelesen wird der Vertrag über die PDF-Ansicht.
   const [vorschauOffen, setVorschauOffen] = useState(true);
@@ -101,6 +105,66 @@ export default function ContractsPage() {
     api("/api/employees").then((d) => setEmployees(d.data || [])).catch(() => {});
     loadContracts();
   }, [loadContracts]);
+
+  /** Welche Stände dieses Vertrags liegen schon in der Akte? */
+  const ladeStaende = useCallback(async () => {
+    if (!form.employeeId || !form.number) { setStaende([]); return; }
+    try {
+      const d = await api(`/api/employee-documents?employeeId=${form.employeeId}`);
+      const key = `vertrag-${form.number}`;
+      setStaende((d.data || []).filter((x: any) => x.templateKey === key));
+    } catch { setStaende([]); }
+  }, [form.employeeId, form.number]);
+
+  useEffect(() => { ladeStaende(); }, [ladeStaende]);
+
+  /**
+   * Aktuellen Vertragsstand als PDF in der **Akte des Mitarbeiters** ablegen.
+   * Jeder Stand ist eine eigene Version: Der Dokumentschlüssel `vertrag-<Nr>` sorgt dafür,
+   * dass die Versionen je Vertrag hochzählen und ältere Stände erhalten bleiben.
+   */
+  async function inAkteAblegen() {
+    if (!form.id) { setMsg("Bitte den Vertrag zuerst speichern."); return; }
+    if (!form.employeeId) { setMsg("Bitte zuerst einen Mitarbeiter zuordnen – der Stand wird in dessen Akte abgelegt."); return; }
+    setAblegen(true);
+    try {
+      const blob = await generateVertragPdf(form);
+      const base64: string = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(String(r.result));
+        r.onerror = () => rej(new Error("PDF konnte nicht gelesen werden"));
+        r.readAsDataURL(blob);
+      });
+
+      // Rubrik „Arbeitsvertrag" verwenden, falls vorhanden – sonst ohne Zuordnung
+      let groupId = "";
+      try {
+        const g = await api("/api/doc-groups");
+        groupId = (g.data || []).find((x: any) => /arbeitsvertrag/i.test(x.name))?.id || "";
+      } catch { /* ohne Rubrik ablegen */ }
+
+      const nr = vertragsNr(form.number);
+      const d = await api("/api/employee-documents", {
+        method: "POST",
+        body: JSON.stringify({
+          employeeId: form.employeeId,
+          groupId,
+          base64,
+          fileName: `${nr || "Arbeitsvertrag"}.pdf`,
+          title: `Arbeitsvertrag ${nr}`.trim(),
+          templateKey: `vertrag-${form.number}`,
+          fill: false,
+          note: `Stand vom ${new Date().toLocaleString("de-DE")}${form.status ? ` · Status ${form.status}` : ""}`,
+        }),
+      });
+      setMsg(`In der Akte abgelegt: ${d.fileName} (Version ${d.version}).`);
+      ladeStaende();
+    } catch (e: any) {
+      setMsg("Ablegen fehlgeschlagen: " + e.message);
+    } finally {
+      setAblegen(false);
+    }
+  }
 
   function set(k: string, v: any) {
     setForm((f) => ({ ...f, [k]: v }));
@@ -224,6 +288,16 @@ export default function ContractsPage() {
         <div className="vertrag-aktionen" style={{ display: "flex", gap: 8, marginLeft: "auto", flexWrap: "wrap" }}>
           <button className="btn btn-primary" onClick={speichern} disabled={saving}>
             <Icon name="save" /> {saving ? "Speichert…" : "Speichern"}
+          </button>
+          <button className="btn" onClick={inAkteAblegen} disabled={ablegen || !form.id}
+            title={form.employeeId
+              ? "Diesen Stand als PDF in der Mitarbeiterakte ablegen – ältere Stände bleiben als Versionen erhalten"
+              : "Erst einen Mitarbeiter zuordnen"}>
+            <Icon name="archive" />
+            <span className="nur-desktop">
+              {ablegen ? "Legt ab…" : staende.length ? `In die Akte (Version ${staende.length + 1})` : "In die Akte ablegen"}
+            </span>
+            <span className="nur-handy">Akte</span>
           </button>
           <button className="btn" onClick={pdfAnsicht} title={form.id ? "PDF-Vorschau öffnen – dort drucken oder als PDF speichern" : "Erst speichern, dann PDF-Ansicht"}>
             <Icon name="file-text" />
@@ -480,6 +554,42 @@ export default function ContractsPage() {
                 <option value="beendet">Beendet</option>
               </select>
             </Feld>
+
+            {/* Abgelegte Stände dieses Vertrags – jede Ablage ist eine eigene Version in der Akte */}
+            {form.id && form.employeeId && (
+              <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, display: "grid", gap: 6 }}>
+                <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em",
+                                                display: "flex", alignItems: "center", gap: 6 }}>
+                  <Icon name="archive" size={14} /> In der Akte abgelegte Stände
+                </div>
+                {staende.length === 0 ? (
+                  <div className="muted" style={{ fontSize: 13 }}>
+                    Noch kein Stand abgelegt. Über „In die Akte ablegen" wandert der Vertrag als PDF in die
+                    Mitarbeiterakte; jede weitere Ablage wird eine neue Version.
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gap: 4 }}>
+                    {staende
+                      .slice()
+                      .sort((a, b) => b.version - a.version)
+                      .map((d) => (
+                        <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13,
+                                                 border: "1px solid var(--border)", borderRadius: 8, padding: "5px 8px" }}>
+                          <span style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>v{d.version}</span>
+                          <span className="muted" style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {new Date(d.createdAt).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                            {d.note ? ` · ${d.note}` : ""}
+                          </span>
+                        </div>
+                      ))}
+                    <Link className="btn" style={{ justifySelf: "start", marginTop: 4 }}
+                      href={`/documents?employee=${form.employeeId}`}>
+                      <Icon name="folder" /> Akte öffnen
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
