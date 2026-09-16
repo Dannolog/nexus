@@ -731,3 +731,8 @@
   danach wird ausgedünnt. Das Skript lädt die Datenbank-Adresse selbst aus der `.env` und legt den
   Ablageort fest – geprüft mit einem Lauf aus fremdem Verzeichnis und leerer Umgebung.
 - Erste Sicherung: 3,7 MB, 1303 Datensätze. `backups/` ist in `.gitignore` (Personendaten).
+- **Nachtrag Minijob-Vertrag:** In § 3 (Geringfügige Beschäftigung) ist Punkt 6 entfernt – der Satz
+  zur Gleichstellung mit Vollzeitbeschäftigten (anteiliger Urlaub, Entgeltfortzahlung). Der
+  Abschnitt hat jetzt 5 Punkte: Einordnung und Entgeltgrenze, gelegentliches Überschreiten,
+  Anzeigepflicht weiterer Minijobs, Rentenversicherung mit Befreiungsmöglichkeit,
+  Arbeitszeitaufzeichnung nach § 17 MiLoG.
