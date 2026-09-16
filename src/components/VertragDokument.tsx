@@ -91,6 +91,8 @@ const bulletFrei = [
 // ── Modernisierter Klauselsatz für Baier Maschinen (ohne Betriebsrat) ──
 export function buildSections(form: Contract, befristet: boolean): Abschnitt[] {
   const stnd = form.salaryPeriod === "stündlich";
+  // Arbeitszeitmodell: feste Zeiten oder Flexzeit mit Bandbreite und Arbeitszeitkonto
+  const festzeit = form.workTimeModel === "fest";
   const all: Abschnitt[] = [
     { t: "Beginn des Arbeitsverhältnisses, Tätigkeit und Probezeit", items: [
       { segs: [
@@ -106,11 +108,17 @@ export function buildSections(form: Contract, befristet: boolean): Abschnitt[] {
         : { segs: b`Eine Probezeit wird nicht vereinbart.` },
       { segs: b`Eine ordentliche Kündigung vor Arbeitsantritt ist ausgeschlossen.` },
     ]},
-    { t: "Arbeitszeit und Arbeitszeitkonto", items: [
-      { segs: b`Es gilt eine flexible wöchentliche Arbeitszeit (Flexarbeitszeit) von ${`${txt(form.weekHoursMin ?? 32)} bis ${txt(form.weekHoursMax ?? 42)} Stunden`} (ohne Pausen). Der konkrete Umfang richtet sich innerhalb dieses Rahmens nach dem betrieblichen Arbeitsanfall.` },
-      { segs: b`Die regelmäßige tägliche Arbeitszeit liegt im Rahmen von ${`${txt(form.coreTimeFrom || "07:00")} bis ${txt(form.coreTimeTo || "17:00")} Uhr`}. Beginn und Ende der täglichen Arbeitszeit werden innerhalb dieses Rahmens ${"nach Absprache"} zwischen Arbeitgeber und Arbeitnehmer festgelegt und können bei betrieblichem Bedarf – insbesondere bei Montage-, Service- und Auswärtseinsätzen – abweichend vereinbart werden.` },
+    { t: festzeit ? "Arbeitszeit" : "Arbeitszeit und Arbeitszeitkonto", items: [
+      // Zwei Modelle: **Flexzeit** mit Bandbreite und Arbeitszeitkonto oder **Festzeit**
+      // mit fester Wochenstundenzahl und festen täglichen Arbeitszeiten.
+      festzeit
+        ? { segs: b`Die regelmäßige wöchentliche Arbeitszeit beträgt ${`${txt(form.weeklyHours ?? 40)} Stunden`} (ohne Pausen), verteilt auf die betriebsüblichen Arbeitstage.` }
+        : { segs: b`Es gilt eine flexible wöchentliche Arbeitszeit (Flexarbeitszeit) von ${`${txt(form.weekHoursMin ?? 32)} bis ${txt(form.weekHoursMax ?? 42)} Stunden`} (ohne Pausen). Der konkrete Umfang richtet sich innerhalb dieses Rahmens nach dem betrieblichen Arbeitsanfall.` },
+      festzeit
+        ? { segs: b`Die tägliche Arbeitszeit ist auf ${`${txt(form.coreTimeFrom || "07:00")} bis ${txt(form.coreTimeTo || "16:00")} Uhr`} festgelegt. Abweichungen sind bei betrieblichem Bedarf – insbesondere bei Montage-, Service- und Auswärtseinsätzen – nach vorheriger Absprache möglich.` }
+        : { segs: b`Die regelmäßige tägliche Arbeitszeit liegt im Rahmen von ${`${txt(form.coreTimeFrom || "07:00")} bis ${txt(form.coreTimeTo || "17:00")} Uhr`}. Beginn und Ende der täglichen Arbeitszeit werden innerhalb dieses Rahmens ${"nach Absprache"} zwischen Arbeitgeber und Arbeitnehmer festgelegt und können bei betrieblichem Bedarf – insbesondere bei Montage-, Service- und Auswärtseinsätzen – abweichend vereinbart werden.` },
       { segs: b`Die Dauer und Lage der Pausen richten sich nach den gesetzlichen Vorgaben (Arbeitszeitgesetz) sowie der jeweils gültigen betrieblichen Regelung.` },
-      ...(form.timeAccount !== false ? [
+      ...(!festzeit && form.timeAccount !== false ? [
         { segs: b`Für den Arbeitnehmer wird ein ${"Arbeitszeitkonto"} geführt. Auf ihm werden die tatsächlich geleisteten Arbeitsstunden erfasst; Abweichungen von der vereinbarten Wochenarbeitszeit werden als Plus- oder Minusstunden fortgeschrieben. Der Arbeitnehmer ist verpflichtet, seine Arbeitszeiten arbeitstäglich vollständig und richtig zu erfassen.` },
         { segs: b`Guthaben auf dem Arbeitszeitkonto werden vorrangig durch bezahlte Freizeit ausgeglichen; die Lage des Freizeitausgleichs wird zwischen Arbeitgeber und Arbeitnehmer abgestimmt. Bei Beendigung des Arbeitsverhältnisses wird ein verbleibendes Guthaben ausgezahlt, ein Minussaldo, der vom Arbeitnehmer zu vertreten ist, mit der Schlussabrechnung verrechnet.` },
       ] : []),

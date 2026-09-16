@@ -660,3 +660,17 @@
   - **Mobil im Vollbild:** Pop-ups füllen auf dem Handy den Bildschirm (`.dm-fenster`), Kopf- und
     Fußleiste bleiben dabei stehen, nur der Inhalt scrollt; Bildansicht und PDF-Betrachter randlos
     über die ganze Fläche; Knöpfe mit fingerfreundlicher Höhe, Rubrik-Köpfe brechen sauber um.
+
+## 16.09.2026 (3) — Arbeitsverträge: Flexzeit oder Festzeit
+- Neues Feld `EmploymentContract.workTimeModel` (`flex` | `fest`, Vorgabe `flex`).
+- **Im Formular** eine Auswahl „Flexzeit (Bandbreite)" / „Festzeit (feste Stunden)". Sie steuert,
+  welche Felder erscheinen:
+  - **Flexzeit:** Bandbreite von/bis (Vorgabe 32–42 h), Regelarbeitszeit von/bis, Arbeitszeitkonto.
+  - **Festzeit:** feste Wochenstunden (Vorgabe 40 h) und feste tägliche Arbeitszeit von/bis
+    (Vorgabe 07:00–16:00); Bandbreite und Arbeitszeitkonto entfallen.
+- **Im Vertragstext** (`buildSections`) erscheint je nach Modell eine andere Klausel: bei Festzeit
+  „Die regelmäßige wöchentliche Arbeitszeit beträgt X Stunden … Die tägliche Arbeitszeit ist auf
+  HH:MM bis HH:MM Uhr festgelegt", bei Flexzeit wie bisher die Bandbreite mit Absprache-Regel.
+  Der Abschnitt heißt bei Festzeit „Arbeitszeit", bei Flexzeit „Arbeitszeit und Arbeitszeitkonto";
+  die Absätze zum Arbeitszeitkonto entfallen bei Festzeit vollständig.
+- Bestehende Verträge bleiben unverändert auf Flexzeit. tsc sauber, Build + Neustart, `/contracts` 200.

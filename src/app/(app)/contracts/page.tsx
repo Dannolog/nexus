@@ -20,6 +20,7 @@ const LEER: Contract = {
   contractType: "unbefristet",
   endDate: null,
   probationMonths: 6,
+  workTimeModel: "flex",     // "flex" = Bandbreite + Arbeitszeitkonto, "fest" = feste Zeiten
   weeklyHours: 40,
   weekHoursMin: 32,
   weekHoursMax: 42,
@@ -338,36 +339,72 @@ export default function ContractsPage() {
               </Feld>
             )}
 
-            <div className="feld-zeile feld-zeile-3">
-              <Feld label="Probezeit (Monate)">
-                <input className="input" type="number" min={0} value={form.probationMonths ?? 0}
-                  onChange={(e) => set("probationMonths", e.target.value === "" ? 0 : Number(e.target.value))} />
-              </Feld>
-              <Feld label="Flexzeit von (Std.)">
-                <input className="input" type="number" min={0} step="0.5" value={form.weekHoursMin ?? 35}
-                  onChange={(e) => set("weekHoursMin", e.target.value === "" ? 0 : Number(e.target.value))} />
-              </Feld>
-              <Feld label="Flexzeit bis (Std.)">
-                <input className="input" type="number" min={0} step="0.5" value={form.weekHoursMax ?? 42}
-                  onChange={(e) => set("weekHoursMax", e.target.value === "" ? 0 : Number(e.target.value))} />
-              </Feld>
-            </div>
+            <Feld label="Probezeit (Monate)">
+              <input className="input" type="number" min={0} value={form.probationMonths ?? 0}
+                onChange={(e) => set("probationMonths", e.target.value === "" ? 0 : Number(e.target.value))} />
+            </Feld>
 
-            <div className="feld-zeile feld-zeile-3" style={{ alignItems: "end" }}>
-              <Feld label="Regelarbeitszeit von">
-                <input className="input" type="time" value={form.coreTimeFrom || "07:00"}
-                  onChange={(e) => set("coreTimeFrom", e.target.value)} />
-              </Feld>
-              <Feld label="Regelarbeitszeit bis">
-                <input className="input" type="time" value={form.coreTimeTo || "17:00"}
-                  onChange={(e) => set("coreTimeTo", e.target.value)} />
-              </Feld>
-              <label style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 8, paddingBottom: 9 }}>
-                <input type="checkbox" checked={form.timeAccount !== false}
-                  onChange={(e) => set("timeAccount", e.target.checked)} />
-                <span>Arbeitszeitkonto</span>
-              </label>
-            </div>
+            {/* Arbeitszeitmodell: entweder feste Zeiten oder Flexzeit mit Bandbreite.
+                Die Auswahl steuert sowohl die Eingabefelder als auch den Vertragstext. */}
+            <Feld label="Arbeitszeit">
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {[["flex", "Flexzeit (Bandbreite)"], ["fest", "Festzeit (feste Stunden)"]].map(([wert, text]) => {
+                  const aktiv = (form.workTimeModel || "flex") === wert;
+                  return (
+                    <button key={wert} type="button" className="btn"
+                      style={{ background: aktiv ? "var(--accent)" : undefined, color: aktiv ? "#fff" : undefined }}
+                      onClick={() => set("workTimeModel", wert)}>
+                      {text}
+                    </button>
+                  );
+                })}
+              </div>
+            </Feld>
+
+            {(form.workTimeModel || "flex") === "fest" ? (
+              <div className="feld-zeile feld-zeile-3">
+                <Feld label="Wochenstunden">
+                  <input className="input" type="number" min={0} step="0.5" value={form.weeklyHours ?? 40}
+                    onChange={(e) => set("weeklyHours", e.target.value === "" ? 0 : Number(e.target.value))} />
+                </Feld>
+                <Feld label="Arbeitszeit von">
+                  <input className="input" type="time" value={form.coreTimeFrom || "07:00"}
+                    onChange={(e) => set("coreTimeFrom", e.target.value)} />
+                </Feld>
+                <Feld label="Arbeitszeit bis">
+                  <input className="input" type="time" value={form.coreTimeTo || "16:00"}
+                    onChange={(e) => set("coreTimeTo", e.target.value)} />
+                </Feld>
+              </div>
+            ) : (
+              <>
+                <div className="feld-zeile feld-zeile-2">
+                  <Feld label="Flexzeit von (Std.)">
+                    <input className="input" type="number" min={0} step="0.5" value={form.weekHoursMin ?? 32}
+                      onChange={(e) => set("weekHoursMin", e.target.value === "" ? 0 : Number(e.target.value))} />
+                  </Feld>
+                  <Feld label="Flexzeit bis (Std.)">
+                    <input className="input" type="number" min={0} step="0.5" value={form.weekHoursMax ?? 42}
+                      onChange={(e) => set("weekHoursMax", e.target.value === "" ? 0 : Number(e.target.value))} />
+                  </Feld>
+                </div>
+                <div className="feld-zeile feld-zeile-3" style={{ alignItems: "end" }}>
+                  <Feld label="Regelarbeitszeit von">
+                    <input className="input" type="time" value={form.coreTimeFrom || "07:00"}
+                      onChange={(e) => set("coreTimeFrom", e.target.value)} />
+                  </Feld>
+                  <Feld label="Regelarbeitszeit bis">
+                    <input className="input" type="time" value={form.coreTimeTo || "17:00"}
+                      onChange={(e) => set("coreTimeTo", e.target.value)} />
+                  </Feld>
+                  <label style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 8, paddingBottom: 9 }}>
+                    <input type="checkbox" checked={form.timeAccount !== false}
+                      onChange={(e) => set("timeAccount", e.target.checked)} />
+                    <span>Arbeitszeitkonto</span>
+                  </label>
+                </div>
+              </>
+            )}
 
             <div className="feld-zeile feld-zeile-2">
               <Feld label="Bruttoentgelt (€)">

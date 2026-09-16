@@ -352,6 +352,8 @@ model EmploymentContract {
   endDate         DateTime?                              // bei Befristung
   probationMonths Int      @default(6)                   // Probezeit in Monaten (0 = keine)
   template        String   @default("vollstaendig")      // "standard" | "vollstaendig" (Klausel-Vorlage)
+  // Arbeitszeitmodell: "flex" = Bandbreite mit Arbeitszeitkonto, "fest" = feste Zeiten
+  workTimeModel   String   @default("flex")
   weeklyHours     Float    @default(40)                  // Wochenarbeitszeit (Legacy)
   weekHoursMin    Float    @default(32)                  // Flexarbeitszeit-Korridor von
   weekHoursMax    Float    @default(42)                  // Flexarbeitszeit-Korridor bis
