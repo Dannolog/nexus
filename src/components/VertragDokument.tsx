@@ -223,7 +223,12 @@ export function buildSections(form: Contract, befristet: boolean): Abschnitt[] {
   // „standard" lässt die ausführlichen Abschnitte weg. „minijob" ebenso – **außer**
   // den Arbeitsergebnissen: Nutzungsrechte an allem Erstellten gelten auch im Minijob.
   if (form.template === "standard") return all.filter((s) => !s.full);
-  if (minijob) return all.filter((s) => !s.full || s.t.startsWith("Arbeitsergebnisse"));
+  if (minijob) {
+    // Im Minijob-Vertrag bleiben Urlaub und die bezahlte Freistellung (§ 616 BGB) außen vor –
+    // ausdrücklich so gewünscht. Die gesetzlichen Ansprüche bestehen unabhängig davon weiter.
+    const raus = ["Urlaub", "Bezahlte Freistellung (§ 616 BGB)"];
+    return all.filter((s) => (!s.full || s.t.startsWith("Arbeitsergebnisse")) && !raus.includes(s.t));
+  }
   return all;
 }
 

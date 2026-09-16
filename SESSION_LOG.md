@@ -736,3 +736,9 @@
   Abschnitt hat jetzt 5 Punkte: Einordnung und Entgeltgrenze, gelegentliches Überschreiten,
   Anzeigepflicht weiterer Minijobs, Rentenversicherung mit Befreiungsmöglichkeit,
   Arbeitszeitaufzeichnung nach § 17 MiLoG.
+- **Nachtrag Minijob-Vertrag:** Die Abschnitte **Urlaub** und **Bezahlte Freistellung (§ 616 BGB)**
+  sind aus der Minijob-Vorlage entfernt (vorher § 5 und § 7). Der Vertrag hat jetzt 12 Paragrafen;
+  „Arbeitsergebnisse, Schutzrechte und Arbeitnehmererfindungen" steht dadurch als **§ 9**.
+  Gilt nur für die Vorlage „Minijob" – Standard und Vollständig bleiben unverändert.
+  **Hinweis an Daniel gegeben:** Der gesetzliche Urlaubsanspruch besteht unabhängig davon weiter;
+  nach § 2 NachwG gehört er zu den nachzuweisenden Vertragsbedingungen.
