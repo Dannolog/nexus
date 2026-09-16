@@ -227,7 +227,7 @@ export default function MitarbeiterAkte({
         const anzahl = a.dokumente.length + a.notizen.length;
         return (
           <div key={a.id} style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 10px", background: "var(--bg)", flexWrap: "wrap" }}>
+            <div className="akte-kopf" style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 10px", background: "var(--bg)", flexWrap: "wrap" }}>
               <button className="btn btn-icon" title={zugeklappt ? "Aufklappen" : "Zuklappen"}
                 onClick={() => setZu((z) => ({ ...z, [a.id]: !z[a.id] }))}>
                 <span style={{ display: "inline-flex", transform: zugeklappt ? "rotate(-90deg)" : "none", transition: "transform .15s" }}>
@@ -243,6 +243,12 @@ export default function MitarbeiterAkte({
                 <label className="btn btn-icon" style={{ cursor: "pointer" }} title="Datei in diese Rubrik hochladen">
                   <Icon name="plus" />
                   <input type="file" style={{ display: "none" }}
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) onHochladen(f, a.echt ? a.id : ""); e.target.value = ""; }} />
+                </label>
+                {/* Foto aufnehmen oder Bild aus der Galerie – auf dem Handy öffnet sich direkt die Kamera */}
+                <label className="btn btn-icon" style={{ cursor: "pointer" }} title="Foto aufnehmen oder Bild wählen">
+                  <Icon name="image" />
+                  <input type="file" accept="image/*" capture="environment" style={{ display: "none" }}
                     onChange={(e) => { const f = e.target.files?.[0]; if (f) onHochladen(f, a.echt ? a.id : ""); e.target.value = ""; }} />
                 </label>
                 <button className="btn btn-icon" title="Notiz in dieser Rubrik ablegen"
@@ -306,7 +312,7 @@ export default function MitarbeiterAkte({
                         {d.note}
                       </div>
                     )}
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                    <div className="akte-knoepfe" style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
                       <button className="btn" onClick={() => onOeffnen(d, false)} disabled={busy === "dok" + d.id}>
                         <Icon name="eye" /> Öffnen
                       </button>

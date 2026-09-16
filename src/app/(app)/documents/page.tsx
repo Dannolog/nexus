@@ -75,6 +75,7 @@ export default function DocumentsPage() {
   // Rubriken der Akte (z. B. „Krankenversicherung") – gelten für alle Mitarbeiter
   const [gruppen, setGruppen] = useState<Gruppe[]>([]);
   const [gruppeId, setGruppeId] = useState("");
+  const [vorlagenOffen, setVorlagenOffen] = useState(false);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState("");
   const [loeschen, setLoeschen] = useState<Dokument | null>(null);
@@ -288,71 +289,19 @@ export default function DocumentsPage() {
 
   return (
     <div>
-      <div className="vertrag-kopf" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+      <div className="vertrag-kopf" style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, display: "flex", alignItems: "center", gap: 10 }}>
           <Icon name="archive" size={24} /> Dokumente
         </h1>
-        <label className="btn" style={{ cursor: "pointer" }}>
-          <Icon name="plus" /> Vorlage hochladen
-          <input type="file" accept="application/pdf" style={{ display: "none" }}
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) vorlageHochladen(f); e.target.value = ""; }} />
-        </label>
+        {/* Vorlagen liegen im Untermenü – auf dem Handy bliebe sonst kein Platz für die Akte */}
+        <button className="btn" onClick={() => setVorlagenOffen(true)}>
+          <Icon name="file-text" /> Vorlagen{vorlagen.length ? ` (${vorlagen.length})` : ""}
+        </button>
       </div>
 
       {msg && <div className="card" style={{ padding: "8px 12px", marginBottom: 12, fontSize: 14 }}>{msg}</div>}
 
-      <div className="contract-grid">
-        {/* ── Vorlagen ── */}
-        <div className="card" style={{ padding: 14, display: "grid", gap: 10, alignContent: "start" }}>
-          <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em" }}>Vorlagen</div>
-          {vorlagen.length === 0 && (
-            <div className="muted" style={{ fontSize: 13 }}>
-              Noch keine Vorlage. Lade oben ein PDF hoch – Formularfelder werden automatisch erkannt.
-            </div>
-          )}
-          {vorlagen.map((v) => {
-            const felder = (() => { try { return JSON.parse(v.formFields || "[]").length; } catch { return 0; } })();
-            const zugeordnet = (() => { try { return Object.keys(JSON.parse(v.fieldMap || "{}")).length; } catch { return 0; } })();
-            return (
-              <div key={v.id} style={{
-                border: "1px solid var(--border)", borderRadius: 10, padding: 10,
-                background: v.id === vorlageId ? "var(--bg)" : "transparent",
-              }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-                  <input type="radio" name="vorlage" checked={v.id === vorlageId} onChange={() => setVorlageId(v.id)} />
-                  <span style={{ fontWeight: 600, fontSize: 14 }}>{v.name}</span>
-                  <span className="muted" style={{ fontSize: 12, marginLeft: "auto", whiteSpace: "nowrap" }}>v{v.version}</span>
-                </label>
-                <div className="muted" style={{ fontSize: 12, margin: "6px 0 8px" }}>
-                  {felder > 0 ? `${felder} Formularfelder, ${zugeordnet} automatisch befüllt` : "keine Formularfelder"}
-                  {" · "}{datum(v.updatedAt)}
-                </div>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  <button className="btn" onClick={() => vorlageAnsehen(v, !!empId)} disabled={busy === "view" + v.id}
-                    title={empId ? "Im Viewer ansehen (mit den Daten des gewählten Mitarbeiters)" : "Im Viewer ansehen"}>
-                    <Icon name="eye" /> Ansehen
-                  </button>
-                  <button className="btn" onClick={() => vorlageHerunterladen(v, false)} disabled={busy === "dl" + v.id}>
-                    <Icon name="save" /> Leer
-                  </button>
-                  <button className="btn" onClick={() => vorlageHerunterladen(v, true)} disabled={!empId || busy === "dl" + v.id}
-                    title={empId ? "Mit den Stammdaten des gewählten Mitarbeiters füllen" : "Erst Mitarbeiter wählen"}>
-                    <Icon name="save" /> Vorausgefüllt
-                  </button>
-                  <label className="btn" style={{ cursor: "pointer" }} title="Vorlage durch neue Fassung ersetzen (Version steigt)">
-                    <Icon name="redo" /> Ersetzen
-                    <input type="file" accept="application/pdf" style={{ display: "none" }}
-                      onChange={(e) => { const f = e.target.files?.[0]; if (f) vorlageHochladen(f, v); e.target.value = ""; }} />
-                  </label>
-                  <button className="btn btn-icon btn-danger" title="Vorlage entfernen" onClick={() => setVorlageLoeschen(v)}>
-                    <Icon name="trash" />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
+      <div className="dok-raster">
         {/* ── Mitarbeiter + Ablage ── */}
         <div style={{ display: "grid", gap: 16, alignContent: "start" }}>
           <div className="card" style={{ padding: 14, display: "grid", gap: 12 }}>
@@ -421,6 +370,13 @@ export default function DocumentsPage() {
                 <input type="file" style={{ display: "none" }} disabled={!empId}
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) dokumentHochladen(f); e.target.value = ""; }} />
               </label>
+              {/* Foto direkt aufnehmen – auf dem Handy öffnet sich die Kamera */}
+              <label className="btn" style={{ cursor: empId ? "pointer" : "default", opacity: empId ? 1 : .5 }}
+                title="Foto aufnehmen oder Bild aus der Galerie ablegen">
+                <Icon name="image" /> Foto / Bild
+                <input type="file" accept="image/*" capture="environment" style={{ display: "none" }} disabled={!empId}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) dokumentHochladen(f); e.target.value = ""; }} />
+              </label>
             </div>
             <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
               Dateiname wird automatisch vergeben: <b>Firma_Mitarbeiter_Dokument_Datum_Version.pdf</b><br />
@@ -447,8 +403,82 @@ export default function DocumentsPage() {
         </div>
       </div>
 
+      {/* ── Untermenü: Vorlagen ── */}
+      {vorlagenOffen && (
+        <div onClick={() => setVorlagenOffen(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "grid", placeItems: "center", padding: 16, zIndex: 60 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster"
+            style={{ width: 620, maxWidth: "94vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
+              <Icon name="file-text" size={18} />
+              <h2 style={{ fontSize: 17, fontWeight: 700, flex: 1 }}>Vorlagen</h2>
+              <label className="btn" style={{ cursor: "pointer" }}>
+                <Icon name="plus" /> <span className="btn-label">Hochladen</span>
+                <input type="file" accept="application/pdf" style={{ display: "none" }}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) vorlageHochladen(f); e.target.value = ""; }} />
+              </label>
+              <button className="btn btn-icon" aria-label="Schließen" onClick={() => setVorlagenOffen(false)}>
+                <Icon name="x" />
+              </button>
+            </div>
+            <div style={{ padding: 16, overflowY: "auto", display: "grid", gap: 10 }}>
+
+        <div className="card" style={{ padding: 14, display: "grid", gap: 10, alignContent: "start" }}>
+          <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em" }}>Vorlagen</div>
+          {vorlagen.length === 0 && (
+            <div className="muted" style={{ fontSize: 13 }}>
+              Noch keine Vorlage. Lade oben ein PDF hoch – Formularfelder werden automatisch erkannt.
+            </div>
+          )}
+          {vorlagen.map((v) => {
+            const felder = (() => { try { return JSON.parse(v.formFields || "[]").length; } catch { return 0; } })();
+            const zugeordnet = (() => { try { return Object.keys(JSON.parse(v.fieldMap || "{}")).length; } catch { return 0; } })();
+            return (
+              <div key={v.id} style={{
+                border: "1px solid var(--border)", borderRadius: 10, padding: 10,
+                background: v.id === vorlageId ? "var(--bg)" : "transparent",
+              }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                  <input type="radio" name="vorlage" checked={v.id === vorlageId} onChange={() => setVorlageId(v.id)} />
+                  <span style={{ fontWeight: 600, fontSize: 14 }}>{v.name}</span>
+                  <span className="muted" style={{ fontSize: 12, marginLeft: "auto", whiteSpace: "nowrap" }}>v{v.version}</span>
+                </label>
+                <div className="muted" style={{ fontSize: 12, margin: "6px 0 8px" }}>
+                  {felder > 0 ? `${felder} Formularfelder, ${zugeordnet} automatisch befüllt` : "keine Formularfelder"}
+                  {" · "}{datum(v.updatedAt)}
+                </div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  <button className="btn" onClick={() => vorlageAnsehen(v, !!empId)} disabled={busy === "view" + v.id}
+                    title={empId ? "Im Viewer ansehen (mit den Daten des gewählten Mitarbeiters)" : "Im Viewer ansehen"}>
+                    <Icon name="eye" /> Ansehen
+                  </button>
+                  <button className="btn" onClick={() => vorlageHerunterladen(v, false)} disabled={busy === "dl" + v.id}>
+                    <Icon name="save" /> Leer
+                  </button>
+                  <button className="btn" onClick={() => vorlageHerunterladen(v, true)} disabled={!empId || busy === "dl" + v.id}
+                    title={empId ? "Mit den Stammdaten des gewählten Mitarbeiters füllen" : "Erst Mitarbeiter wählen"}>
+                    <Icon name="save" /> Vorausgefüllt
+                  </button>
+                  <label className="btn" style={{ cursor: "pointer" }} title="Vorlage durch neue Fassung ersetzen (Version steigt)">
+                    <Icon name="redo" /> Ersetzen
+                    <input type="file" accept="application/pdf" style={{ display: "none" }}
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) vorlageHochladen(f, v); e.target.value = ""; }} />
+                  </label>
+                  <button className="btn btn-icon btn-danger" title="Vorlage entfernen" onClick={() => setVorlageLoeschen(v)}>
+                    <Icon name="trash" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {bild && (
-        <div onClick={() => { URL.revokeObjectURL(bild.url); setBild(null); }}
+        <div className="bild-fenster" onClick={() => { URL.revokeObjectURL(bild.url); setBild(null); }}
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", display: "grid", gridTemplateRows: "auto 1fr", zIndex: 70 }}>
           <div onClick={(e) => e.stopPropagation()}
             style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "var(--bg)", borderBottom: "1px solid var(--border)" }}>

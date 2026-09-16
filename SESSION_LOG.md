@@ -648,3 +648,15 @@
 - **Bewusst offen gelassen** (trägt Daniel im Formular ein): **Mitarbeiter** (keine Zuordnung durch
   mich – Datenschutz), **Stundenlohn** (0,00 als Platzhalter) und Unterschriftsdatum.
 - **Gesetzt:** Beginn **01.11.2026**, Tätigkeit **Konstrukteur/Programmierer**.
+- **Nachtrag Dokumente (Wunsch Daniel): mobiltauglich, Bilder, Vorlagen ins Untermenü.**
+  - **Vorlagen liegen jetzt im Untermenü:** Knopf „Vorlagen (n)" im Seitenkopf öffnet ein Pop-up mit
+    der kompletten Vorlagenverwaltung (Ansehen, Leer/Vorausgefüllt herunterladen, Ersetzen,
+    Entfernen, Hochladen). Die Seite selbst ist dadurch **einspaltig** (`.dok-raster`) – die
+    Mitarbeiterakte bekommt die volle Breite, auf dem Handy wie am Rechner.
+  - **Bilder hochladen:** je Rubrik in der Akte ein eigener Knopf „Foto/Bild" und zusätzlich im
+    Ablage-Bereich. `accept="image/*" capture="environment"` – auf dem Handy öffnet sich direkt die
+    Kamera. Abgelegte Bilder öffnen in der Bildansicht (der PDF-Betrachter kann nur PDFs);
+    der Dateityp kommt aus der Endung. Mit einem Prüfbild getestet (image/jpeg, danach entfernt).
+  - **Mobil im Vollbild:** Pop-ups füllen auf dem Handy den Bildschirm (`.dm-fenster`), Kopf- und
+    Fußleiste bleiben dabei stehen, nur der Inhalt scrollt; Bildansicht und PDF-Betrachter randlos
+    über die ganze Fläche; Knöpfe mit fingerfreundlicher Höhe, Rubrik-Köpfe brechen sauber um.

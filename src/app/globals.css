@@ -76,6 +76,9 @@ textarea.input { line-height: 1.5; }
    der Zoom scrollt intern statt die Spalte zu verbreitern. */
 .contract-grid > * { min-width: 0; }
 
+/* Dokumente: eine Spalte – die Vorlagen liegen im Untermenü, die Akte bekommt den Platz */
+.dok-raster { display: grid; gap: 16px; align-items: start; }
+
 /* ---- App-Shell / Responsive ---- */
 .app-shell { display: flex; height: 100vh; overflow: hidden; }
 .sidebar {
@@ -336,4 +339,22 @@ mark.treffer {
 @media (prefers-reduced-motion: reduce) {
   .scan-blatt .scan-licht { animation-duration: 3.2s; }
   .scan-punkte::after { animation: none; content: "…"; }
+}
+
+/* ---- Dokumente und Betrachter auf dem Handy ---- */
+@media (max-width: 768px) {
+  /* Pop-ups (Vorlagen, Notiz, Zuordnen …) füllen den Bildschirm – siehe .dm-fenster oben.
+     Ihre Kopf- und Fußleisten bleiben sichtbar, nur der Inhalt scrollt. */
+  .dm-fenster > :first-child { position: sticky; top: 0; z-index: 2; background: var(--card, var(--bg)); }
+  .dm-fenster > :last-child { position: sticky; bottom: 0; z-index: 2; background: var(--card, var(--bg));
+    padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+
+  /* Bildansicht und PDF-Betrachter randlos über den ganzen Bildschirm */
+  .pdf-fenster, .bild-fenster { inset: 0 !important; border-radius: 0 !important; }
+
+  /* Knopfreihen brechen sauber um und bleiben fingerfreundlich */
+  .dok-raster .btn, .akte-knoepfe .btn { min-height: 38px; }
+
+  /* In der Akte je Rubrik: Überschrift und Werkzeuge untereinander statt gequetscht */
+  .akte-kopf { align-items: flex-start !important; }
 }
