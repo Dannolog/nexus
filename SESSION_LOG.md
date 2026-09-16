@@ -748,3 +748,11 @@
   Der Minijob-Vertrag hat damit wieder 14 Paragrafen; § 11 ist „Arbeitsergebnisse, Schutzrechte und
   Arbeitnehmererfindungen". Einzige inhaltliche Änderung gegenüber dem ersten Stand bleibt der
   entfernte Punkt 6 in § 3.
+- **Minijob: Arbeitszeit auf Abruf statt fester Regelung.** § 2 ist in der Minijob-Vorlage ersetzt
+  durch **„Arbeitszeit – Arbeit auf Abruf"** (§ 12 TzBfG): Stunden fallen nach Bedarf an, dazu die
+  gesetzlich nötigen Angaben – vereinbarte Wochenstundenzahl (aus `weeklyHours`, Vorgabe 10 h),
+  Abruf bis 25 % mehr / 20 % weniger (§ 12 Abs. 2), Ankündigung mindestens vier Tage im Voraus
+  (§ 12 Abs. 3), Mindesteinsatz drei zusammenhängende Stunden (§ 12 Abs. 1 S. 4), Pausen und
+  Zeiterfassung. Flexzeit, Festzeit und Arbeitszeitkonto entfallen in dieser Vorlage.
+  **Grund für die Wochenstundenangabe:** Ohne sie gelten nach § 12 Abs. 1 S. 3 TzBfG **20 Stunden
+  je Woche** als vereinbart – damit wäre die Geringfügigkeitsgrenze gerissen.

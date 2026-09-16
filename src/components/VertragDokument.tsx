@@ -96,6 +96,21 @@ export function buildSections(form: Contract, befristet: boolean): Abschnitt[] {
   // Minijob-Vertrag: schlanker Umfang wie „standard", aber mit den Besonderheiten der
   // geringfügigen Beschäftigung – und ausdrücklich mit dem Abschnitt zu Arbeitsergebnissen.
   const minijob = form.template === "minijob";
+
+  /**
+   * Minijob: Die Stunden fallen nach Bedarf an (Arbeit auf Abruf, § 12 TzBfG).
+   * Wichtig ist die **vereinbarte Wochenstundenzahl** – fehlt sie, gelten von Gesetzes wegen
+   * 20 Stunden je Woche als vereinbart, womit der Minijob-Status verloren ginge. Ebenso
+   * geregelt: Bandbreite des Abrufs, Ankündigungsfrist und Mindestdauer je Einsatz.
+   */
+  const abrufAbschnitt: Abschnitt = { t: "Arbeitszeit – Arbeit auf Abruf", items: [
+    { segs: b`Die Arbeitsleistung wird ${"nach Bedarf"} abgerufen (Arbeit auf Abruf im Sinne des § 12 TzBfG). Der Arbeitgeber teilt dem Arbeitnehmer mit, wann die Arbeit anfällt; Lage und Verteilung der Arbeitszeit richten sich nach dem betrieblichen Arbeitsanfall.` },
+    { segs: b`Die vereinbarte wöchentliche Arbeitszeit beträgt ${`${txt(form.weeklyHours ?? 10)} Stunden`}. Sie bildet die Grundlage der Vergütung und wird im Monatsdurchschnitt abgerechnet.` },
+    { segs: b`Der Arbeitgeber kann darüber hinaus bis zu ${"25 % der vereinbarten Wochenarbeitszeit zusätzlich"} abrufen; er kann die Arbeitszeit um bis zu ${"20 % unterschreiten"} (§ 12 Abs. 2 TzBfG). Die vereinbarte Arbeitszeit wird in jedem Fall vergütet, auch wenn sie nicht abgerufen wird.` },
+    { segs: b`Der Abruf erfolgt mindestens ${"vier Tage im Voraus"}; ohne diese Ankündigung ist der Arbeitnehmer zur Arbeitsleistung nicht verpflichtet (§ 12 Abs. 3 TzBfG). Kurzfristigere Einsätze sind freiwillig und bedürfen der Zustimmung des Arbeitnehmers.` },
+    { segs: b`Wird der Arbeitnehmer abgerufen, ist er für mindestens ${"drei aufeinanderfolgende Stunden"} zu beschäftigen und zu vergüten, sofern nichts anderes ausdrücklich vereinbart ist (§ 12 Abs. 1 Satz 4 TzBfG).` },
+    { segs: b`Die Dauer und Lage der Pausen richten sich nach den gesetzlichen Vorgaben (Arbeitszeitgesetz). Der Arbeitnehmer erfasst seine Arbeitszeiten arbeitstäglich vollständig und richtig.` },
+  ]};
   // Gleitzeitklausel nur, wenn sie ausdrücklich gewählt und ein Rahmen hinterlegt ist
   const gleitzeit = form.flexTime === true
     && Boolean(String(form.flexTimeFrom || "").trim() && String(form.flexTimeTo || "").trim());
@@ -114,7 +129,7 @@ export function buildSections(form: Contract, befristet: boolean): Abschnitt[] {
         : { segs: b`Eine Probezeit wird nicht vereinbart.` },
       { segs: b`Eine ordentliche Kündigung vor Arbeitsantritt ist ausgeschlossen.` },
     ]},
-    { t: festzeit ? "Arbeitszeit" : "Arbeitszeit und Arbeitszeitkonto", items: [
+    ...(minijob ? [abrufAbschnitt] : [{ t: festzeit ? "Arbeitszeit" : "Arbeitszeit und Arbeitszeitkonto", items: [
       // Zwei Modelle: **Flexzeit** mit Bandbreite und Arbeitszeitkonto oder **Festzeit**
       // mit fester Wochenstundenzahl und festen täglichen Arbeitszeiten.
       festzeit
@@ -134,7 +149,7 @@ export function buildSections(form: Contract, befristet: boolean): Abschnitt[] {
       { segs: b`Der Arbeitnehmer ist im gesetzlich zulässigen Rahmen zur Leistung von Mehrarbeit und Überstunden verpflichtet, soweit betriebliche Erfordernisse dies notwendig machen.` },
       { segs: b`Geleistete Überstunden werden nach Wahl des Arbeitnehmers ausbezahlt oder durch Freizeit ausgeglichen („abgefeiert").` },
       { segs: b`Etwaige Zuschläge für Mehr-, Nacht-, Sonn- und Feiertagsarbeit richten sich nach den gesetzlichen sowie den jeweils geltenden betrieblichen Regelungen.` },
-    ]},
+    ]}]),
     ...(minijob ? [{ t: "Geringfügige Beschäftigung (Minijob)", items: [
       { segs: b`Das Arbeitsverhältnis wird als ${"geringfügige Beschäftigung"} im Sinne des § 8 Abs. 1 Nr. 1 SGB IV geführt. Das regelmäßige monatliche Arbeitsentgelt überschreitet die jeweils geltende Geringfügigkeitsgrenze nicht; die Arbeitszeit wird so bemessen, dass diese Grenze eingehalten wird.` },
       { segs: b`Ein gelegentliches und nicht vorhersehbares Überschreiten der Entgeltgrenze ist im gesetzlich zulässigen Rahmen unschädlich. Zeichnet sich ab, dass die Grenze dauerhaft überschritten wird, stimmen die Parteien die Arbeitszeit oder die Vergütung unverzüglich neu ab.` },
