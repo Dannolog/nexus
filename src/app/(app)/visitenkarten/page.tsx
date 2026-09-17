@@ -196,6 +196,8 @@ export default function Page() {
   const [firmen, setFirmen] = useState<typeof FIRMEN>(FIRMEN);
   const [anschrift, setAnschrift] = useState<Anschrift>(ANSCHRIFT_STANDARD);
   const [firmenOffen, setFirmenOffen] = useState(false);
+  // Das Fenster zeigt immer nur einen Bereich – sonst wird die Liste zu lang
+  const [firmenReiter, setFirmenReiter] = useState<FirmaSchluessel | "anschrift">("handel");
   // QR-Code wird aus der **aktuell eingetragenen** Webadresse erzeugt – ändert sie sich,
   // ändert sich auch der Code. Die mitgelieferten QR-Grafiken sind nur noch die Rückfallebene.
   const [qrBild, setQrBild] = useState("");
@@ -760,69 +762,99 @@ export default function Page() {
               </button>
             </div>
 
-            <div style={{ padding: 20, overflowY: "auto", display: "grid", gap: 18 }}>
-              {(["ing", "masch", "handel", "group"] as const).map((sch) => (
-                <section key={sch} style={{ display: "grid", gap: 8 }}>
-                  <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em" }}>
-                    {sch === "group" ? "Baier Group (Rückseite/Kopf)" : firmen[sch].name}
-                  </div>
-                  <div className="feld-zeile feld-zeile-2">
-                    <Feld label="Bezeichnung" icon="building" wert={firmen[sch].name}
-                      setWert={(v) => firmaAendern(sch, "name", v)} />
-                    <Feld label="Zusatz" icon="tag" wert={firmen[sch].zusatz}
-                      setWert={(v) => firmaAendern(sch, "zusatz", v)} />
-                  </div>
-                  <div className="feld-zeile feld-zeile-2">
-                    <Feld label="Webadresse" icon="command" wert={firmen[sch].web}
-                      platzhalter="z. B. baier-handel.de"
-                      setWert={(v) => firmaAendern(sch, "web", v)} />
-                    <Feld label="Standard-E-Mail" icon="mail" typ="email" wert={firmen[sch].mail}
-                      setWert={(v) => firmaAendern(sch, "mail", v)} />
-                  </div>
+            {/* Reiter: je Firma ein Bereich, dazu die Anschrift – so bleibt das Fenster kurz */}
+            <div style={{ display: "flex", gap: 6, padding: "10px 14px", borderBottom: "1px solid var(--border)",
+                          overflowX: "auto", flexShrink: 0 }}>
+              {(["handel", "ing", "masch", "group"] as const).map((sch) => {
+                const aktiv = firmenReiter === sch;
+                return (
+                  <button key={sch} className="btn" onClick={() => setFirmenReiter(sch)}
+                    style={{ whiteSpace: "nowrap", background: aktiv ? "var(--accent)" : undefined,
+                             color: aktiv ? "#fff" : undefined }}>
+                    <span style={{ width: 10, height: 10, borderRadius: 3, background: FARBEN[sch].akzent,
+                                   display: "inline-block", marginRight: 6 }} />
+                    {firmen[sch].name}
+                  </button>
+                );
+              })}
+              <button className="btn" onClick={() => setFirmenReiter("anschrift")}
+                style={{ whiteSpace: "nowrap", background: firmenReiter === "anschrift" ? "var(--accent)" : undefined,
+                         color: firmenReiter === "anschrift" ? "#fff" : undefined }}>
+                <Icon name="home" size={14} /> Anschrift
+              </button>
+            </div>
 
-                  {/* Farbwerte der Karte – Muster, Code und Kopier-Knopf */}
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                    {([["akzent", "Akzent"], ["dunkel", "Dunkel"], ["grund", "Grund"]] as const).map(([feld, text]) => (
-                      <div key={feld} style={{ display: "flex", alignItems: "center", gap: 6,
-                                               border: "1px solid var(--border)", borderRadius: 8, padding: "4px 6px 4px 4px" }}>
-                        <span style={{ width: 22, height: 22, borderRadius: 6, flexShrink: 0,
-                                       background: FARBEN[sch][feld], border: "1px solid rgba(128,128,128,.35)" }} />
-                        <span className="muted" style={{ fontSize: 12 }}>{text}</span>
-                        <code style={{ fontSize: 12.5, fontFamily: "ui-monospace, monospace" }}>{FARBEN[sch][feld]}</code>
-                        <KopierKnopf wert={FARBEN[sch][feld]} was={`${text}-Farbe`} klein />
+            <div style={{ padding: 20, overflowY: "auto", display: "grid", gap: 14 }}>
+              {firmenReiter !== "anschrift" && (() => {
+                const sch = firmenReiter as FirmaSchluessel;
+                return (
+                  <>
+                    <div className="feld-zeile feld-zeile-2">
+                      <Feld label="Bezeichnung" icon="building" wert={firmen[sch].name}
+                        setWert={(v) => firmaAendern(sch, "name", v)} />
+                      <Feld label="Zusatz" icon="tag" wert={firmen[sch].zusatz}
+                        setWert={(v) => firmaAendern(sch, "zusatz", v)} />
+                    </div>
+                    <div className="feld-zeile feld-zeile-2">
+                      <Feld label="Webadresse" icon="command" wert={firmen[sch].web}
+                        platzhalter="z. B. baier-handel.de"
+                        setWert={(v) => firmaAendern(sch, "web", v)} />
+                      <Feld label="Standard-E-Mail" icon="mail" typ="email" wert={firmen[sch].mail}
+                        setWert={(v) => firmaAendern(sch, "mail", v)} />
+                    </div>
+
+                    <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, display: "grid", gap: 8 }}>
+                      <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em",
+                                                      display: "flex", alignItems: "center", gap: 6 }}>
+                        <Icon name="image" size={14} /> Farben dieser Karte
                       </div>
-                    ))}
-                    <button className="btn" title="Alle Farbwerte dieser Firma kopieren"
-                      onClick={async () => {
-                        const ok = await kopiere(farbBlock(sch, firmen[sch].name));
-                        melden(ok ? `Farbwerte von ${firmen[sch].name} kopiert` : "Kopieren nicht möglich");
-                      }}>
-                      <Icon name="copy" size={14} /> alle
-                    </button>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                        {([["akzent", "Akzent"], ["dunkel", "Dunkel"], ["grund", "Grund"]] as const).map(([feld, text]) => (
+                          <div key={feld} style={{ display: "flex", alignItems: "center", gap: 6,
+                                                   border: "1px solid var(--border)", borderRadius: 8, padding: "4px 6px 4px 4px" }}>
+                            <span style={{ width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+                                           background: FARBEN[sch][feld], border: "1px solid rgba(128,128,128,.35)" }} />
+                            <span className="muted" style={{ fontSize: 12 }}>{text}</span>
+                            <code style={{ fontSize: 12.5, fontFamily: "ui-monospace, monospace" }}>{FARBEN[sch][feld]}</code>
+                            <KopierKnopf wert={FARBEN[sch][feld]} was={`${text}-Farbe`} klein />
+                          </div>
+                        ))}
+                        <button className="btn" title="Alle Farbwerte dieser Firma kopieren"
+                          onClick={async () => {
+                            const ok = await kopiere(farbBlock(sch, firmen[sch].name));
+                            melden(ok ? `Farbwerte von ${firmen[sch].name} kopiert` : "Kopieren nicht möglich");
+                          }}>
+                          <Icon name="copy" size={14} /> alle
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
+                      Die Webadresse der <b>Vorderseite</b> kommt aus der Firma, die bei der Person gewählt ist;
+                      die <b>Rückseite</b> zeigt alle drei Firmen und die Anschrift. Der QR-Code wird aus der
+                      jeweils eingetragenen Adresse erzeugt.
+                    </div>
+                  </>
+                );
+              })()}
+
+              {firmenReiter === "anschrift" && (
+                <>
+                  <div className="feld-zeile feld-zeile-2">
+                    <Feld label="Straße und Hausnummer" icon="home" wert={anschrift.strasse}
+                      setWert={(v) => setAnschrift({ ...anschrift, strasse: v })} />
+                    <Feld label="PLZ und Ort" icon="home" wert={anschrift.ort}
+                      setWert={(v) => setAnschrift({ ...anschrift, ort: v })} />
                   </div>
-                </section>
-              ))}
-
-              <section style={{ display: "grid", gap: 8, borderTop: "1px solid var(--border)", paddingTop: 14 }}>
-                <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em" }}>
-                  Anschrift auf der Rückseite
-                </div>
-                <div className="feld-zeile feld-zeile-2">
-                  <Feld label="Straße und Hausnummer" icon="home" wert={anschrift.strasse}
-                    setWert={(v) => setAnschrift({ ...anschrift, strasse: v })} />
-                  <Feld label="PLZ und Ort" icon="home" wert={anschrift.ort}
-                    setWert={(v) => setAnschrift({ ...anschrift, ort: v })} />
-                </div>
-                <Feld label="Schlusszeile" icon="file-text" wert={anschrift.zusatz}
-                  hinweis="Steht unter der Anschrift, z. B. Planung, Fertigung und Vertrieb aus einer Hand."
-                  setWert={(v) => setAnschrift({ ...anschrift, zusatz: v })} />
-              </section>
-
-              <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
-                Die Angaben gelten für alle Karten und werden in diesem Browser gespeichert.
-                Die Webadresse der <b>Vorderseite</b> kommt aus der Firma, die bei der Person gewählt ist;
-                die <b>Rückseite</b> zeigt alle drei Firmen und die Anschrift.
-              </div>
+                  <Feld label="Schlusszeile" icon="file-text" wert={anschrift.zusatz}
+                    hinweis="Steht unter der Anschrift, z. B. Planung, Fertigung und Vertrieb aus einer Hand."
+                    setWert={(v) => setAnschrift({ ...anschrift, zusatz: v })} />
+                  <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
+                    Diese Angaben stehen auf der <b>Rückseite</b> jeder Karte. Sie gelten für alle Firmen
+                    und werden in diesem Browser gespeichert.
+                  </div>
+                </>
+              )}
             </div>
 
             <div style={{ padding: "12px 20px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "flex-end" }}>
