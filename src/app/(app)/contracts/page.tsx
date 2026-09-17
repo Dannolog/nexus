@@ -363,11 +363,16 @@ export default function ContractsPage() {
 
           <div className="card" style={{ padding: 16, display: "grid", gap: 12 }}>
             <Feld label="Vorlage">
-              <select className="input" value={form.template || "vollstaendig"} onChange={(e) => set("template", e.target.value)}>
-                <option value="vollstaendig">Vollständig – alle rechtlichen Absicherungen</option>
-                <option value="standard">Standard – Grundvertrag</option>
-                <option value="minijob">Minijob – geringfügige Beschäftigung</option>
-              </select>
+              <SuchSelect
+                  value={form.template || "vollstaendig"}
+                  onChange={(v) => set("template", v)}
+                  platzhalter="Vorlage wählen"
+                  options={[
+                    { value: "vollstaendig", label: "Vollständig – alle rechtlichen Absicherungen" },
+                    { value: "standard", label: "Standard – Grundvertrag" },
+                    { value: "minijob", label: "Minijob – geringfügige Beschäftigung" },
+                  ]}
+                />
             </Feld>
             <Feld label="Mitarbeiter">
               <SuchSelect
@@ -403,10 +408,12 @@ export default function ContractsPage() {
                   onChange={(e) => set("startDate", e.target.value ? new Date(e.target.value).toISOString() : null)} />
               </Feld>
               <Feld label="Vertragsart">
-                <select className="input" value={form.contractType} onChange={(e) => set("contractType", e.target.value)}>
-                  <option value="unbefristet">unbefristet</option>
-                  <option value="befristet">befristet</option>
-                </select>
+                <SuchSelect
+                  value={form.contractType || "unbefristet"}
+                  onChange={(v) => set("contractType", v)}
+                  platzhalter="Art wählen"
+                  options={[{ value: "unbefristet", label: "unbefristet" }, { value: "befristet", label: "befristet" }]}
+                />
               </Feld>
             </div>
 
@@ -512,10 +519,12 @@ export default function ContractsPage() {
                   onChange={(e) => set("salary", e.target.value === "" ? 0 : Number(e.target.value))} />
               </Feld>
               <Feld label="Zahlung">
-                <select className="input" value={form.salaryPeriod} onChange={(e) => set("salaryPeriod", e.target.value)}>
-                  <option value="monatlich">monatlich</option>
-                  <option value="stündlich">stündlich</option>
-                </select>
+                <SuchSelect
+                  value={form.salaryPeriod || "stündlich"}
+                  onChange={(v) => set("salaryPeriod", v)}
+                  platzhalter="Zeitraum wählen"
+                  options={[{ value: "monatlich", label: "monatlich" }, { value: "stündlich", label: "stündlich" }]}
+                />
               </Feld>
             </div>
 
@@ -548,11 +557,16 @@ export default function ContractsPage() {
             </div>
 
             <Feld label="Status">
-              <select className="input" value={form.status || "entwurf"} onChange={(e) => set("status", e.target.value)}>
-                <option value="entwurf">Entwurf</option>
-                <option value="aktiv">Aktiv</option>
-                <option value="beendet">Beendet</option>
-              </select>
+              <SuchSelect
+                value={form.status || "entwurf"}
+                onChange={(v) => set("status", v)}
+                platzhalter="Status wählen"
+                options={[
+                  { value: "entwurf", label: "Entwurf" },
+                  { value: "aktiv", label: "Aktiv" },
+                  { value: "beendet", label: "Beendet" },
+                ]}
+              />
             </Feld>
 
             {/* Abgelegte Stände dieses Vertrags – jede Ablage ist eine eigene Version in der Akte */}

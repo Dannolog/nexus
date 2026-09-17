@@ -260,15 +260,25 @@ mark.treffer {
 }
 .ss-eintrag:hover { background: var(--bg); }
 .ss-aktiv { background: var(--bg); font-weight: 600; }
-.ss-schatten { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 140; }
-.ss-blatt {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 150;
-  border-radius: 16px 16px 0 0; padding: 14px;
-  padding-bottom: calc(14px + env(safe-area-inset-bottom));
-  box-shadow: 0 -8px 32px rgba(0,0,0,.35);
-  animation: ss-hoch .18s ease-out;
+/* Handy: Die Auswahl öffnet **im Vollbild**. Der Kopf mit Suchfeld steht oben und bleibt
+   damit über der Tastatur sichtbar; nur die Einträge darunter scrollen. Die Höhe richtet
+   sich nach der wirklich sichtbaren Fensterhöhe (visualViewport), sonst läge die Liste
+   hinter der Tastatur. */
+.ss-vollbild {
+  position: fixed; inset: 0; z-index: 210; height: 100dvh;
+  background: var(--card, var(--bg)); display: flex; flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom);
+  animation: ss-auf .14s ease-out;
 }
-@keyframes ss-hoch { from { transform: translateY(14px); opacity: .7; } to { transform: translateY(0); opacity: 1; } }
+.ss-vollbild-kopf {
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+  padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
+  border-bottom: 1px solid var(--border); background: var(--card, var(--bg));
+}
+.ss-vollbild-inhalt {
+  flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 12px 14px 14px;
+}
+@keyframes ss-auf { from { opacity: 0; transform: scale(.98); } to { opacity: 1; transform: none; } }
 @media (max-width: 768px) {
   .ss-eintrag { padding: 13px 10px; font-size: 15.5px; }
 }

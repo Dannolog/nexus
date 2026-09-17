@@ -7,6 +7,7 @@ import { kopiere, erzeugePasswort } from "@/lib/kopieren";
 import SearchInput from "@/components/SearchInput";
 import Hervorheben, { sucheBegriffe } from "@/components/Hervorheben";
 import TextField from "@/components/TextField";
+import SuchSelect from "@/components/SuchSelect";
 import { useLive } from "@/lib/live";
 
 const APPS = ["kontor", "clocker", "cnc", "schaltplan", "projecteye", "vision"];
@@ -533,10 +534,17 @@ export default function IdentitiesPage() {
                 </span>
               </label>
               <label style={{ fontSize: 13 }}>Globale Rolle
-                <select className="input" value={editing.globalRole} onChange={(e) => setEditing({ ...editing, globalRole: e.target.value })}>
-                  <option value="user">user</option>
-                  <option value="admin">admin</option>
-                </select>
+                <div style={{ marginTop: 4 }}>
+                  <SuchSelect
+                    value={editing.globalRole || "user"}
+                    onChange={(v) => setEditing({ ...editing, globalRole: v })}
+                    platzhalter="Rolle wählen"
+                    options={[
+                      { value: "user", label: "user", hint: "Zugriff nur auf freigegebene Apps" },
+                      { value: "admin", label: "admin", hint: "Zugriff auf alle Apps" },
+                    ]}
+                  />
+                </div>
               </label>
             </div>
             <h3 style={{ fontSize: 14, fontWeight: 600, margin: "18px 0 8px" }}>App-Zulassung</h3>
@@ -555,14 +563,20 @@ export default function IdentitiesPage() {
                       <Toggle checked={ac.allowed} label={a}
                         onChange={(v) => setEditing({ ...editing, access: { ...editing.access, [a]: { ...ac, allowed: v } } })} />
                     </div>
-                    <select className="input" style={{ maxWidth: 180, flex: 1 }} value={ac.role} disabled={!ac.allowed}
-                      onChange={(e) => setEditing({ ...editing, access: { ...editing.access, [a]: { ...ac, role: e.target.value } } })}>
-                      <option value="user">user</option>
-                      <option value="admin">admin</option>
-                      {ac.role && !["user", "admin"].includes(ac.role) && (
-                        <option value={ac.role}>{ac.role}</option>
-                      )}
-                    </select>
+                    <div style={{ maxWidth: 180, flex: 1 }}>
+                      <SuchSelect
+                        value={ac.role || "user"}
+                        disabled={!ac.allowed}
+                        onChange={(v) => setEditing({ ...editing, access: { ...editing.access, [a]: { ...ac, role: v } } })}
+                        platzhalter="Rolle"
+                        options={[
+                          { value: "user", label: "user" },
+                          { value: "admin", label: "admin" },
+                          // In der App vergebene Sonderrolle beibehalten, falls vorhanden
+                          ...(ac.role && !["user", "admin"].includes(ac.role) ? [{ value: ac.role, label: ac.role }] : []),
+                        ]}
+                      />
+                    </div>
                   </div>
                 );
               })}

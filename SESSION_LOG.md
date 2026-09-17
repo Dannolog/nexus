@@ -773,3 +773,22 @@
 - **Im Formular sichtbar:** Abschnitt „In der Akte abgelegte Stände" listet alle Versionen mit
   Zeitpunkt und Notiz, dazu ein Knopf „Akte öffnen" (`/documents?employee=…`).
 - Versionszählung mit zwei Prüfablagen getestet (v1, v2 – danach entfernt). Build + Neustart, 200.
+
+## 17.09.2026 — Auswahllisten: Vollbild auf dem Handy, über der Tastatur
+- **Rückmeldung Daniel:** Beim Anlegen eines Kunden auf dem Handy verschwindet das Suchfeld der
+  Auswahlliste hinter der Tastatur, Listen werden unten abgeschnitten. Gewünscht: auf dem Handy
+  **alle** Auswahllisten im Vollbild, Suchfeld immer sichtbar; am Rechner über den Fenstern und bei
+  wenig Platz nach oben bzw. unten.
+- **`SuchSelect` umgebaut:**
+  - **Handy: Vollbild** (`.ss-vollbild`, per Portal am Dokument) mit fester Kopfzeile, darunter das
+    **Suchfeld** und erst dann die scrollende Liste. Die Höhe richtet sich nach `visualViewport` –
+    die Tastatur verkleinert das Fenster, das Vollbild zieht mit, sodass Suchfeld und Treffer
+    **über** der Tastatur bleiben. Der Hintergrund scrollt nicht mit. Das alte Blatt von unten
+    (`.ss-blatt`) ist entfallen.
+  - **Rechner:** unverändert per Portal über allen Fenstern, Ausrichtung nach oben oder unten je
+    nach Platz (seit 16.09.).
+- **Einheitliche Bedienung überall:** Alle verbliebenen nativen `<select>` sind ersetzt –
+  im Ressourcen-Editor (Kunden, Projekte, Aufgaben, Artikel …), im Vertragsformular (Vorlage,
+  Vertragsart, Vergütungsart, Status), in der Userverwaltung (globale Rolle, App-Rollen) und bei
+  den Visitenkarten (Person, Firma). Damit greifen Vollbild, Suche und Platzwahl auf **allen** Seiten.
+- tsc sauber, Build + Neustart; `/customers`, `/identities`, `/contracts`, `/visitenkarten` HTTP 200.

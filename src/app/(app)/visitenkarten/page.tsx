@@ -13,6 +13,7 @@ import Icon from "@/components/Icon";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import "./visitenkarte.css";
 import { Feld } from "@/components/KontaktFeld";
+import SuchSelect from "@/components/SuchSelect";
 import QRCode from "qrcode";
 
 // ── Firmen: je Firma eigene Akzentfarbe, Webadresse und Standard-Mail ──
@@ -555,11 +556,13 @@ export default function Page() {
         <div className="feld-zeile feld-zeile-2">
           <label style={{ display: "grid", gap: 4 }}>
             <span className="muted" style={{ fontSize: 12 }}>Person</span>
-            <select className="input" value={aktiv} onChange={e => setAktiv(Number(e.target.value))}>
-              {personen.map((p, i) => (
-                <option key={p.id} value={i}>{p.name}{p.rolle ? ` – ${p.rolle}` : ""}</option>
-              ))}
-            </select>
+            <SuchSelect
+              value={String(aktiv)}
+              onChange={(v) => setAktiv(Number(v))}
+              platzhalter="Person wählen"
+              suchePlatzhalter="Name suchen…"
+              options={personen.map((p, i) => ({ value: String(i), label: p.name, hint: p.rolle || "" }))}
+            />
           </label>
           <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
             <button className="btn" onClick={neuAnlegen}>
@@ -598,13 +601,17 @@ export default function Page() {
         <div className="feld-zeile feld-zeile-2">
           <label style={{ display: "grid", gap: 4 }}>
             <span className="muted" style={{ fontSize: 12 }}>Firma auf der Vorderseite</span>
-            <select className="input" value={person.firma}
-                    onChange={e => aendern("firma", e.target.value)}>
-              <option value="handel">Baier Handel &amp; Vertrieb</option>
-              <option value="ing">IngPro Baier</option>
-              <option value="masch">Baier Maschinen</option>
-              <option value="group">Baier Group</option>
-            </select>
+            <SuchSelect
+              value={person.firma}
+              onChange={(v) => aendern("firma", v)}
+              platzhalter="Firma wählen"
+              options={[
+                { value: "handel", label: firmen.handel.name },
+                { value: "ing", label: firmen.ing.name },
+                { value: "masch", label: firmen.masch.name },
+                { value: "group", label: firmen.group.name },
+              ]}
+            />
           </label>
           <label style={{ display: "grid", gap: 4 }}>
             <span className="muted" style={{ fontSize: 12 }}>Ort</span>

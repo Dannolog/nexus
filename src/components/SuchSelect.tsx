@@ -50,6 +50,33 @@ export default function SuchSelect({
     { top: 0, left: 0, breite: 240, maxHoehe: 320 }
   );
   const [legtAn, setLegtAn] = useState(false);
+  // Auf dem Handy schiebt die Tastatur das Fenster zusammen. `visualViewport` liefert die
+  // wirklich sichtbare Höhe – daran richtet sich das Vollbild aus, damit Suchfeld und Liste
+  // **über** der Tastatur bleiben und nicht dahinter verschwinden.
+  const [sichtHoehe, setSichtHoehe] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!offen || !mobil) return;
+    const vv = window.visualViewport;
+    const messen = () => setSichtHoehe(vv ? vv.height : window.innerHeight);
+    messen();
+    vv?.addEventListener("resize", messen);
+    vv?.addEventListener("scroll", messen);
+    window.addEventListener("resize", messen);
+    return () => {
+      vv?.removeEventListener("resize", messen);
+      vv?.removeEventListener("scroll", messen);
+      window.removeEventListener("resize", messen);
+    };
+  }, [offen, mobil]);
+
+  // Hintergrund nicht mitscrollen lassen, solange die Auswahl offen ist
+  useEffect(() => {
+    if (!offen || !mobil) return;
+    const vorher = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = vorher; };
+  }, [offen, mobil]);
 
   useEffect(() => {
     const messen = () => setMobil(window.innerWidth <= 768);
@@ -122,7 +149,7 @@ export default function SuchSelect({
 
   const liste = (
     <>
-      <div style={{ position: "relative", marginBottom: 8 }}>
+      <div style={{ position: "relative", marginBottom: 8, flexShrink: 0 }}>
         <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", opacity: .6, pointerEvents: "none", display: "flex" }}>
           <Icon name="search" size={16} />
         </span>
@@ -141,7 +168,8 @@ export default function SuchSelect({
           </button>
         )}
       </div>
-      <div style={{ overflowY: "auto", maxHeight: mobil ? "52vh" : 280, display: "grid", gap: 2 }}>
+      <div style={{ overflowY: "auto", flex: 1, minHeight: 0, maxHeight: mobil ? undefined : 280,
+                    display: "grid", gap: 2, alignContent: "start" }}>
         <button type="button" className="ss-eintrag" onClick={() => waehlen("")}
           style={{ opacity: .75, fontStyle: value ? "normal" : "italic" }}>
           {platzhalter}
@@ -195,19 +223,21 @@ export default function SuchSelect({
         document.body,
       )}
 
-      {offen && mobil && (
-        <>
-          <div className="ss-schatten" onClick={() => setOffen(false)} />
-          <div className="card ss-blatt">
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-              <span style={{ fontWeight: 700, fontSize: 15 }}>Auswählen</span>
-              <button className="btn btn-icon" style={{ marginLeft: "auto" }} onClick={() => setOffen(false)} aria-label="Schließen">
-                <Icon name="x" />
-              </button>
-            </div>
-            {liste}
+      {offen && mobil && typeof document !== "undefined" && createPortal(
+        <div ref={panelRef} className="ss-vollbild"
+             style={sichtHoehe ? { height: sichtHoehe } : undefined}>
+          <div className="ss-vollbild-kopf">
+            <span style={{ fontWeight: 700, fontSize: 16, flex: 1, minWidth: 0,
+                           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {platzhalter.replace(/^—\s*|\s*—$/g, "") || "Auswählen"}
+            </span>
+            <button className="btn btn-icon" onClick={() => setOffen(false)} aria-label="Schließen">
+              <Icon name="x" />
+            </button>
           </div>
-        </>
+          <div className="ss-vollbild-inhalt">{liste}</div>
+        </div>,
+        document.body,
       )}
     </div>
   );

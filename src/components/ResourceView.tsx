@@ -12,6 +12,7 @@ import Icon from "@/components/Icon";
 import ColorPicker from "@/components/ColorPicker";
 import { spaltenIcon } from "@/lib/spaltenIcons";
 import { useLive } from "@/lib/live";
+import SuchSelect from "@/components/SuchSelect";
 import TextField from "@/components/TextField";
 
 const LOGO_RESOURCES = ["customers", "organizations"];
@@ -372,9 +373,15 @@ function EditModal({ resourceKey, hasLogo, initial, onClose, onSave }: {
     ) : f.type === "checkbox" ? (
       <div style={{ marginTop: 6 }}><Toggle checked={!!form[f.key]} onChange={(v) => set(f.key, v)} /></div>
     ) : f.type === "select" ? (
-      <select className="input" value={form[f.key] ?? ""} onChange={(e) => set(f.key, e.target.value)}>
-        {(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
-      </select>
+      // Kein natives Auswahlfeld: SuchSelect öffnet auf dem Handy im Vollbild und am
+      // Rechner über dem Fenster – dadurch überall dieselbe Bedienung.
+      <SuchSelect
+        value={form[f.key] ?? ""}
+        onChange={(v) => set(f.key, v)}
+        platzhalter={`— ${f.label} wählen —`}
+        suchePlatzhalter={`${f.label} suchen…`}
+        options={(f.options || []).map((o) => ({ value: o, label: o }))}
+      />
     ) : f.type === "color" ? (
       <ColorPicker value={form[f.key] ?? "#3b82f6"} onChange={(v) => set(f.key, v)} />
     ) : f.type === "date" ? (
