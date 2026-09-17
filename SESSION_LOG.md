@@ -792,3 +792,8 @@
   Vertragsart, Vergütungsart, Status), in der Userverwaltung (globale Rolle, App-Rollen) und bei
   den Visitenkarten (Person, Firma). Damit greifen Vollbild, Suche und Platzwahl auf **allen** Seiten.
 - tsc sauber, Build + Neustart; `/customers`, `/identities`, `/contracts`, `/visitenkarten` HTTP 200.
+- **Visitenkarten: Firmenfarben zum Kopieren.** Im Bereich „Firmenangaben" steht bei jeder Firma
+  jetzt eine Farbzeile mit **Muster, Hex-Code und Kopier-Knopf** für Akzent, Dunkel und Grund,
+  dazu ein Knopf „alle", der alle drei Werte samt Firmenname als Textblock kopiert.
+  Werte wie in `visitenkarte.css`: Handel #8fa383 / #5f6f56, IngPro #e0a534 / #9d6708,
+  Maschinen #3b82f6 / #0047b3, Group #c3cad6 / #6f7885, Grund jeweils #0a0a0b.

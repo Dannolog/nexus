@@ -12,8 +12,9 @@ import { createPortal } from "react-dom";
 import Icon from "@/components/Icon";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import "./visitenkarte.css";
-import { Feld } from "@/components/KontaktFeld";
+import { Feld, KopierKnopf } from "@/components/KontaktFeld";
 import SuchSelect from "@/components/SuchSelect";
+import { kopiere } from "@/lib/kopieren";
 import QRCode from "qrcode";
 
 // ── Firmen: je Firma eigene Akzentfarbe, Webadresse und Standard-Mail ──
@@ -38,6 +39,24 @@ type Person = {
   /** Eigene Webadresse nur für diese Karte – leer bedeutet: die der Firma. */
   web?: string;
 };
+
+/**
+ * Farben der Karten je Firma – dieselben Werte wie in `visitenkarte.css`.
+ * Werden im Bereich „Firmenangaben" zum Kopieren ausgegeben, damit sie in anderen
+ * Anwendungen (Druckerei, Website, Office) ohne Nachschlagen verwendet werden können.
+ */
+const FARBEN: Record<FirmaSchluessel, { akzent: string; dunkel: string; grund: string }> = {
+  handel: { akzent: "#8fa383", dunkel: "#5f6f56", grund: "#0a0a0b" },
+  ing:    { akzent: "#e0a534", dunkel: "#9d6708", grund: "#0a0a0b" },
+  masch:  { akzent: "#3b82f6", dunkel: "#0047b3", grund: "#0a0a0b" },
+  group:  { akzent: "#c3cad6", dunkel: "#6f7885", grund: "#0a0a0b" },
+};
+
+/** Farbwerte einer Firma als Textblock – praktisch zum Weitergeben. */
+function farbBlock(sch: FirmaSchluessel, name: string) {
+  const f = FARBEN[sch];
+  return [`${name}`, `Akzent:  ${f.akzent}`, `Dunkel:  ${f.dunkel}`, `Grund:   ${f.grund}`].join("\n");
+}
 
 const SPEICHER = "nexus-visitenkarten";
 const SPEICHER_FIRMEN = "nexus-visitenkarten-firmen";
@@ -759,6 +778,27 @@ export default function Page() {
                       setWert={(v) => firmaAendern(sch, "web", v)} />
                     <Feld label="Standard-E-Mail" icon="mail" typ="email" wert={firmen[sch].mail}
                       setWert={(v) => firmaAendern(sch, "mail", v)} />
+                  </div>
+
+                  {/* Farbwerte der Karte – Muster, Code und Kopier-Knopf */}
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    {([["akzent", "Akzent"], ["dunkel", "Dunkel"], ["grund", "Grund"]] as const).map(([feld, text]) => (
+                      <div key={feld} style={{ display: "flex", alignItems: "center", gap: 6,
+                                               border: "1px solid var(--border)", borderRadius: 8, padding: "4px 6px 4px 4px" }}>
+                        <span style={{ width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+                                       background: FARBEN[sch][feld], border: "1px solid rgba(128,128,128,.35)" }} />
+                        <span className="muted" style={{ fontSize: 12 }}>{text}</span>
+                        <code style={{ fontSize: 12.5, fontFamily: "ui-monospace, monospace" }}>{FARBEN[sch][feld]}</code>
+                        <KopierKnopf wert={FARBEN[sch][feld]} was={`${text}-Farbe`} klein />
+                      </div>
+                    ))}
+                    <button className="btn" title="Alle Farbwerte dieser Firma kopieren"
+                      onClick={async () => {
+                        const ok = await kopiere(farbBlock(sch, firmen[sch].name));
+                        melden(ok ? `Farbwerte von ${firmen[sch].name} kopiert` : "Kopieren nicht möglich");
+                      }}>
+                      <Icon name="copy" size={14} /> alle
+                    </button>
                   </div>
                 </section>
               ))}
