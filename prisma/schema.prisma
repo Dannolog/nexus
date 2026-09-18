@@ -447,7 +447,33 @@ model ScanDocument {
   @@index([sha256])
 }
 
-// ---- Ablage-Gruppe (Rubrik in der Mitarbeiterakte, z. B. „Krankenversicherung") ----
+// ---- Dokument eines Mandanten (Betriebsakte, z. B. Finanzamt, Versicherungen) ----
+// Aufbau wie EmployeeDocument – nur hängt es an einer Organisation statt an einer Person.
+model OrganizationDocument {
+  id        String   @id @default(cuid())
+  orgId     String
+  groupId   String   @default("")              // Rubrik (DocumentGroup)
+  title     String   @default("")
+  fileName  String
+  mimeType  String   @default("application/pdf")
+  data      Bytes
+  size      Int      @default(0)
+  sha256    String   @default("")
+  version   Int      @default(1)               // laufende Version je Mandant + Dokumentart
+  docKey    String   @default("dokument")      // Dokumentart – Grundlage der Versionsreihe
+  documentDate DateTime?                       // Datum des Schriftstücks (für den Zeitstrahl)
+  note      String   @default("") @db.Text
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orgId])
+  @@index([groupId])
+  @@index([docKey])
+  @@index([documentDate])
+}
+
+// ---- Ablage-Gruppe (Rubrik in der Mitarbeiter- **und** Betriebsakte, z. B. „Finanzamt") ----
 // Gilt für alle Mitarbeiter gleich: einmal anlegen, überall nutzbar.
 model DocumentGroup {
   id        String   @id @default(cuid())

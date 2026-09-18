@@ -21,6 +21,7 @@ const NAV = [
   { href: "/documents", label: "Dokumente", icon: "archive" },
   { href: "/scan", label: "Scannen", icon: "printer" },
   { href: "/organizations", label: "Mandanten", icon: "building" },
+  { href: "/betriebsakte", label: "Betriebsakte", icon: "folder" },
   { href: "/identities", label: "Userverwaltung", icon: "shield" },
   { href: "/backups", label: "Datensicherung", icon: "archive" },
   { href: "/history", label: "Verlauf", icon: "history" },

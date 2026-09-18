@@ -226,6 +226,10 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
                 ))}
                 <td onClick={(e) => e.stopPropagation()} style={{ padding: "8px 12px", whiteSpace: "nowrap", display: "flex", gap: 6 }}>
                   <button className="btn btn-icon" title="Bearbeiten" aria-label="Bearbeiten" onClick={() => setEditing({ ...row })}><Icon name="pencil" /></button>
+                  {resourceKey === "organizations" && (
+                    <Link className="btn btn-icon" title="Betriebsakte: Dokumente dieses Mandanten"
+                      aria-label="Betriebsakte" href={`/betriebsakte?org=${row.id}`}><Icon name="folder" /></Link>
+                  )}
                   {resourceKey === "employees" && (
                     <>
                       <Link className="btn btn-icon" title="Akte: Dokumente und Notizen" aria-label="Akte: Dokumente und Notizen" href={`/documents?employee=${row.id}`}><Icon name="folder" /></Link>
@@ -276,6 +280,10 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
             </div>
             <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 8, justifyContent: "flex-end", borderTop: "1px solid var(--border)", paddingTop: 10 }}>
               <button className="btn btn-icon" title="Bearbeiten" aria-label="Bearbeiten" onClick={() => setEditing({ ...row })}><Icon name="pencil" /></button>
+              {resourceKey === "organizations" && (
+                <Link className="btn btn-icon" title="Betriebsakte: Dokumente dieses Mandanten"
+                  aria-label="Betriebsakte" href={`/betriebsakte?org=${row.id}`}><Icon name="folder" /></Link>
+              )}
               {resourceKey === "employees" && (
                 <>
                   <Link className="btn btn-icon" title="Akte: Dokumente und Notizen" aria-label="Akte: Dokumente und Notizen" href={`/documents?employee=${row.id}`}><Icon name="folder" /></Link>

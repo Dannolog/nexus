@@ -802,3 +802,25 @@
   Reiter „Anschrift". Sichtbar ist immer nur ein Bereich: Bezeichnung und Zusatz, darunter
   Webadresse und E-Mail, dann die Farbwerte mit Kopier-Knöpfen. Die Erläuterung steht knapp am
   Ende des jeweiligen Bereichs statt gesammelt am Fensterende. Kein langes Scrollen mehr.
+
+## 18.09.2026 — Betriebsakte: Dokumente je Mandant mit Rubriken und Zeitstrahl
+- **Wunsch Daniel:** Dokumente bei jedem Mandanten für den Betrieb ablegen, in Gruppen
+  (z. B. Finanzamt), mit Zeitstrahl-Verlauf.
+- **Datenmodell:** neues `OrganizationDocument` (orgId, groupId, Titel, Datei, Prüfsumme,
+  **Version je Dokumentart** über `docKey`, **`documentDate`** als Datum des Schriftstücks,
+  Notiz). Live-Trigger gesetzt, damit alle offenen Fenster mitziehen.
+- **Rubriken** sind dieselben wie in der Mitarbeiterakte (`DocumentGroup`) – neue lassen sich
+  direkt in der Auswahl eintippen („Finanzamt" ist angelegt) und stehen dann überall zur Verfügung.
+- **API:** `/api/organization-documents` (GET nach Mandant, POST mit automatischer Versionszählung),
+  `/api/organization-documents/[id]` (Titel, Datum, Rubrik, Notiz ändern; weich löschen),
+  `…/[id]/file` (Ansehen/Herunterladen).
+- **Seite `/betriebsakte`** mit zwei Ansichten:
+  - **Rubriken** – aufklappbare Abschnitte je Rubrik, Ablage direkt in die jeweilige Rubrik.
+  - **Zeitstrahl** – nach Monat gruppiert mit senkrechter Linie und Punkt je Dokument, neueste
+    zuerst; maßgeblich ist das Datum des Schriftstücks, nicht der Zeitpunkt des Hochladens.
+  Dazu Mehrfachsuche über Titel, Dateiname und Notiz, Ablage per Datei oder **Foto/Kamera**,
+  Bearbeiten (Titel, Datum, Rubrik, Notiz), Öffnen im PDF-Betrachter bzw. in der Bildansicht.
+- **Sprung aus der Mandantenliste:** Ordner-Symbol je Zeile/Karte → `/betriebsakte?org=<id>`;
+  außerdem in Navigation und Befehlspalette eingetragen.
+- Geprüft: zwei Stände desselben Schriftstücks (03/2025 und 03/2026) landen korrekt als v1/v2 und
+  erscheinen im Zeitstrahl in der richtigen Reihenfolge; Prüfdaten danach entfernt.
