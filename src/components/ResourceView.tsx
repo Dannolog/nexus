@@ -152,7 +152,10 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
           <h1 style={{ fontSize: 24, fontWeight: 700, display: "flex", alignItems: "center", gap: 10 }}>
             <Icon name={R.icon} size={24} /> {R.title}
           </h1>
-          <button className="btn btn-primary" onClick={() => setEditing({})}><Icon name="plus" /> Neu</button>
+          {/* Hauptaktion steht immer rechts – am Rechner wie auf dem Handy */}
+          <button className="btn btn-primary" style={{ marginLeft: "auto" }} onClick={() => setEditing({})}>
+            <Icon name="plus" /> Neu
+          </button>
         </div>
         {/* Suchfeld linksbündig direkt über der Liste – dort wird es gesucht, nicht am rechten Rand. */}
         <SearchInput value={search} onChange={setSearch} style={{ width: "100%", maxWidth: 320 }} />

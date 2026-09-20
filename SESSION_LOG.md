@@ -850,3 +850,6 @@
 - **Datenschutz verschärft:** Vorgabe Daniel „keine Daten lesen, das ist nicht zugelassen" ist in
   `nexus-datenschutz-ids` festgehalten: keine Inhalte lesen oder ausgeben, Prüfungen nur mit
   Zählern oder Testdaten, keine Klartextwerte in Logs.
+- **Nachtrag:** Der „Neu"-Knopf steht in allen Listen (Mitarbeiter, Kunden, Lieferanten …) jetzt
+  **auch am Rechner oben rechts** – vorher nur auf dem Handy. Die Regel „Hauptaktion rechts" gilt
+  damit einheitlich auf allen Bildschirmgrößen.
