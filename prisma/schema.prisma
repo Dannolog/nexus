@@ -152,7 +152,10 @@ model Task {
 // ---- Mitarbeiter (HR-Kern; Lohn bleibt in clocker) ----
 model Employee {
   id             String  @id @default(cuid())
+  // Anzeigename – wird aus Vor- und Nachname gebildet und bleibt die Grundlage der Abgleiche
   name           String
+  firstName      String  @default("")
+  lastName       String  @default("")
   email          String  @default("")
   employeeNumber String  @default("")
   // Stammdaten für Personalunterlagen (Vorausfüllen von Formularen)

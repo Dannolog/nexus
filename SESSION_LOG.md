@@ -824,3 +824,29 @@
   außerdem in Navigation und Befehlspalette eingetragen.
 - Geprüft: zwei Stände desselben Schriftstücks (03/2025 und 03/2026) landen korrekt als v1/v2 und
   erscheinen im Zeitstrahl in der richtigen Reihenfolge; Prüfdaten danach entfernt.
+
+## 20.09.2026 — Bedienung: Menü, Abmelden, Formulare, Sortierung
+- **Menü:** Am Rechner per **Ziehgriff** am rechten Rand breiter/schmaler (180–460 px), die Breite
+  merkt sich der Browser (`nexus-menue-breite`, CSS-Variable `--sidebar-breite`). Auf dem Handy ist
+  das Menü jetzt **`min(86vw, 340px)`** breit statt 220 px, mit Rücksicht auf die Safe-Area.
+- **Abmelden:** eigenes Fenster mit Rückfrage („Bleiben" / „Abmelden") statt sofortigem Rauswurf;
+  auf dem Handy unten angedockt mit großen Knöpfen.
+- **Beschriftungen mit Symbol:** Im Ressourcen-Editor tragen alle Feld-Labels ein Symbol
+  (neuer Baustein `FeldLabel`, Zuordnung über `spaltenIcon` – dieselbe wie in den Tabellenköpfen).
+- **Mitarbeiter mit Vor- und Nachname:** `Employee.firstName` / `lastName` ergänzt, im Formular
+  zwei getrennte Felder. Der Anzeigename `name` entsteht serverseitig daraus (`zieheNamenZusammen`
+  in `revision.ts`) und bleibt Grundlage der Abgleiche mit clocker und kontor. Bestand nachgezogen:
+  35 von 35 Datensätzen ergänzt (ohne Anzeige von Inhalten).
+- **Mitarbeiter alphabetisch:** `ENTITIES` kennt jetzt `orderBy`; für Mitarbeiter nach Nachname,
+  dann Vorname. Wirkt in der Liste und in allen Auswahlfeldern.
+- **Farbwahl im Vollbild:** `ColorPicker` öffnet per Portal – auf dem Handy bildschirmfüllend mit
+  großem Farbfeld, am Rechner als Fenster über allem.
+- **Pop-up-Knöpfe auf dem Handy:** Fußzeile über die ganze Breite, **abbrechen links, bestätigen
+  rechts**, Mindesthöhe 46 px. Hauptaktion („Neu", „Speichern") auf dem Handy rechts ausgerichtet.
+- **Gestaltungsregeln festgehalten:** neue Notiz `nexus-ui-standards` – gilt ab jetzt für **jede**
+  neue Seite (Symbole an Labels, Kreuz und Kopier-Knopf, kein natives `<select>`, Vollbild-Auswahl
+  auf dem Handy, Popup-Knöpfe unten, Mehrfachsuche, getrennte Namen, Live-Aktualisierung,
+  Entwurfsschutz).
+- **Datenschutz verschärft:** Vorgabe Daniel „keine Daten lesen, das ist nicht zugelassen" ist in
+  `nexus-datenschutz-ids` festgehalten: keine Inhalte lesen oder ausgeben, Prüfungen nur mit
+  Zählern oder Testdaten, keine Klartextwerte in Logs.

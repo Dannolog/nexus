@@ -1,4 +1,6 @@
 "use client";
+import { createPortal } from "react-dom";
+import Icon from "@/components/Icon";
 import { useState, useRef, useEffect } from "react";
 
 const PRESETS = [
@@ -89,8 +91,16 @@ export default function ColorPicker({ value, onChange }: { value: string; onChan
         <span style={{ flex: 1, textAlign: "left", fontVariantNumeric: "tabular-nums" }}>{color.toUpperCase()}</span>
       </button>
 
-      {open && (
-        <div className="card" style={{ position: "absolute", zIndex: 40, top: "calc(100% + 6px)", left: 0, padding: 12, width: 232, boxShadow: "0 14px 36px rgba(0,0,0,.32)" }}>
+      {open && typeof document !== "undefined" && createPortal(
+        <div className="farbwahl-huelle" onClick={() => setOpen(false)}>
+        <div className="card farbwahl" onClick={(e) => e.stopPropagation()}
+          style={{ boxShadow: "0 14px 36px rgba(0,0,0,.32)" }}>
+          <div className="farbwahl-kopf">
+            <span style={{ fontWeight: 700, fontSize: 15, flex: 1 }}>Farbe wählen</span>
+            <button type="button" className="btn btn-icon" aria-label="Schließen" onClick={() => setOpen(false)}>
+              <Icon name="x" />
+            </button>
+          </div>
           {/* SV-Feld */}
           <div
             ref={svRef}
@@ -143,6 +153,8 @@ export default function ColorPicker({ value, onChange }: { value: string; onChan
             ))}
           </div>
         </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

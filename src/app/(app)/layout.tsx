@@ -32,6 +32,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [ready, setReady] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  // Breite der Seitenleiste am Rechner – per Ziehgriff verstellbar und gemerkt
+  const [breite, setBreite] = useState(220);
+  const [zieht, setZieht] = useState(false);
+  const [abmeldenFrage, setAbmeldenFrage] = useState(false);
   const [updateVerfuegbar, setUpdateVerfuegbar] = useState(false);
   const buildIdRef = useRef<string | null>(null);
   const pathname = usePathname();
@@ -49,6 +53,41 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   // Mobiles Menü bei Seitenwechsel schließen
   useEffect(() => { setMenuOpen(false); }, [pathname]);
+
+  // Gemerkte Menübreite übernehmen
+  useEffect(() => {
+    const gespeichert = Number(localStorage.getItem("nexus-menue-breite"));
+    if (gespeichert >= 180 && gespeichert <= 460) setBreite(gespeichert);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty("--sidebar-breite", `${breite}px`);
+  }, [breite]);
+
+  /** Ziehgriff: Breite folgt dem Zeiger, Grenzen 180–460 px. */
+  function griffStart(e: React.PointerEvent) {
+    e.preventDefault();
+    setZieht(true);
+    document.body.classList.add("sidebar-zieht");
+    const bewegen = (ev: PointerEvent) => {
+      const neu = Math.min(460, Math.max(180, ev.clientX));
+      setBreite(neu);
+    };
+    const ende = () => {
+      document.body.classList.remove("sidebar-zieht");
+      setZieht(false);
+      window.removeEventListener("pointermove", bewegen);
+      window.removeEventListener("pointerup", ende);
+      setBreite((b) => { localStorage.setItem("nexus-menue-breite", String(b)); return b; });
+    };
+    window.addEventListener("pointermove", bewegen);
+    window.addEventListener("pointerup", ende);
+  }
+
+  function abmelden() {
+    clearSession();
+    window.location.href = "/login";
+  }
 
   // Neue App-Version erkennen: Build-Kennung regelmäßig abfragen; ändert sie sich,
   // wurde neu ausgerollt → Hinweisleiste mit „Neu laden" (wie in kontor/ProjectEye).
@@ -131,12 +170,42 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </Link>
           );
         })}
-        <div style={{ marginTop: "auto", display: "grid", gap: 8, paddingTop: 12 }}>
+        <div className="sidebar-fuss" style={{ marginTop: "auto", display: "grid", gap: 8, paddingTop: 12 }}>
           <button className="btn" onClick={toggleTheme}><Icon name="moon" /> Theme</button>
-          <div className="muted" style={{ fontSize: 12, padding: "0 4px" }}>{user?.name} ({user?.globalRole})</div>
-          <button className="btn" onClick={() => { clearSession(); window.location.href = "/login"; }}><Icon name="logout" /> Abmelden</button>
+          <div className="muted" style={{ fontSize: 12, padding: "0 4px", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {user?.name} ({user?.globalRole})
+          </div>
+          <button className="btn" onClick={() => setAbmeldenFrage(true)}><Icon name="logout" /> Abmelden</button>
         </div>
+        {/* Ziehgriff nur am Rechner – verbreitert oder verschmälert das Menü */}
+        <div className={"sidebar-griff" + (zieht ? " aktiv" : "")} onPointerDown={griffStart}
+          role="separator" aria-label="Menübreite ändern" title="Ziehen, um das Menü breiter zu machen" />
       </aside>
+
+      {/* Abmelden: eigenes Fenster, auf dem Handy fingerfreundlich und über der Tastatur */}
+      {abmeldenFrage && (
+        <div onClick={() => setAbmeldenFrage(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", display: "grid", placeItems: "center",
+                   padding: 16, zIndex: 120 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card abmelde-fenster"
+            style={{ width: 380, maxWidth: "94vw", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
+              <Icon name="logout" size={18} />
+              <h2 style={{ fontSize: 17, fontWeight: 700 }}>Abmelden?</h2>
+            </div>
+            <div style={{ padding: 20, fontSize: 14, lineHeight: 1.55, display: "grid", gap: 8 }}>
+              <span>Du wirst von Nexus abgemeldet und landest wieder auf der Anmeldeseite.</span>
+              {user?.name && (
+                <span className="muted" style={{ fontSize: 13 }}>Angemeldet als {user.name} ({user.globalRole})</span>
+              )}
+            </div>
+            <div style={{ padding: "12px 20px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button className="btn" onClick={() => setAbmeldenFrage(false)}>Bleiben</button>
+              <button className="btn btn-danger" onClick={abmelden}><Icon name="logout" /> Abmelden</button>
+            </div>
+          </div>
+        </div>
+      )}
       <main className="main">{children}</main>
       <CommandPalette />
       <SitzungsWaechter />

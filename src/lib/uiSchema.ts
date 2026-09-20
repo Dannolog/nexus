@@ -152,7 +152,9 @@ export const RESOURCES: Record<string, Resource> = {
       { key: "archived", label: "Archiviert" },
     ],
     fields: [
-      { key: "name", label: "Name" },
+      // Vor- und Nachname werden getrennt erfasst; der Anzeigename entsteht daraus serverseitig.
+      { key: "firstName", label: "Vorname" },
+      { key: "lastName", label: "Nachname" },
       { key: "email", label: "E-Mail", type: "email" },
       { key: "employeeNumber", label: "Personalnummer" },
       // Stammdaten für Personalunterlagen (werden in Formulare übernommen)

@@ -79,6 +79,28 @@ async function record(
   });
 }
 
+/**
+ * Setzt `name` aus Vor- und Nachname zusammen. Bleiben beide leer, wird ein vorhandener
+ * Anzeigename nicht angetastet; fehlt umgekehrt die Aufteilung, wird sie aus dem Namen
+ * abgeleitet – so bleiben Altdatensätze und Zugänge über die API widerspruchsfrei.
+ */
+function zieheNamenZusammen(clean: Record<string, any>, aktuell?: any) {
+  const vor = String(clean.firstName ?? aktuell?.firstName ?? "").trim();
+  const nach = String(clean.lastName ?? aktuell?.lastName ?? "").trim();
+  const zusammen = [vor, nach].filter(Boolean).join(" ");
+  if (zusammen) {
+    clean.name = zusammen;
+    clean.firstName = vor;
+    clean.lastName = nach;
+    return;
+  }
+  const name = String(clean.name ?? aktuell?.name ?? "").trim();
+  if (!name) return;
+  const teile = name.split(/\s+/).filter(Boolean);
+  clean.firstName = teile.length > 1 ? teile.slice(0, -1).join(" ") : "";
+  clean.lastName = teile[teile.length - 1] || "";
+}
+
 // ---------- CRUD (revisions-bewusst, optimistisches Locking) ----------
 
 export async function createEntity(
@@ -91,6 +113,9 @@ export async function createEntity(
   const attempt = () =>
     prisma.$transaction(async (tx) => {
       const clean = sanitize(entity, data);
+      // Mitarbeiter: Der Anzeigename entsteht aus Vor- und Nachname – er bleibt die
+      // Grundlage der Abgleiche mit clocker und kontor.
+      if (entity === "Employee") zieheNamenZusammen(clean);
       // Firmeneinheitliche E-Mail: Wer neu angelegt wird und noch keine Adresse hat,
       // bekommt automatisch vorname.nachname@<MAIL_DOMAIN> (Standard bgroup.de).
       if ((entity === "Employee" || entity === "Identity") && !String(clean.email || "").trim()) {
@@ -152,6 +177,9 @@ export async function updateEntity(
       throw new ApiError("Versionskonflikt", 409, { current });
     }
     const clean = sanitize(entity, data);
+    if (entity === "Employee" && ("firstName" in clean || "lastName" in clean)) {
+      zieheNamenZusammen(clean, current);
+    }
     const updated = await delegate.update({
       where: { id },
       data: { ...clean, version: current.version + 1 },

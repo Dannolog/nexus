@@ -47,6 +47,19 @@ function passendeKontakte(row: any, suche: string) {
   });
 }
 
+/**
+ * Beschriftung eines Eingabefeldes – **immer mit Symbol**. Das Symbol kommt aus derselben
+ * Zuordnung wie die Tabellenköpfe (`spaltenIcon`), damit Liste und Formular zusammenpassen.
+ */
+function FeldLabel({ feld }: { feld: Field }) {
+  const icon = spaltenIcon(feld.key, feld.label);
+  return (
+    <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+      {icon && <Icon name={icon} size={14} />} {feld.label}
+    </span>
+  );
+}
+
 function cell(v: any) {
   if (typeof v === "boolean") return v ? "ja" : "–";
   if (v == null || v === "") return "–";
@@ -446,7 +459,7 @@ function EditModal({ resourceKey, hasLogo, initial, onClose, onSave }: {
                 const span = f.type === "textarea" ? 12 : Math.min(12, Math.max(2, f.span || 6));
                 out.push(
                   <label key={f.key} style={{ fontSize: 13, gridColumn: `span ${span}`, display: "grid", gap: 4, minWidth: 0 }}>
-                    {f.label}
+                    <FeldLabel feld={f} />
                     {fieldControl(f)}
                   </label>
                 );
@@ -458,7 +471,7 @@ function EditModal({ resourceKey, hasLogo, initial, onClose, onSave }: {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12 }}>
             {R.fields.map((f: Field) => (
               <label key={f.key} style={{ fontSize: 13, gridColumn: f.type === "textarea" ? "1 / -1" : "auto", display: "grid", gap: 4, minWidth: 0 }}>
-                {f.label}
+                <FeldLabel feld={f} />
                 {fieldControl(f)}
               </label>
             ))}

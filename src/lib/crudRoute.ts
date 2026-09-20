@@ -31,7 +31,7 @@ export function makeList(entity: EntityName) {
       const rows = await (prisma as any)[def.delegate].findMany({
         where,
         take,
-        orderBy: { updatedAt: "desc" },
+        orderBy: def.orderBy ?? { updatedAt: "desc" },
         ...(def.includeRelations?.length
           ? { include: Object.fromEntries(def.includeRelations.map((r) => [r, { where: { deletedAt: null } }])) }
           : {}),

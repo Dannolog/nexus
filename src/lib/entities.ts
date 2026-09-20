@@ -23,6 +23,8 @@ export type EntityDef = {
   searchRelations?: { relation: string; fields: string[] }[];
   // Optional: verknüpfte Datensätze mit der Liste ausliefern (z. B. Ansprechpartner).
   includeRelations?: string[];
+  // Optional: eigene Sortierung der Liste (Standard: zuletzt geändert zuerst).
+  orderBy?: Record<string, "asc" | "desc">[];
 };
 
 const PROTECTED = ["id", "version", "createdAt", "updatedAt", "deletedAt"];
@@ -48,7 +50,9 @@ export const ENTITIES: Record<EntityName, EntityDef> = {
   },
   Employee: {
     delegate: "employee",
-    searchable: ["name", "email", "employeeNumber"],
+    searchable: ["name", "email", "employeeNumber", "firstName", "lastName"],
+    // Mitarbeiter stehen immer alphabetisch – nach Nachname, dann Vorname.
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }, { name: "asc" }],
     protectedFields: PROTECTED,
   },
   Organization: {
