@@ -9,6 +9,7 @@ import SuchSelect from "@/components/SuchSelect";
 import PdfViewerModal from "@/components/PdfViewerModal";
 import { Feld } from "@/components/KontaktFeld";
 import { useLive } from "@/lib/live";
+import { useSeitenZustand } from "@/lib/seitenzustand";
 
 /**
  * Betriebsakte: Dokumente je **Mandant**, gegliedert nach Rubriken (z. B. Finanzamt,
@@ -62,12 +63,17 @@ function dateiZuBase64(f: File): Promise<string> {
 }
 
 export default function BetriebsaktePage() {
+  // Mandant, Ansicht und Suche bleiben erhalten – auch nach einem Abstecher in ein Dokument
+  const [seite, setSeite] = useSeitenZustand("betriebsakte", { ansicht: "rubriken", q: "", org: "" });
   const [mandanten, setMandanten] = useState<any[]>([]);
-  const [orgId, setOrgId] = useState("");
+  const orgId = seite.org;
+  const setOrgId = (v: string) => setSeite({ org: v });
   const [gruppen, setGruppen] = useState<Gruppe[]>([]);
   const [dokumente, setDokumente] = useState<Dokument[]>([]);
-  const [ansicht, setAnsicht] = useState<"rubriken" | "zeitstrahl">("rubriken");
-  const [suche, setSuche] = useState("");
+  const ansicht = seite.ansicht as "rubriken" | "zeitstrahl";
+  const setAnsicht = (v: "rubriken" | "zeitstrahl") => setSeite({ ansicht: v });
+  const suche = seite.q;
+  const setSuche = (v: string) => setSeite({ q: v });
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState("");
   const [zu, setZu] = useState<Record<string, boolean>>({});
@@ -95,11 +101,11 @@ export default function BetriebsaktePage() {
   useEffect(() => {
     api("/api/organizations").then((d) => {
       setMandanten(d.data || []);
-      const ausUrl = new URLSearchParams(window.location.search).get("org");
-      if (ausUrl) setOrgId(ausUrl);
-      else if (d.data?.length === 1) setOrgId(d.data[0].id);
+      // Ohne gemerkten Mandanten: bei genau einem Mandanten diesen gleich wählen
+      if (!seite.org && d.data?.length === 1) setOrgId(d.data[0].id);
     }).catch(() => {});
     ladeGruppen();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ladeGruppen]);
 
   useEffect(() => { ladeDokumente(orgId); }, [orgId, ladeDokumente]);

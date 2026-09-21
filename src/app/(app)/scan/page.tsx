@@ -11,6 +11,7 @@ import { Feld } from "@/components/KontaktFeld";
 import Toggle from "@/components/Toggle";
 import ScanAnimation from "@/components/ScanAnimation";
 import { useLive } from "@/lib/live";
+import { useSeitenZustand } from "@/lib/seitenzustand";
 
 /**
  * Scannen und Posteingang.
@@ -87,8 +88,13 @@ export default function ScanPage() {
   const [duplex, setDuplex] = useState(false);
 
   const [scans, setScans] = useState<Scan[]>([]);
-  const [suche, setSuche] = useState("");
-  const [nurOffen, setNurOffen] = useState(true);
+  // Suche und Filter überdauern den Seitenwechsel
+  const [seite, setSeite] = useSeitenZustand<{ q: string; alle: boolean }>("scan", { q: "", alle: false });
+  const suche = seite.q;
+  const setSuche = (v: string) => setSeite({ q: v });
+  const nurOffen = !seite.alle;
+  const setNurOffen = (v: boolean | ((b: boolean) => boolean)) =>
+    setSeite({ alle: !(typeof v === "function" ? v(nurOffen) : v) });
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState("");
   // Scanner-Verwaltung und Einstellungen liegen in Pop-ups – die Seite zeigt nur das Gerät.

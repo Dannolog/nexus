@@ -12,6 +12,7 @@ import Icon from "@/components/Icon";
 import ColorPicker from "@/components/ColorPicker";
 import { spaltenIcon } from "@/lib/spaltenIcons";
 import { useLive } from "@/lib/live";
+import { useSeitenZustand } from "@/lib/seitenzustand";
 import SuchSelect from "@/components/SuchSelect";
 import TextField from "@/components/TextField";
 
@@ -73,9 +74,10 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
   const thumbField = R.thumbField; // Bild-URL-Feld → Thumbnail in Liste/Karten
   const [rows, setRows] = useState<any[]>([]);
   const [logos, setLogos] = useState<Record<string, string>>({});
-  const [search, setSearch] = useState(() =>
-    typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("q") || "" : ""
-  );
+  // Suchbegriff bleibt erhalten: in der Adresszeile und beim Zurückkommen auf die Seite
+  const [seite, setSeite] = useSeitenZustand(`liste:${resourceKey}`, { q: "" });
+  const search = seite.q;
+  const setSearch = (v: string) => setSeite({ q: v });
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<any | null>(null); // null=zu, {}=neu, {..}=bearbeiten
   const [deleting, setDeleting] = useState<any | null>(null);

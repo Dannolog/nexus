@@ -853,3 +853,17 @@
 - **Nachtrag:** Der „Neu"-Knopf steht in allen Listen (Mitarbeiter, Kunden, Lieferanten …) jetzt
   **auch am Rechner oben rechts** – vorher nur auf dem Handy. Die Regel „Hauptaktion rechts" gilt
   damit einheitlich auf allen Bildschirmgrößen.
+
+## 21.09.2026 — Suche und Filter überdauern den Seitenwechsel
+- **Wunsch Daniel:** Suche eingeben, Seite wechseln, zurückkommen – und die Ansicht ist wieder da.
+- **`src/lib/seitenzustand.ts` (neu):** `useSeitenZustand(schlüssel, start)` hält Suchbegriff,
+  Filter und Ansicht fest – **zweifach**:
+  1. in der **Adresszeile** (`?q=…&art=…`, per `replaceState`, damit der Verlauf nicht volläuft) –
+     dadurch bringt der Zurück-Knopf den Stand mit und die Ansicht lässt sich weitergeben;
+  2. im **Sitzungsspeicher** – dadurch steht sie auch beim Wechsel über das Menü wieder da.
+  Beim Öffnen gewinnt die Adresszeile, sonst gilt der gemerkte Stand.
+- **Eingesetzt in:** allen Listen (`ResourceView`: Mitarbeiter, Kunden, Lieferanten, Projekte,
+  Aufgaben, Artikel, Mandanten – je Liste ein eigener Schlüssel), **Kontakten** (Suche, Firmenart,
+  Kontaktart), **Scan-Posteingang** (Suche, Filter „nur offene") und **Betriebsakte**
+  (gewählter Mandant, Ansicht Rubriken/Zeitstrahl, Suche).
+- Build + Neustart; Seiten und Aufruf mit Suchparameter liefern 200.

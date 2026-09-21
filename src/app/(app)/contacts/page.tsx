@@ -10,6 +10,7 @@ import { kopiere } from "@/lib/kopieren";
 import { Feld, KopierKnopf } from "@/components/KontaktFeld";
 import { entwurfSpeichern, entwurfLesen, entwurfLoeschen, seitdem } from "@/lib/entwurf";
 import { useLive } from "@/lib/live";
+import { useSeitenZustand } from "@/lib/seitenzustand";
 
 /**
  * Kontaktregister – alle Ansprechpartner aller Apps an einer Stelle.
@@ -81,9 +82,14 @@ const datum = (v?: string | null) => {
 
 export default function ContactsPage() {
   const [rows, setRows] = useState<Kontakt[]>([]);
-  const [suche, setSuche] = useState("");
-  const [art, setArt] = useState("");                       // Filter auf Firmenart
-  const [kategorie, setKategorie] = useState("");           // Filter auf Kontaktart (Vertreter, Shop …)
+  // Suche und Filter bleiben erhalten (Adresszeile + Rückkehr auf die Seite)
+  const [seite, setSeite] = useSeitenZustand("kontakte", { q: "", art: "", kategorie: "" });
+  const suche = seite.q;
+  const setSuche = (v: string) => setSeite({ q: v });
+  const art = seite.art;                                    // Filter auf Firmenart
+  const setArt = (v: string) => setSeite({ art: v });
+  const kategorie = seite.kategorie;                        // Filter auf Kontaktart (Vertreter, Shop …)
+  const setKategorie = (v: string) => setSeite({ kategorie: v });
   const [laedt, setLaedt] = useState(true);
   const [msg, setMsg] = useState("");
   const [editor, setEditor] = useState<Partial<Kontakt> | null>(null);
