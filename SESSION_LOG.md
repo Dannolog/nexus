@@ -867,3 +867,7 @@
   Kontaktart), **Scan-Posteingang** (Suche, Filter „nur offene") und **Betriebsakte**
   (gewählter Mandant, Ansicht Rubriken/Zeitstrahl, Suche).
 - Build + Neustart; Seiten und Aufruf mit Suchparameter liefern 200.
+- **Logos ansehen und herunterladen:** In allen Listen mit Bild (Mandanten, Kunden, Artikel) öffnet
+  ein Klick auf die Miniatur das Bild **groß** – mit Knopf „Herunterladen" (Dateiname aus dem
+  Datensatznamen, Endung aus dem Bildtyp) und Schließen. Im Bearbeiten-Fenster gibt es zusätzlich
+  „Ansehen" und „Herunterladen" neben „Symbol wählen" und „Entfernen".

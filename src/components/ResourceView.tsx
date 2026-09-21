@@ -84,6 +84,8 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
   const [viewing, setViewing] = useState<any | null>(null); // Detail-Vorschau (bei R.detail)
   const klickTimer = useRef<ReturnType<typeof setTimeout> | null>(null); // trennt Einzel- von Doppelklick
   const [msg, setMsg] = useState("");
+  // Großansicht eines Logos bzw. Bildes – mit Möglichkeit zum Herunterladen
+  const [bild, setBild] = useState<{ src: string; name: string } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -213,12 +215,14 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
                 </td>
                 {hasLogo && (
                   <td style={{ padding: "6px 12px" }}>
-                    <LogoThumb src={logos[row.id]} color={row.color} />
+                    <LogoThumb src={logos[row.id]} color={row.color}
+                      onClick={() => setBild({ src: logos[row.id], name: `${cell(row[R.titleField])}-Logo` })} />
                   </td>
                 )}
                 {thumbField && !R.thumbAfter && (
                   <td style={{ padding: "6px 12px" }}>
-                    <LogoThumb src={row[thumbField]} />
+                    <LogoThumb src={row[thumbField]}
+                      onClick={() => setBild({ src: row[thumbField], name: cell(row[R.titleField]) })} />
                   </td>
                 )}
                 {R.columns.map((c, ci) => (
@@ -238,7 +242,10 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
                       )}
                     </td>
                     {thumbField && R.thumbAfter === c.key && (
-                      <td style={{ padding: "6px 12px" }}><LogoThumb src={row[thumbField]} /></td>
+                      <td style={{ padding: "6px 12px" }}>
+                        <LogoThumb src={row[thumbField]}
+                          onClick={() => setBild({ src: row[thumbField], name: cell(row[R.titleField]) })} />
+                      </td>
                     )}
                   </Fragment>
                 ))}
@@ -271,8 +278,10 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
           <div key={row.id} className="card" onClick={R.detail ? () => setViewing(row) : undefined}
             style={{ padding: 14, display: "grid", gap: 10, cursor: R.detail ? "pointer" : "default" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              {hasLogo && <LogoThumb src={logos[row.id]} color={row.color} />}
-              {thumbField && <LogoThumb src={row[thumbField]} />}
+              {hasLogo && <LogoThumb src={logos[row.id]} color={row.color}
+                onClick={() => setBild({ src: logos[row.id], name: `${cell(row[R.titleField])}-Logo` })} />}
+              {thumbField && <LogoThumb src={row[thumbField]}
+                onClick={() => setBild({ src: row[thumbField], name: cell(row[R.titleField]) })} />}
               <div style={{ fontWeight: 600, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
                 {cell(row[R.titleField]) === "–" ? `${R.prefix}-${i + 1}` : <Hervorheben text={cell(row[R.titleField])} suche={search} />}
                 {passendeKontakte(row, search).length > 0 && (
@@ -315,6 +324,27 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
         ))}
       </div>
 
+      {/* ── Logo/Bild groß ansehen und herunterladen ── */}
+      {bild && (
+        <div className="bild-fenster" onClick={() => setBild(null)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.75)", display: "grid",
+                   gridTemplateRows: "auto 1fr", zIndex: 80 }}>
+          <div onClick={(e) => e.stopPropagation()}
+            style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
+                     background: "var(--bg)", borderBottom: "1px solid var(--border)" }}>
+            <Icon name="image" size={16} />
+            <span style={{ fontSize: 14, fontWeight: 600, flex: 1, minWidth: 0, overflow: "hidden",
+                           textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{bild.name}</span>
+            <button className="btn" onClick={() => bildSpeichern(bild.src, bild.name)}>
+              <Icon name="download" /> <span className="btn-label">Herunterladen</span>
+            </button>
+            <button className="btn btn-icon" aria-label="Schließen" onClick={() => setBild(null)}><Icon name="x" /></button>
+          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={bild.src} alt={bild.name} style={{ width: "100%", height: "100%", objectFit: "contain", padding: 16 }} />
+        </div>
+      )}
+
       {viewing && (
         <DetailModal
           resourceKey={resourceKey}
@@ -347,7 +377,33 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
   );
 }
 
-function LogoThumb({ src, color }: { src?: string; color?: string }) {
+/** Endung aus einer Daten-URL („data:image/png;base64,…") – für den Dateinamen. */
+function bildEndung(datenUrl: string) {
+  const typ = datenUrl.match(/^data:image\/([a-z0-9.+-]+)/i)?.[1]?.toLowerCase() || "png";
+  return typ === "jpeg" ? "jpg" : typ === "svg+xml" ? "svg" : typ;
+}
+
+/** Bild aus einer Daten-URL speichern – ohne Umweg über den Server. */
+function bildSpeichern(datenUrl: string, name: string) {
+  const a = document.createElement("a");
+  a.href = datenUrl;
+  a.download = `${name.replace(/[^\wäöüÄÖÜß .-]+/g, "_") || "logo"}.${bildEndung(datenUrl)}`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function LogoThumb({ src, color, onClick }: { src?: string; color?: string; onClick?: () => void }) {
+  if (src && onClick) {
+    return (
+      <button type="button" onClick={(e) => { e.stopPropagation(); onClick(); }}
+        title="Logo ansehen oder herunterladen"
+        style={{ border: 0, background: "transparent", padding: 0, cursor: "zoom-in", lineHeight: 0 }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt="" style={{ width: 32, height: 32, borderRadius: 6, objectFit: "cover", border: "1px solid var(--border)" }} />
+      </button>
+    );
+  }
   if (src) return <img src={src} alt="" style={{ width: 32, height: 32, borderRadius: 6, objectFit: "cover", border: "1px solid var(--border)" }} />;
   return <div style={{ width: 32, height: 32, borderRadius: 6, background: color || "var(--border)", opacity: 0.5 }} />;
 }
@@ -442,7 +498,18 @@ function EditModal({ resourceKey, hasLogo, initial, onClose, onSave }: {
                 <Icon name="image" /> Symbol wählen
                 <input type="file" accept="image/*" onChange={onLogoFile} style={{ display: "none" }} />
               </label>
-              {currentLogo && <button type="button" className="btn btn-danger" onClick={removeLogo}><Icon name="x" /> Entfernen</button>}
+              {currentLogo && (
+                <>
+                  <button type="button" className="btn" onClick={() => window.open(currentLogo, "_blank")}>
+                    <Icon name="eye" /> Ansehen
+                  </button>
+                  <button type="button" className="btn"
+                    onClick={() => bildSpeichern(currentLogo, `${form[R.titleField] || "Logo"}-Logo`)}>
+                    <Icon name="download" /> Herunterladen
+                  </button>
+                  <button type="button" className="btn btn-danger" onClick={removeLogo}><Icon name="x" /> Entfernen</button>
+                </>
+              )}
             </div>
           </div>
         )}
