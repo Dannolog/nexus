@@ -15,5 +15,6 @@ TS_NODE_TRANSPILE_ONLY=1 node node_modules/ts-node/dist/bin.js --compiler-option
 TS_NODE_TRANSPILE_ONLY=1 node node_modules/ts-node/dist/bin.js --compiler-options "$OPT" prisma/sync-kontor-benutzer.ts
 TS_NODE_TRANSPILE_ONLY=1 node node_modules/ts-node/dist/bin.js --compiler-options "$OPT" prisma/sync-app-kontakte.ts --app=kontor
 TS_NODE_TRANSPILE_ONLY=1 node node_modules/ts-node/dist/bin.js --compiler-options "$OPT" prisma/sync-app-kontakte.ts --app=clocker
+TS_NODE_TRANSPILE_ONLY=1 node node_modules/ts-node/dist/bin.js --compiler-options "$OPT" prisma/sync-clocker-passwoerter.ts
 TS_NODE_TRANSPILE_ONLY=1 node node_modules/ts-node/dist/bin.js --compiler-options "$OPT" prisma/sync-projecteye-suppliers.ts
 TS_NODE_TRANSPILE_ONLY=1 node node_modules/ts-node/dist/bin.js --compiler-options "$OPT" prisma/sync-projecteye-kontakte.ts

@@ -32,7 +32,10 @@ const log = (...a) => console.log(new Date().toLocaleString("de-DE"), "·", ...a
 
 const SKRIPTE = {
   // Kunden zuerst – der Kontakt-Abgleich braucht die Firmenzuordnung
-  clocker: ["prisma/sync-clocker-employees.ts", "prisma/sync-clocker-stammdaten.ts", "prisma/sync-app-kontakte.ts --app=clocker"],
+  clocker: ["prisma/sync-clocker-employees.ts", "prisma/sync-clocker-stammdaten.ts",
+            "prisma/sync-app-kontakte.ts --app=clocker",
+            // Passwörter: clocker prüft lokal – geänderte Zugangsdaten müssen dorthin
+            "prisma/sync-clocker-passwoerter.ts"],
   kontor: ["prisma/sync-kontor-stammdaten.ts", "prisma/sync-kontor-benutzer.ts", "prisma/sync-app-kontakte.ts --app=kontor"],
   // Lieferanten zuerst, dann deren Ansprechpartner und das Adressbuch
   projecteye: ["prisma/sync-projecteye-suppliers.ts", "prisma/sync-projecteye-kontakte.ts"],

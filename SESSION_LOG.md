@@ -871,3 +871,23 @@
   ein Klick auf die Miniatur das Bild **groß** – mit Knopf „Herunterladen" (Dateiname aus dem
   Datensatznamen, Endung aus dem Bildtyp) und Schließen. Im Bearbeiten-Fenster gibt es zusätzlich
   „Ansehen" und „Herunterladen" neben „Symbol wählen" und „Entfernen".
+
+## 22.09.2026 — Anmeldung in clocker nach Passwortänderung in Nexus
+- **Meldung Daniel:** Passwort und E-Mail in Nexus geändert, Anmeldung in clocker schlägt fehl.
+- **Ursache:** clocker prüft die Anmeldung **ausschließlich gegen seinen lokalen Benutzer**
+  (`clocker/src/lib/auth.ts`: `prisma.user.findUnique({email})` + `bcrypt.compare`) – es fragt Nexus
+  nicht. Der Mitarbeiter-Abgleich überträgt zwar Name, E-Mail und Personalnummer, **nicht** aber den
+  Passwort-Hash. Nach einer Passwortänderung in Nexus stand in clocker weiter der alte Hash.
+- **Neu: `prisma/sync-clocker-passwoerter.ts`** – überträgt den bcrypt-Hash der zentralen Identität
+  in den clocker-Benutzer. Zuordnung über die gemerkte `localUserId`, sonst E-Mail. Geschrieben wird
+  nur, wenn die Nexus-Fassung **jünger** ist – eine direkt in clocker gesetzte Änderung bleibt damit
+  bestehen. Klartext-Passwörter werden nie bewegt, die Ausgabe enthält nur Zähler.
+  `--entsperren` hebt zusätzlich Kontosperren auf, die nach Fehlversuchen entstanden sind.
+- **Ausgeführt:** 33 Zugänge geprüft, **2 Passwörter angeglichen**, **1 Kontosperre aufgehoben**.
+  Gemeldet wurde außerdem: 1 zugeordnetes clocker-Konto ist dort **deaktiviert** (`active = false`)
+  und kommt auch mit richtigem Passwort nicht hinein; 3 Konten sind in clocker jünger und wurden
+  bewusst nicht überschrieben.
+- **Automatisiert:** Das Skript läuft jetzt im Sofort-Abgleich (`scripts/sync-watch.js`, Kette
+  „clocker") und im Cron-Sicherheitsnetz mit – künftige Passwortänderungen wirken ohne Zutun.
+- Erkenntnis in der Notiz `nexus-clocker-sync` festgehalten (inkl. Hinweis, dass Zweit-E-Mails aus
+  Nexus in clocker **nicht** gelten – dort zählt die Hauptadresse).

@@ -17,5 +17,5 @@
     "paths": { "@/*": ["./src/*"] }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "prisma/seed.ts", "prisma/import-phase1.ts", "prisma/sync-clocker-employees.ts", "prisma/sync-projecteye-suppliers.ts", "prisma/sync-clocker-stammdaten.ts", "prisma/sync-kontor-stammdaten.ts", "prisma/setze-mail-domain.ts", "prisma/sync-kontor-benutzer.ts", "prisma/sync-projecteye-kontakte.ts", "prisma/sync-app-kontakte.ts", "prisma/kontakte-uebernehmen.ts", "scripts"]
+  "exclude": ["node_modules", "prisma/seed.ts", "prisma/import-phase1.ts", "prisma/sync-clocker-employees.ts", "prisma/sync-projecteye-suppliers.ts", "prisma/sync-clocker-stammdaten.ts", "prisma/sync-kontor-stammdaten.ts", "prisma/setze-mail-domain.ts", "prisma/sync-kontor-benutzer.ts", "prisma/sync-projecteye-kontakte.ts", "prisma/sync-app-kontakte.ts", "prisma/sync-clocker-passwoerter.ts", "prisma/kontakte-uebernehmen.ts", "scripts"]
 }
