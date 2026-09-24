@@ -169,6 +169,12 @@ export function buildSections(form: Contract, befristet: boolean): Abschnitt[] {
     { t: "Urlaub", items: [
       { segs: b`Der Urlaubsanspruch beträgt ${`höchstens ${txt(form.vacationDays)} Urlaubstage`} pro Kalenderjahr, bezogen auf eine Vollzeitbeschäftigung in der 5-Tage-Woche.` },
       { segs: b`Der tatsächliche Urlaubsanspruch ${"berechnet sich nach der erbrachten Wochenarbeitsleistung"}: Maßgeblich ist die Zahl der Tage bzw. der Umfang der Arbeitszeit, die der Arbeitnehmer im jeweiligen Kalenderjahr durchschnittlich pro Woche tatsächlich leistet (Formel: ${plain(txt(form.vacationDays))} Urlaubstage × durchschnittliche Arbeitstage pro Woche ÷ 5). Bruchteile von Urlaubstagen werden auf halbe Tage aufgerundet. Der gesetzliche Mindesturlaub nach dem Bundesurlaubsgesetz bleibt in jedem Fall unberührt.` },
+      ...(minijob ? [
+        // Bei Arbeit auf Abruf gibt es keine feste Zahl an Urlaubstagen: Der Anspruch bemisst
+        // sich rückblickend nach den tatsächlich geleisteten Arbeitstagen. Ein vollständiges
+        // Entfallen wäre nach § 13 BUrlG unwirksam – deshalb diese Formulierung.
+        { segs: b`Bei ${"unregelmäßigen Arbeitszeiten"} (Arbeit auf Abruf) besteht kein fester Urlaubsanspruch in Tagen. Der Anspruch wird ${"rückblickend nach den tatsächlich geleisteten Arbeitstagen"} des jeweiligen Kalenderjahres berechnet (Formel: ${plain(txt(form.vacationDays))} Urlaubstage × tatsächliche Arbeitstage ÷ 260). In Zeiträumen ohne Einsätze entsteht dementsprechend kein Urlaubsanspruch.` },
+      ] : []),
       { segs: b`Im Ein- und Austrittsjahr besteht der Urlaubsanspruch anteilig (ein Zwölftel je vollem Beschäftigungsmonat), mindestens jedoch in Höhe des gesetzlichen Mindesturlaubs.` },
       { segs: b`Urlaub ist rechtzeitig zu beantragen und vor Antritt vom Arbeitgeber zu genehmigen. Im Übrigen gelten die Vorschriften des Bundesurlaubsgesetzes.` },
       { segs: b`Der übergesetzliche Urlaubsanspruch erlischt mit der Beendigung des Arbeitsverhältnisses; er ist nicht abzugelten und ist nicht vererblich.` },
@@ -237,10 +243,12 @@ export function buildSections(form: Contract, befristet: boolean): Abschnitt[] {
   // „standard" lässt die ausführlichen Abschnitte weg. „minijob" ebenso – **außer**
   // den Arbeitsergebnissen: Nutzungsrechte an allem Erstellten gelten auch im Minijob.
   if (form.template === "standard") return all.filter((s) => !s.full);
-  // Der Minijob-Vertrag behält Urlaub und die bezahlte Freistellung (§ 616 BGB):
-  // Der Urlaub gehört nach § 2 NachwG in die Niederschrift, und ohne den Abschnitt zu
-  // § 616 BGB würde die Entgeltfortzahlung bei kurzer Verhinderung wieder greifen.
-  if (minijob) return all.filter((s) => !s.full || s.t.startsWith("Arbeitsergebnisse"));
+  // Der Minijob-Vertrag behält den Urlaub (er gehört nach § 2 NachwG in die Niederschrift),
+  // verzichtet aber auf den Abschnitt zur bezahlten Freistellung.
+  if (minijob) {
+    // Im Minijob-Vertrag ohne die bezahlte Freistellung (§ 616 BGB) – so gewünscht.
+    return all.filter((s) => (!s.full || s.t.startsWith("Arbeitsergebnisse")) && s.t !== "Bezahlte Freistellung (§ 616 BGB)");
+  }
   return all;
 }
 

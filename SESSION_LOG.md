@@ -940,3 +940,15 @@
   Großansicht und Speichern nutzen denselben Weg.
 - Geprüft mit einem Prüfbild in Visitenkartengröße: Ablage, Vorschau und Zählung stimmen,
   Prüfdaten danach entfernt.
+
+## 25.09.2026 — Minijob-Vertrag: Urlaub bei unregelmäßigem Einsatz, § 616 raus
+- **Urlaub:** Im Minijob-Vertrag steht jetzt zusätzlich: „Bei **unregelmäßigen Arbeitszeiten**
+  (Arbeit auf Abruf) besteht **kein fester Urlaubsanspruch in Tagen**. Der Anspruch wird
+  rückblickend nach den tatsächlich geleisteten Arbeitstagen berechnet (Formel: X Urlaubstage ×
+  tatsächliche Arbeitstage ÷ 260). In Zeiträumen ohne Einsätze entsteht dementsprechend kein
+  Urlaubsanspruch." Bewusst so formuliert, weil ein vollständiges Entfallen nach § 13 BUrlG
+  unwirksam wäre – die Wirkung ist aber dieselbe: ohne Einsätze kein Anspruch.
+- **§ 7 „Bezahlte Freistellung (§ 616 BGB)" entfernt** (Wunsch Daniel). Der Minijob-Vertrag hat
+  damit 13 Paragrafen; „Arbeitsergebnisse, Schutzrechte und Arbeitnehmererfindungen" ist jetzt § 10.
+  Hinweis an Daniel: Ohne diesen Abschnitt **gilt § 616 BGB wieder** (Entgeltfortzahlung bei kurzer
+  persönlicher Verhinderung); für einen Ausschluss wäre eine eigene kurze Klausel nötig.
