@@ -922,3 +922,21 @@
   50 KB wird eine Vorschau von rund 1 KB – die Liste bleibt schnell.
   Ältere Scans ohne Vorschau zeigen weiterhin das Dateisymbol.
 - Neue Abhängigkeit: `sharp`. Build + Neustart, `/scan` HTTP 200.
+
+## 24.09.2026 (3) — Kontakte: Visitenkarten einscannen oder Bilder hinterlegen
+- **Wunsch Daniel:** Unter Kontakte Visitenkarten einscannen können oder Bilder hinterlegen.
+- **Datenmodell:** neues `ContactImage` (Kontakt, Titel, Bilddaten, Größe, **Vorschau**, Quelle
+  `upload`/`scan`, Reihenfolge). Vorder- und Rückseite sind einfach zwei Einträge. Live-Trigger gesetzt.
+- **API:** `/api/contact-images` (GET je Kontakt, POST mit base64), `/api/contact-images/[id]`
+  (umbenennen, entfernen), `…/[id]/file` (Bild in voller Größe).
+  Neue Hilfe `src/lib/bilder.ts` → `miniaturAusBild` (sharp, Breite 360 px) für die Vorschau.
+- **Scannen direkt zum Kontakt:** `POST /api/scanners/[id]/scan` nimmt jetzt auch `contactId` –
+  die eingelesene Seite wird als **Bild** beim Kontakt hinterlegt (für Visitenkarten handlicher als
+  ein PDF). 300 dpi, Flachbett.
+- **Kontaktansicht:** neuer Bereich „Visitenkarte und Bilder" mit Miniaturen; je Bild Speichern und
+  Entfernen, Klick öffnet die **Großansicht**. Darunter „Foto / Bild" (Kamera am Handy) und
+  **„Einscannen"**. Hinweis, dass Vorder- und Rückseite einfach nacheinander eingelesen werden.
+- Bilder werden mit Token über `fetch` geholt (ein `<img src>` kann keine Kopfzeilen mitschicken) –
+  Großansicht und Speichern nutzen denselben Weg.
+- Geprüft mit einem Prüfbild in Visitenkartengröße: Ablage, Vorschau und Zählung stimmen,
+  Prüfdaten danach entfernt.

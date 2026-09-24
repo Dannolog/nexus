@@ -179,6 +179,24 @@ model Employee {
 // ---- Zentrales Kontaktregister (alle Ansprechpartner aller Apps) ----
 // Kontakte gehören Nexus: kontor (ClientContact) und ProjectEye (suppliers/savedEmails)
 // werden beidseitig abgeglichen – Protokoll: /mnt/devip3/shared/sync/KONTAKTE.md
+// ---- Bilder zu einem Kontakt (Visitenkarte, Foto, Schriftstück) ----
+// Eingescannt oder hochgeladen; Vorder- und Rückseite einfach als zwei Einträge.
+model ContactImage {
+  id        String   @id @default(cuid())
+  contactId String
+  contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  title     String   @default("")
+  mimeType  String   @default("image/jpeg")
+  data      Bytes
+  size      Int      @default(0)
+  thumb     String   @default("") @db.Text      // kleine Vorschau (data-URL)
+  quelle    String   @default("upload")         // upload | scan
+  sort      Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([contactId])
+}
+
 // Mehrere Kommunikationswege je Kontakt (mehrere E-Mails, Nummern, Webseiten).
 // Der **erste** Eintrag je Art landet zusätzlich in Contact.email/phone/mobile –
 // nur diese Hauptwerte gehen in den Abgleich mit kontor, clocker und ProjectEye.
@@ -237,6 +255,7 @@ model Contact {
   birthday      DateTime?                        // Geburtstag
   privateNotes  String   @default("") @db.Text
   channels     ContactChannel[]                 // weitere E-Mails, Nummern, Webseiten
+  images       ContactImage[]                   // Visitenkarten und andere Bilder
   favorite     Boolean  @default(false)         // Schnellauswahl
   version      Int      @default(1)
   deletedAt    DateTime?

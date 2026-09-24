@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { api } from "@/lib/clientApi";
+import { api, getToken } from "@/lib/clientApi";
 import Icon from "@/components/Icon";
 import SearchInput from "@/components/SearchInput";
 import Hervorheben from "@/components/Hervorheben";
@@ -100,6 +100,11 @@ export default function ContactsPage() {
   const [privatOffen, setPrivatOffen] = useState(false);
   // Nicht gespeicherter Entwurf, der beim Öffnen gefunden wurde
   const [entwurfFrage, setEntwurfFrage] = useState<{ vorhanden: Partial<Kontakt>; zeit: number; original: Partial<Kontakt> } | null>(null);
+  // Visitenkarten und andere Bilder des angezeigten Kontakts
+  const [bilder, setBilder] = useState<any[]>([]);
+  const [grossbild, setGrossbild] = useState<{ id: string; titel: string; url: string } | null>(null);
+  const [geraete, setGeraete] = useState<any[]>([]);
+  const [scanLaeuft, setScanLaeuft] = useState(false);
 
   const laden = useCallback(async () => {
     setLaedt(true);
@@ -121,6 +126,22 @@ export default function ContactsPage() {
     const t = setTimeout(() => entwurfSpeichern(entwurfsSchluessel(editor.id), editor), 600);
     return () => clearTimeout(t);
   }, [editor]);
+
+  // Scanner einmalig laden – für „Visitenkarte einscannen"
+  useEffect(() => {
+    api("/api/scanners").then((d) => setGeraete(d.data || [])).catch(() => {});
+  }, []);
+
+  // Bilder des gerade angesehenen Kontakts
+  const ladeBilder = useCallback(async (id?: string) => {
+    if (!id) { setBilder([]); return; }
+    try {
+      const d = await api(`/api/contact-images?contactId=${id}`);
+      setBilder(d.data || []);
+    } catch { setBilder([]); }
+  }, []);
+
+  useEffect(() => { ladeBilder(ansicht?.id); }, [ansicht?.id, ladeBilder]);
 
   useEffect(() => {
     Promise.all([
@@ -267,6 +288,73 @@ export default function ContactsPage() {
   async function kopieren(text: string, was: string) {
     if (!text) return;
     setMsg((await kopiere(text)) ? `${was} kopiert.` : `${was} konnte nicht kopiert werden.`);
+  }
+
+  /** Bild (Visitenkarte, Foto) beim Kontakt hinterlegen. */
+  async function bildHochladen(f: File) {
+    if (!ansicht) return;
+    try {
+      const base64: string = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(String(r.result));
+        r.onerror = () => rej(new Error("Datei konnte nicht gelesen werden"));
+        r.readAsDataURL(f);
+      });
+      await api("/api/contact-images", {
+        method: "POST",
+        body: JSON.stringify({ contactId: ansicht.id, base64, title: f.name.replace(/\.[^.]+$/, "") }),
+      });
+      setMsg("Bild hinterlegt.");
+      ladeBilder(ansicht.id);
+    } catch (e: any) { setMsg("Fehler: " + e.message); }
+  }
+
+  /** Visitenkarte direkt einscannen – die eingelesene Seite wird als Bild hinterlegt. */
+  async function visitenkarteScannen() {
+    if (!ansicht) return;
+    if (!geraete.length) { setMsg("Kein Scanner eingerichtet – auf der Seite Scannen lässt sich einer hinzufügen."); return; }
+    setScanLaeuft(true);
+    setMsg("Visitenkarte wird eingelesen…");
+    try {
+      await api(`/api/scanners/${geraete[0].id}/scan`, {
+        method: "POST",
+        body: JSON.stringify({ contactId: ansicht.id, source: "Platen", resolution: 300 }),
+      });
+      setMsg("Visitenkarte hinterlegt.");
+      ladeBilder(ansicht.id);
+    } catch (e: any) { setMsg("Fehler: " + e.message); }
+    finally { setScanLaeuft(false); }
+  }
+
+  async function bildEntfernen(id: string) {
+    try {
+      await api(`/api/contact-images/${id}`, { method: "DELETE" });
+      ladeBilder(ansicht?.id);
+    } catch (e: any) { setMsg("Fehler: " + e.message); }
+  }
+
+  /** Bild in voller Größe holen – die API verlangt ein Token, deshalb über fetch. */
+  async function bildLaden(id: string): Promise<string> {
+    const token = getToken();
+    const res = await fetch(`/api/contact-images/${id}/file`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    if (!res.ok) throw new Error(`Bild konnte nicht geladen werden (HTTP ${res.status})`);
+    return URL.createObjectURL(await res.blob());
+  }
+
+  async function grossAnsehen(id: string, titel: string) {
+    try {
+      setGrossbild({ id, titel, url: await bildLaden(id) });
+    } catch (e: any) { setMsg("Fehler: " + e.message); }
+  }
+
+  /** Bild in voller Größe speichern. */
+  async function bildSpeichern(id: string, titel: string) {
+    let url: string;
+    try { url = await bildLaden(id); } catch (e: any) { setMsg("Fehler: " + e.message); return; }
+    const a = document.createElement("a");
+    a.href = url; a.download = `${titel || "Visitenkarte"}.jpg`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
   }
 
   /** Wie viele **zusätzliche** Einträge gibt es je Art (über den Hauptwert hinaus)? */
@@ -489,6 +577,57 @@ export default function ContactsPage() {
                 </div>
               </div>
 
+              {/* Visitenkarte und weitere Bilder */}
+              <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, display: "grid", gap: 8 }}>
+                <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em",
+                                                display: "flex", alignItems: "center", gap: 6 }}>
+                  <Icon name="id-card" size={14} /> Visitenkarte und Bilder
+                </div>
+
+                {bilder.length > 0 && (
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {bilder.map((b) => (
+                      <div key={b.id} style={{ display: "grid", gap: 4, justifyItems: "center" }}>
+                        <button type="button" title="Groß ansehen" onClick={() => grossAnsehen(b.id, b.title)}
+                          style={{ border: 0, background: "transparent", padding: 0, cursor: "zoom-in", lineHeight: 0 }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={b.thumb || "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="} alt={b.title}
+                            style={{ width: 120, height: 76, objectFit: "cover", borderRadius: 8,
+                                     border: "1px solid var(--border)", background: "#fff" }} />
+                        </button>
+                        <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                          <span className="muted" style={{ fontSize: 11.5, maxWidth: 74, overflow: "hidden",
+                                                           textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.title}</span>
+                          <button className="btn btn-icon" title="Speichern" onClick={() => bildSpeichern(b.id, b.title)}>
+                            <Icon name="download" size={13} />
+                          </button>
+                          <button className="btn btn-icon btn-danger" title="Entfernen" onClick={() => bildEntfernen(b.id)}>
+                            <Icon name="trash" size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  <label className="btn" style={{ cursor: "pointer" }} title="Foto der Visitenkarte aufnehmen oder Bild wählen">
+                    <Icon name="image" /> Foto / Bild
+                    <input type="file" accept="image/*" capture="environment" style={{ display: "none" }}
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) bildHochladen(f); e.target.value = ""; }} />
+                  </label>
+                  <button className="btn" disabled={!geraete.length || scanLaeuft} onClick={visitenkarteScannen}
+                    title={geraete.length ? "Visitenkarte am Scanner einlesen" : "Kein Scanner eingerichtet"}>
+                    <Icon name="printer" /> {scanLaeuft ? "Liest ein…" : "Einscannen"}
+                  </button>
+                  {bilder.length === 0 && (
+                    <span className="muted" style={{ fontSize: 12.5, alignSelf: "center" }}>
+                      Noch kein Bild – Vorder- und Rückseite einfach nacheinander einlesen.
+                    </span>
+                  )}
+                </div>
+              </div>
+
               {/* Private Angaben – zugeklappt, damit sie nicht beiläufig mitgelesen werden */}
               <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12 }}>
                 <button className="btn" onClick={() => setPrivatOffen((v) => !v)}>
@@ -578,6 +717,29 @@ export default function ContactsPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── Bild groß ansehen ── */}
+      {grossbild && (
+        <div className="bild-fenster" onClick={() => { URL.revokeObjectURL(grossbild.url); setGrossbild(null); }}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.8)", display: "grid",
+                   gridTemplateRows: "auto 1fr", zIndex: 80 }}>
+          <div onClick={(e) => e.stopPropagation()}
+            style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
+                     background: "var(--bg)", borderBottom: "1px solid var(--border)" }}>
+            <Icon name="id-card" size={16} />
+            <span style={{ fontSize: 14, fontWeight: 600, flex: 1, minWidth: 0, overflow: "hidden",
+                           textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{grossbild.titel}</span>
+            <button className="btn" onClick={() => bildSpeichern(grossbild.id, grossbild.titel)}>
+              <Icon name="download" /> <span className="btn-label">Speichern</span>
+            </button>
+            <button className="btn btn-icon" aria-label="Schließen"
+              onClick={() => { URL.revokeObjectURL(grossbild.url); setGrossbild(null); }}><Icon name="x" /></button>
+          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={grossbild.url} alt={grossbild.titel}
+            style={{ width: "100%", height: "100%", objectFit: "contain", padding: 12 }} />
         </div>
       )}
 

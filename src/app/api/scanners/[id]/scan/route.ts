@@ -4,6 +4,7 @@ import { requireAuth } from "@/lib/auth";
 import { handle, json, ApiError } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import { scanne, seitenAlsPdf, vorschauBild, abbrechen, ScanOptionen } from "@/lib/scanner";
+import { miniaturAusBild } from "@/lib/bilder";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;   // Scannen dauert – vor allem mit Einzug
@@ -15,6 +16,10 @@ export const maxDuration = 300;   // Scannen dauert – vor allem mit Einzug
  * Mit `orgId` wandert der Scan stattdessen **direkt in die Betriebsakte** des Mandanten,
  * optional in eine Rubrik (`groupId`). Das ist der Weg für Schriftstücke, die ohnehin klar
  * zugeordnet sind – etwa Post der Minijob-Zentrale oder der BGHM.
+ *
+ * Mit `contactId` landet die eingelesene Seite als **Bild beim Kontakt** – gedacht für
+ * Visitenkarten: dort ist ein Bild handlicher als ein PDF (Vorder- und Rückseite einfach
+ * nacheinander einlesen).
  */
 export const POST = (req: NextRequest, { params }: { params: { id: string } }) =>
   handle(async () => {
@@ -33,9 +38,11 @@ export const POST = (req: NextRequest, { params }: { params: { id: string } }) =
     let pdf: Buffer;
     let seitenzahl = 0;
     let vorschau = "";
+    let ersteSeite: Buffer | null = null;
     try {
       const seiten = await scanne(s.host, optionen);
       seitenzahl = seiten.length;
+      ersteSeite = seiten[0] ?? null;
       pdf = await seitenAlsPdf(seiten);
       vorschau = await vorschauBild(seiten);
     } catch (e: any) {
@@ -48,6 +55,29 @@ export const POST = (req: NextRequest, { params }: { params: { id: string } }) =
     const stempel = jetzt.toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
     const titel = String(body.title || "").trim() || `Scan ${stempel}`;
     const sha256 = crypto.createHash("sha256").update(pdf).digest("hex");
+
+    // Visitenkarte: Die eingelesene Seite als Bild beim Kontakt hinterlegen
+    const contactId = String(body.contactId || "");
+    if (contactId && ersteSeite) {
+      const kontakt = await prisma.contact.findFirst({ where: { id: contactId, deletedAt: null } });
+      if (!kontakt) throw new ApiError("Kontakt nicht gefunden", 404);
+      const letzte = await prisma.contactImage.findFirst({ where: { contactId }, orderBy: { sort: "desc" }, select: { sort: true } });
+      const bild = await prisma.contactImage.create({
+        data: {
+          contactId,
+          title: String(body.title || "").trim() || `Visitenkarte ${jetzt.toLocaleDateString("de-DE")}`,
+          mimeType: "image/jpeg",
+          data: ersteSeite,
+          size: ersteSeite.length,
+          thumb: await miniaturAusBild(ersteSeite),
+          quelle: "scan",
+          sort: (letzte?.sort ?? 0) + 1,
+        },
+        select: { id: true, title: true, thumb: true, size: true },
+      });
+      await prisma.scanner.update({ where: { id: s.id }, data: { lastUsedAt: jetzt } });
+      return json({ ...bild, ziel: "kontakt", pages: seitenzahl }, 201);
+    }
 
     // Direkt in die Betriebsakte, wenn ein Mandant angegeben ist
     if (orgId) {
