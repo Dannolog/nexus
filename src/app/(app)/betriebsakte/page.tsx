@@ -10,6 +10,7 @@ import PdfViewerModal from "@/components/PdfViewerModal";
 import { Feld } from "@/components/KontaktFeld";
 import { useLive } from "@/lib/live";
 import { useSeitenZustand } from "@/lib/seitenzustand";
+import ScanAnimation from "@/components/ScanAnimation";
 
 /**
  * Betriebsakte: Dokumente je **Mandant**, gegliedert nach Rubriken (z. B. Finanzamt,
@@ -82,6 +83,10 @@ export default function BetriebsaktePage() {
   const [viewer, setViewer] = useState<{ url: string; titel: string } | null>(null);
   const [bild, setBild] = useState<{ url: string; titel: string } | null>(null);
   const [zielGruppe, setZielGruppe] = useState("");
+  // Scanner für „direkt hier einscannen" – dieselbe Geräteliste wie auf der Scan-Seite
+  const [geraete, setGeraete] = useState<any[]>([]);
+  const [geraetId, setGeraetId] = useState("");
+  const [scanQuelle, setScanQuelle] = useState<"Platen" | "Feeder">("Platen");
 
   const ladeDokumente = useCallback(async (id: string) => {
     if (!id) { setDokumente([]); return; }
@@ -105,6 +110,10 @@ export default function BetriebsaktePage() {
       if (!seite.org && d.data?.length === 1) setOrgId(d.data[0].id);
     }).catch(() => {});
     ladeGruppen();
+    api("/api/scanners").then((d) => {
+      setGeraete(d.data || []);
+      if (d.data?.length) setGeraetId(d.data[0].id);
+    }).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ladeGruppen]);
 
@@ -137,6 +146,30 @@ export default function BetriebsaktePage() {
         }),
       });
       setMsg(`Abgelegt: ${d.fileName}${d.version > 1 ? ` (Version ${d.version})` : ""}.`);
+      ladeDokumente(orgId);
+    } catch (e: any) { setMsg("Fehler: " + e.message); }
+    finally { setBusy(""); }
+  }
+
+  /**
+   * Direkt in die Betriebsakte scannen: Das Ergebnis wandert **ohne Umweg über den
+   * Posteingang** in die gewählte Rubrik des Mandanten.
+   */
+  async function scannen(groupId: string, rubrikName: string) {
+    if (!orgId) { setMsg("Bitte zuerst einen Mandanten wählen."); return; }
+    if (!geraetId) { setMsg("Kein Scanner eingerichtet – auf der Seite Scannen lässt sich einer hinzufügen."); return; }
+    setBusy("scan");
+    setMsg(`Scannt für ${rubrikName || "die Akte"}…`);
+    try {
+      const d = await api(`/api/scanners/${geraetId}/scan`, {
+        method: "POST",
+        body: JSON.stringify({
+          orgId, groupId,
+          source: scanQuelle,
+          title: `${rubrikName || "Dokument"} ${new Date().toLocaleDateString("de-DE")}`,
+        }),
+      });
+      setMsg(`Gescannt und abgelegt: ${d.fileName}${d.version > 1 ? ` (Version ${d.version})` : ""}.`);
       ladeDokumente(orgId);
     } catch (e: any) { setMsg("Fehler: " + e.message); }
     finally { setBusy(""); }
@@ -286,11 +319,32 @@ export default function BetriebsaktePage() {
             <input type="file" accept="image/*" capture="environment" style={{ display: "none" }} disabled={!orgId}
               onChange={(e) => { const f = e.target.files?.[0]; if (f) hochladen(f, zielGruppe); e.target.value = ""; }} />
           </label>
+          <button className="btn" disabled={!orgId || !geraetId || busy === "scan"}
+            onClick={() => scannen(zielGruppe, gruppen.find((g) => g.id === zielGruppe)?.name || "")}
+            title={geraetId ? "Vorlage einlesen und hier ablegen" : "Kein Scanner eingerichtet"}>
+            <Icon name="printer" /> {busy === "scan" ? "Scannt…" : "Scannen"}
+          </button>
+          {geraete.length > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span className="muted" style={{ fontSize: 12 }}>Vorlage</span>
+              <button className="btn" onClick={() => setScanQuelle((q) => (q === "Platen" ? "Feeder" : "Platen"))}
+                title="Zwischen Flachbett und Einzug wechseln">
+                {scanQuelle === "Feeder" ? "Einzug" : "Flachbett"}
+              </button>
+            </div>
+          )}
           <span className="muted" style={{ fontSize: 12, alignSelf: "center" }}>
             {mandant ? `Ablage für ${mandant.name}` : "Erst einen Mandanten wählen"}
           </span>
         </div>
       </div>
+
+      {busy === "scan" && (
+        <div className="card" style={{ padding: 14, marginBottom: 12 }}>
+          <ScanAnimation text={scanQuelle === "Feeder" ? "Zieht die Seiten ein" : "Scannt die Vorlage"}
+            untertext="Das Ergebnis landet gleich hier in der Akte." />
+        </div>
+      )}
 
       {!orgId && (
         <div className="card muted" style={{ padding: 16, fontSize: 14 }}>
@@ -316,11 +370,19 @@ export default function BetriebsaktePage() {
                   <span className="muted" style={{ fontSize: 12 }}>
                     {a.dokumente.length} Dokument{a.dokumente.length === 1 ? "" : "e"}
                   </span>
-                  <label className="btn btn-icon" style={{ marginLeft: "auto", cursor: "pointer" }} title="Datei in diese Rubrik ablegen">
-                    <Icon name="plus" />
-                    <input type="file" style={{ display: "none" }}
-                      onChange={(e) => { const f = e.target.files?.[0]; if (f) hochladen(f, a.echt ? a.id : ""); e.target.value = ""; }} />
-                  </label>
+                  <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+                    <label className="btn btn-icon" style={{ cursor: "pointer" }} title="Datei in diese Rubrik ablegen">
+                      <Icon name="plus" />
+                      <input type="file" style={{ display: "none" }}
+                        onChange={(e) => { const f = e.target.files?.[0]; if (f) hochladen(f, a.echt ? a.id : ""); e.target.value = ""; }} />
+                    </label>
+                    {/* Direkt in diese Rubrik einscannen – ohne Umweg über den Posteingang */}
+                    <button className="btn btn-icon" disabled={!geraetId || busy === "scan"}
+                      title={geraetId ? `In „${a.name}" scannen` : "Kein Scanner eingerichtet"}
+                      onClick={() => scannen(a.echt ? a.id : "", a.name)}>
+                      <Icon name="printer" />
+                    </button>
+                  </div>
                 </div>
 
                 {!zugeklappt && (

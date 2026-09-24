@@ -891,3 +891,18 @@
   „clocker") und im Cron-Sicherheitsnetz mit – künftige Passwortänderungen wirken ohne Zutun.
 - Erkenntnis in der Notiz `nexus-clocker-sync` festgehalten (inkl. Hinweis, dass Zweit-E-Mails aus
   Nexus in clocker **nicht** gelten – dort zählt die Hauptadresse).
+
+## 24.09.2026 — Betriebsakte: direkt in die Rubrik scannen
+- **Wunsch Daniel:** In der Mandanten-Akte Rubriken „Minijob-Zentrale" und „BGHM Metall", und von
+  dort aus **direkt scannen** können.
+- **Rubriken angelegt:** „Minijob-Zentrale" und „BGHM Metall" (Rubriken gesamt: 9). Sie stehen wie
+  alle anderen auch in der Mitarbeiterakte zur Verfügung.
+- **Scan-Route erweitert:** `POST /api/scanners/[id]/scan` nimmt jetzt optional `orgId` (und
+  `groupId`) entgegen. Mit Mandant wandert das Ergebnis **ohne Umweg über den Posteingang** direkt
+  als `OrganizationDocument` in die Betriebsakte – mit Versionszählung je Dokumentart, Prüfsumme,
+  Datum und einer Notiz („gescannt am … · n Seiten"). Ohne `orgId` bleibt alles wie bisher.
+- **Betriebsakte:** Scanner werden geladen; im Kopf ein **Scannen**-Knopf für die oben gewählte
+  Rubrik samt Umschalter Flachbett/Einzug, und **je Rubrik ein eigener Scan-Knopf** neben dem
+  Datei-Knopf. Während des Scans läuft die bekannte Anzeige („Das Ergebnis landet gleich hier in
+  der Akte"); danach erscheint das Dokument von selbst (Live-Aktualisierung).
+- Build + Neustart, `/betriebsakte` HTTP 200.
