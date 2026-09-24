@@ -906,3 +906,19 @@
   Datei-Knopf. Während des Scans läuft die bekannte Anzeige („Das Ergebnis landet gleich hier in
   der Akte"); danach erscheint das Dokument von selbst (Live-Aktualisierung).
 - Build + Neustart, `/betriebsakte` HTTP 200.
+
+## 24.09.2026 (2) — Scan-Seite: übersichtlicher, mit Vorschaubild
+- **Wunsch Daniel:** Scanner-Bereich übersichtlicher und mobiltauglicher, Scans klar abgetrennt,
+  Vorschau der Scans in der Übersicht.
+- **Gerätebereich schlanker:** Sichtbar sind nur noch Scanner-Auswahl und „Scanner verwalten".
+  Die Einstellungen (Flachbett/Einzug, Farbe/Graustufen, Auflösung, Duplex) liegen hinter einem
+  Knopf **„Einstellungen anzeigen"**, der den aktuellen Stand als Kurzfassung mitführt
+  („Flachbett, Farbe, 200 dpi") – auf dem Handy spart das den halben Bildschirm.
+- **Posteingang abgetrennt:** eigener Abschnitt mit Trennlinie, Überschrift „Posteingang" und
+  Zähler „n offen" – vorher ging der Bereich optisch im Gerätekasten unter.
+- **Vorschaubild je Scan:** Beim Scannen entsteht aus der **ersten Seite** eine kleine Vorschau
+  (`sharp`, Breite 360 px, JPEG) und wird als `ScanDocument.thumb` gespeichert. In der Liste steht
+  sie links neben dem Namen; ein Klick darauf öffnet den Scan. Geprüft: aus einer A4-Seite mit
+  50 KB wird eine Vorschau von rund 1 KB – die Liste bleibt schnell.
+  Ältere Scans ohne Vorschau zeigen weiterhin das Dateisymbol.
+- Neue Abhängigkeit: `sharp`. Build + Neustart, `/scan` HTTP 200.

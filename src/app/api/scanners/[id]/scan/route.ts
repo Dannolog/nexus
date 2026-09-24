@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { requireAuth } from "@/lib/auth";
 import { handle, json, ApiError } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
-import { scanne, seitenAlsPdf, abbrechen, ScanOptionen } from "@/lib/scanner";
+import { scanne, seitenAlsPdf, vorschauBild, abbrechen, ScanOptionen } from "@/lib/scanner";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;   // Scannen dauert – vor allem mit Einzug
@@ -32,10 +32,12 @@ export const POST = (req: NextRequest, { params }: { params: { id: string } }) =
 
     let pdf: Buffer;
     let seitenzahl = 0;
+    let vorschau = "";
     try {
       const seiten = await scanne(s.host, optionen);
       seitenzahl = seiten.length;
       pdf = await seitenAlsPdf(seiten);
+      vorschau = await vorschauBild(seiten);
     } catch (e: any) {
       await abbrechen(s.host);
       throw new ApiError(`Scannen fehlgeschlagen: ${e.message}`, 502);
@@ -84,10 +86,11 @@ export const POST = (req: NextRequest, { params }: { params: { id: string } }) =
         size: pdf.length,
         pages: seitenzahl,
         sha256,
+        thumb: vorschau,
         scannerName: s.name,
         scannedAt: jetzt,
       },
-      select: { id: true, title: true, fileName: true, pages: true, size: true, sha256: true, scannedAt: true, status: true },
+      select: { id: true, title: true, fileName: true, pages: true, size: true, sha256: true, thumb: true, scannedAt: true, status: true },
     });
     await prisma.scanner.update({ where: { id: s.id }, data: { lastUsedAt: jetzt } });
     return json(doc, 201);

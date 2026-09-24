@@ -434,6 +434,7 @@ model ScanDocument {
   size        Int      @default(0)
   pages       Int      @default(1)
   sha256      String   @default("")               // erkennt inhaltsgleiche Scans
+  thumb       String   @default("") @db.Text       // kleine Vorschau der ersten Seite (data-URL)
   scannerName String   @default("")
   scannedAt   DateTime @default(now())            // Grundlage für den Tagesverlauf
   status      String   @default("offen")          // offen | zugeordnet

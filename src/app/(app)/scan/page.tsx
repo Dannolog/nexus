@@ -24,7 +24,7 @@ import { useSeitenZustand } from "@/lib/seitenzustand";
 
 type Scan = {
   id: string; title: string; fileName: string; mimeType: string; size: number; pages: number;
-  sha256: string; scannerName: string; scannedAt: string; status: string;
+  sha256: string; thumb?: string; scannerName: string; scannedAt: string; status: string;
   employeeId: string; groupId: string; documentId: string; note: string;
   warnungen: { name: boolean; inhalt: boolean; bereitsAbgelegt: boolean };
 };
@@ -103,6 +103,7 @@ export default function ScanPage() {
   const [scannerOffen, setScannerOffen] = useState(false);
   const [bearbeite, setBearbeite] = useState<{ id: string; name: string; host: string; note: string } | null>(null);
   const [scannerLoeschen, setScannerLoeschen] = useState<Geraet | null>(null);
+  const [optionenOffen, setOptionenOffen] = useState(false);
   const [umbenennen, setUmbenennen] = useState<{ id: string; titel: string } | null>(null);
   const [zuordnen, setZuordnen] = useState<{ scan: Scan; employeeId: string; groupId: string } | null>(null);
   const [loeschen, setLoeschen] = useState<Scan | null>(null);
@@ -338,7 +339,7 @@ export default function ScanPage() {
 
       {msg && <div className="card" style={{ padding: "8px 12px", marginBottom: 12, fontSize: 14 }}>{msg}</div>}
 
-      {/* ── Gerät und Einstellungen: alles auf einen Blick, mit Schaltern statt Listen ── */}
+      {/* ── Gerät: Auswahl immer sichtbar, Einstellungen aufklappbar (spart Platz auf dem Handy) ── */}
       <div className="card" style={{ padding: 14, marginBottom: 12, display: "grid", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "flex-end", gap: 12, flexWrap: "wrap" }}>
           <div style={{ flex: "1 1 260px", minWidth: 0 }}>
@@ -360,6 +361,14 @@ export default function ScanPage() {
           </button>
         </div>
 
+        <button className="btn" style={{ justifySelf: "start" }} onClick={() => setOptionenOffen((v) => !v)}>
+          <Icon name="tag" /> Einstellungen {optionenOffen ? "ausblenden" : "anzeigen"}
+          <span className="muted" style={{ fontSize: 12 }}>
+            {` · ${quelle === "Feeder" ? "Einzug" : "Flachbett"}, ${farbe === "RGB24" ? "Farbe" : "Graustufen"}, ${aufloesung} dpi`}
+          </span>
+        </button>
+
+        {optionenOffen && (
         <div style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "center" }}>
           {/* Vorlage: Flachbett oder Einzug – ein Schalter statt zweier Listeneinträge */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5 }}>
@@ -392,7 +401,10 @@ export default function ScanPage() {
           )}
         </div>
 
+        )}
+
         {/* Auflösung als Schieberegler über die Stufen, die das Gerät kann */}
+        {optionenOffen && (
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <span className="muted" style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6, minWidth: 96 }}>
             <Icon name="maximize" size={14} /> Auflösung
@@ -411,6 +423,7 @@ export default function ScanPage() {
             {aufloesung <= 150 ? "schnell" : aufloesung >= 300 ? "fein, größere Datei" : "guter Mittelweg"}
           </span>
         </div>
+        )}
 
         {busy === "scan" ? (
           <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12 }}>
@@ -508,10 +521,12 @@ export default function ScanPage() {
       )}
 
       {/* ── Posteingang, nach Tagen ── */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
-        <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em" }}>
-          Posteingang – Verlauf
+      <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "18px 0 10px", flexWrap: "wrap",
+                    borderTop: "1px solid var(--border)", paddingTop: 14 }}>
+        <div style={{ fontSize: 15, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
+          <Icon name="archive" size={16} /> Posteingang
         </div>
+        <span className="muted" style={{ fontSize: 12 }}>{offeneAnzahl} offen</span>
         <button className="btn" onClick={() => setNurOffen((v) => !v)}
           style={{ background: nurOffen ? "var(--accent)" : undefined, color: nurOffen ? "#fff" : undefined }}>
           {nurOffen ? "nur offene" : "alle anzeigen"}
@@ -541,7 +556,17 @@ export default function ScanPage() {
               {liste.map((s) => (
                 <div key={s.id} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 10, display: "grid", gap: 6 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                    <Icon name="file-text" size={15} />
+                    {/* Vorschau der ersten Seite – ein Klick öffnet den Scan */}
+                    {s.thumb ? (
+                      <button type="button" onClick={() => oeffnen(s, false)} title="Scan öffnen"
+                        style={{ border: 0, background: "transparent", padding: 0, cursor: "zoom-in", lineHeight: 0 }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={s.thumb} alt="" style={{ width: 44, height: 58, objectFit: "cover", borderRadius: 6,
+                                                           border: "1px solid var(--border)", background: "#fff" }} />
+                      </button>
+                    ) : (
+                      <Icon name="file-text" size={15} />
+                    )}
                     {umbenennen?.id === s.id ? (
                       <input className="input" autoFocus style={{ flex: "1 1 220px", minWidth: 0 }}
                         value={umbenennen.titel}

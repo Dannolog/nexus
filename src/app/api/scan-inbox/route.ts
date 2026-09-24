@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 const FELDER = {
-  id: true, title: true, fileName: true, mimeType: true, size: true, pages: true, sha256: true,
+  id: true, title: true, fileName: true, mimeType: true, size: true, pages: true, sha256: true, thumb: true,
   scannerName: true, scannedAt: true, status: true, employeeId: true, groupId: true,
   documentId: true, note: true, createdAt: true,
 } as const;

@@ -130,6 +130,23 @@ export async function abbrechen(host: string) {
   }
 }
 
+/**
+ * Kleine Vorschau der ersten Seite – für die Übersicht im Posteingang.
+ * Bewusst klein gehalten (Breite 360 px, JPEG), damit die Liste schnell lädt.
+ * Klappt das Verkleinern nicht, gibt es eben keine Vorschau – der Scan bleibt davon unberührt.
+ */
+export async function vorschauBild(seiten: Buffer[]): Promise<string> {
+  if (!seiten.length) return "";
+  try {
+    const sharp = (await import("sharp")).default;
+    const klein = await sharp(seiten[0]).rotate().resize({ width: 360, withoutEnlargement: true })
+      .jpeg({ quality: 68 }).toBuffer();
+    return `data:image/jpeg;base64,${klein.toString("base64")}`;
+  } catch {
+    return "";
+  }
+}
+
 /** Gescannte Seiten (JPEG) zu einem PDF zusammenfassen – eine Seite je Bild, A4-treu. */
 export async function seitenAlsPdf(seiten: Buffer[]): Promise<Buffer> {
   const pdf = await PDFDocument.create();
