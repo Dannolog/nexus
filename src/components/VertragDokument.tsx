@@ -231,6 +231,15 @@ export function buildSections(form: Contract, befristet: boolean): Abschnitt[] {
     // Die früheren §§ 17–23 (Vertragsstrafe, Ausschlussfrist, Abtretung/Verpfändung,
     // Datenschutzhinweis, Bild-/Nutzungsrechte, Anfechtung, Gerichtsstand) wurden auf Wunsch
     // entfernt. „Nebenabreden und Schriftform" bleibt als abschließender § erhalten.
+    { t: "Ausschlussfristen (Verfall von Ansprüchen)", items: [
+      // Zweistufige Ausschlussfrist. Drei Monate je Stufe sind das gesetzlich zulässige
+      // Minimum; kürzere Fristen wären unwirksam. Die Geltendmachung verlangt **Textform**
+      // (eine Schriftformklausel wäre nach § 309 Nr. 13 BGB unwirksam).
+      { segs: b`Alle beiderseitigen Ansprüche aus dem Arbeitsverhältnis verfallen, wenn sie nicht innerhalb von ${"drei Monaten"} ab Fälligkeit gegenüber der anderen Vertragspartei ${"in Textform"} (z. B. Brief, E-Mail) geltend gemacht werden. Das gilt für offene Vergütung ebenso wie für Rückforderungen zu viel gezahlter Beträge.` },
+      { segs: b`Lehnt die andere Vertragspartei den Anspruch ab oder erklärt sie sich nicht innerhalb von zwei Wochen nach der Geltendmachung, verfällt der Anspruch, wenn er nicht innerhalb von ${"weiteren drei Monaten"} gerichtlich geltend gemacht wird.` },
+      // Ohne diesen Ausnahmekatalog wäre die gesamte Klausel unwirksam.
+      { segs: b`Von der Ausschlussfrist ${"ausgenommen"} sind: Ansprüche auf den gesetzlichen Mindestlohn (§ 3 MiLoG), Ansprüche aus vorsätzlichem oder grob fahrlässigem Verhalten, die Haftung für Leben, Körper und Gesundheit, Ansprüche aus unerlaubter Handlung sowie sonstige Ansprüche, die von Gesetzes wegen nicht ausgeschlossen werden können – darunter der gesetzliche Mindesturlaub.` },
+    ]},
     { t: "Nebenabreden und Schriftform", items: [
       String(form.additionalTerms || "").trim()
         ? { segs: [{ t: "Ergänzend wird vereinbart: " }, { t: String(form.additionalTerms), pre: true }] }

@@ -952,3 +952,13 @@
   damit 13 Paragrafen; „Arbeitsergebnisse, Schutzrechte und Arbeitnehmererfindungen" ist jetzt § 10.
   Hinweis an Daniel: Ohne diesen Abschnitt **gilt § 616 BGB wieder** (Entgeltfortzahlung bei kurzer
   persönlicher Verhinderung); für einen Ausschluss wäre eine eigene kurze Klausel nötig.
+- **Neu: Ausschlussfristen (Verfall von Ansprüchen)** – in **allen** Vorlagen ergänzt
+  (Minijob § 13, Standard § 12, Vollständig § 17). Zweistufig, jeweils **drei Monate**:
+  1. Geltendmachung in **Textform** binnen drei Monaten ab Fälligkeit – gilt für offene Vergütung
+     wie für Rückforderungen zu viel gezahlter Beträge, beidseitig.
+  2. Nach Ablehnung (oder zwei Wochen Schweigen) weitere drei Monate für die gerichtliche Klärung.
+  3. **Ausnahmekatalog** – Mindestlohn (§ 3 MiLoG), Vorsatz/grobe Fahrlässigkeit, Leben/Körper/
+     Gesundheit, unerlaubte Handlung, unabdingbare Ansprüche wie der gesetzliche Mindesturlaub.
+  Begründung im Code festgehalten: Drei Monate sind das zulässige Minimum (kürzer = unwirksam),
+  Textform statt Schriftform (§ 309 Nr. 13 BGB), und ohne den Ausnahmekatalog wäre die ganze
+  Klausel unwirksam.
