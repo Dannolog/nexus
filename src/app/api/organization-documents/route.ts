@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { requireAuth } from "@/lib/auth";
 import { handle, json, ApiError } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
+import { fuelleFormular, loesePlatzhalter, werteAusMandant, MANDANT_FELDZUORDNUNG, filtereAufVorhandene, leseFormularfelder } from "@/lib/documents";
 
 export const dynamic = "force-dynamic";
 
@@ -48,17 +49,37 @@ export const POST = (req: NextRequest) =>
     const body = await req.json().catch(() => ({}));
     const orgId = String(body.orgId || "");
     const base64 = String(body.base64 || "");
+    const templateId = String(body.templateId || "");
     if (!orgId) throw new ApiError("Mandant fehlt", 400);
-    if (!base64) throw new ApiError("Keine Datei übergeben", 400);
+    if (!base64 && !templateId) throw new ApiError("Weder Datei noch Vorlage übergeben", 400);
 
     const org = await prisma.organization.findFirst({ where: { id: orgId, deletedAt: null } });
     if (!org) throw new ApiError("Mandant nicht gefunden", 404);
 
-    const daten = Buffer.from(base64.replace(/^data:[^,]+,/, ""), "base64");
-    if (!daten.length) throw new ApiError("Datei ist leer", 400);
+    let daten: Buffer;
+    let dateiname = String(body.fileName || "Dokument.pdf");
+    let ausVorlage = "";
 
-    const dateiname = String(body.fileName || "Dokument.pdf");
-    const titel = String(body.title || "").trim() || dateiname.replace(/\.[^.]+$/, "");
+    if (templateId) {
+      // Aus einer Vorlage erzeugen und mit den **Firmendaten** vorausfüllen.
+      // Bankverbindung bleibt bewusst leer – die trägt der Mensch im PDF selbst ein.
+      const t = await prisma.documentTemplate.findFirst({ where: { id: templateId, deletedAt: null } });
+      if (!t) throw new ApiError("Vorlage nicht gefunden", 404);
+      daten = Buffer.from(t.data);
+      dateiname = `${t.name}.pdf`;
+      ausVorlage = t.name;
+      if (body.fill !== false) {
+        const felder = await leseFormularfelder(daten);
+        const eigene = (() => { try { return JSON.parse(t.fieldMap || "{}"); } catch { return {}; } })();
+        const zuordnung = filtereAufVorhandene({ ...MANDANT_FELDZUORDNUNG, ...eigene }, felder);
+        const { bytes } = await fuelleFormular(daten, loesePlatzhalter(zuordnung, werteAusMandant(org)));
+        daten = bytes;
+      }
+    } else {
+      daten = Buffer.from(base64.replace(/^data:[^,]+,/, ""), "base64");
+    }
+    if (!daten.length) throw new ApiError("Datei ist leer", 400);
+    const titel = String(body.title || "").trim() || ausVorlage || dateiname.replace(/\.[^.]+$/, "");
     const docKey = String(body.docKey || titel.toLowerCase().replace(/[^a-z0-9]+/g, "-")).slice(0, 60) || "dokument";
 
     const letzte = await prisma.organizationDocument.findFirst({

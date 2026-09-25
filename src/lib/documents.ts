@@ -136,6 +136,49 @@ export function teileName(name: string) {
   return { vorname: teile.slice(0, -1).join(" "), nachname: teile[teile.length - 1] };
 }
 
+/**
+ * Werte eines **Mandanten** für Formulare, die den Betrieb betreffen – etwa das
+ * SEPA-Lastschriftmandat oder Anträge ans Finanzamt.
+ *
+ * Bewusst **ohne Bankverbindung**: IBAN und Kontoinhaber hält Nexus nicht vor, sie werden
+ * im ausfüllbaren PDF von Hand eingetragen.
+ */
+export function werteAusMandant(org: any): Record<string, string> {
+  return {
+    firma: org?.name || "",
+    firmaZusatz: org?.nameAddition || "",
+    firmaStrasse: org?.street || "",
+    firmaPlz: org?.zip || "",
+    firmaOrt: org?.city || "",
+    firmaOrtZeile: [org?.zip, org?.city].filter(Boolean).join(" "),
+    firmaLand: org?.country || "",
+    steuernummer: org?.taxNumber || "",
+    ustId: org?.ustId || "",
+    heute: new Date().toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }),
+  };
+}
+
+/** Zuordnung für Formulare des Betriebs (Finanzamt, SEPA, Anträge). */
+export const MANDANT_FELDZUORDNUNG: Record<string, string> = {
+  "Firma": "{firma}",
+  "Firmenname": "{firma}",
+  "Name des Unternehmens": "{firma}",
+  "Zahlungspflichtiger": "{firma}",
+  "Kontoinhaber": "",                      // bleibt leer – Bankdaten trägt der Mensch ein
+  "Straße und Hausnummer": "{firmaStrasse}",
+  "Straße": "{firmaStrasse}",
+  "Postleitzahl": "{firmaPlz}",
+  "PLZ": "{firmaPlz}",
+  "Ort": "{firmaOrt}",
+  "PLZ und Ort": "{firmaOrtZeile}",
+  "Land": "{firmaLand}",
+  "Steuernummer": "{steuernummer}",
+  "Umsatzsteuer-Identifikationsnummer": "{ustId}",
+  "USt-IdNr.": "{ustId}",
+  "Ort, Datum": "{firmaOrt}, {heute}",
+  "Datum": "{heute}",
+};
+
 /** Baut die Werte für die Platzhalter aus Mitarbeiter + Mandant. */
 export function werteAusMitarbeiter(emp: any, org: any | null): Record<string, string> {
   const { vorname, nachname } = teileName(emp?.name);

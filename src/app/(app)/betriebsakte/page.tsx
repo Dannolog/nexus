@@ -87,6 +87,9 @@ export default function BetriebsaktePage() {
   const [geraete, setGeraete] = useState<any[]>([]);
   const [geraetId, setGeraetId] = useState("");
   const [scanQuelle, setScanQuelle] = useState<"Platen" | "Feeder">("Platen");
+  // Vorlagen (z. B. SEPA-Lastschriftmandat) – werden mit den Firmendaten vorausgefüllt
+  const [vorlagen, setVorlagen] = useState<any[]>([]);
+  const [vorlagenOffen, setVorlagenOffen] = useState(false);
 
   const ladeDokumente = useCallback(async (id: string) => {
     if (!id) { setDokumente([]); return; }
@@ -114,6 +117,7 @@ export default function BetriebsaktePage() {
       setGeraete(d.data || []);
       if (d.data?.length) setGeraetId(d.data[0].id);
     }).catch(() => {});
+    api("/api/doc-templates").then((d) => setVorlagen(d.data || [])).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ladeGruppen]);
 
@@ -147,6 +151,37 @@ export default function BetriebsaktePage() {
       });
       setMsg(`Abgelegt: ${d.fileName}${d.version > 1 ? ` (Version ${d.version})` : ""}.`);
       ladeDokumente(orgId);
+    } catch (e: any) { setMsg("Fehler: " + e.message); }
+    finally { setBusy(""); }
+  }
+
+  /** Dokument aus einer Vorlage erzeugen – vorausgefüllt mit den Daten des Mandanten. */
+  async function ausVorlage(templateId: string, name: string) {
+    if (!orgId) { setMsg("Bitte zuerst einen Mandanten wählen."); return; }
+    setBusy("vorlage");
+    try {
+      const d = await api("/api/organization-documents", {
+        method: "POST",
+        body: JSON.stringify({ orgId, templateId, groupId: zielGruppe, fill: true }),
+      });
+      setMsg(`${name} vorausgefüllt abgelegt${d.version > 1 ? ` (Version ${d.version})` : ""} – zum Ausfüllen öffnen.`);
+      setVorlagenOffen(false);
+      ladeDokumente(orgId);
+    } catch (e: any) { setMsg("Fehler: " + e.message); }
+    finally { setBusy(""); }
+  }
+
+  /** Neues Formular als Vorlage hinterlegen (ausfüllbares PDF). */
+  async function vorlageHochladen(f: File) {
+    setBusy("vorlage-upload");
+    try {
+      const base64 = await dateiZuBase64(f);
+      const t = await api("/api/doc-templates", {
+        method: "POST",
+        body: JSON.stringify({ name: f.name.replace(/\.pdf$/i, "").replace(/[_-]+/g, " "), fileName: f.name, base64 }),
+      });
+      setMsg(`Vorlage ${t.name} gespeichert – sie steht jetzt für jeden Mandanten bereit.`);
+      api("/api/doc-templates").then((d) => setVorlagen(d.data || [])).catch(() => {});
     } catch (e: any) { setMsg("Fehler: " + e.message); }
     finally { setBusy(""); }
   }
@@ -319,6 +354,10 @@ export default function BetriebsaktePage() {
             <input type="file" accept="image/*" capture="environment" style={{ display: "none" }} disabled={!orgId}
               onChange={(e) => { const f = e.target.files?.[0]; if (f) hochladen(f, zielGruppe); e.target.value = ""; }} />
           </label>
+          <button className="btn" disabled={!orgId} onClick={() => setVorlagenOffen(true)}
+            title="Formular aus einer Vorlage erzeugen – mit den Firmendaten vorausgefüllt">
+            <Icon name="file-text" /> Aus Vorlage
+          </button>
           <button className="btn" disabled={!orgId || !geraetId || busy === "scan"}
             onClick={() => scannen(zielGruppe, gruppen.find((g) => g.id === zielGruppe)?.name || "")}
             title={geraetId ? "Vorlage einlesen und hier ablegen" : "Kein Scanner eingerichtet"}>
@@ -338,6 +377,56 @@ export default function BetriebsaktePage() {
           </span>
         </div>
       </div>
+
+      {/* ── Vorlagen: Formular erzeugen oder neue Vorlage hinterlegen ── */}
+      {vorlagenOffen && (
+        <div onClick={() => setVorlagenOffen(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "grid", placeItems: "center", padding: 16, zIndex: 60 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster"
+            style={{ width: 560, maxWidth: "94vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
+              <Icon name="file-text" size={18} />
+              <h2 style={{ fontSize: 17, fontWeight: 700, flex: 1 }}>Vorlage verwenden</h2>
+              <label className="btn" style={{ cursor: "pointer" }} title="Neues Formular als Vorlage hinterlegen">
+                <Icon name="plus" /> <span className="btn-label">Vorlage</span>
+                <input type="file" accept="application/pdf" style={{ display: "none" }}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) vorlageHochladen(f); e.target.value = ""; }} />
+              </label>
+              <button className="btn btn-icon" aria-label="Schließen" onClick={() => setVorlagenOffen(false)}><Icon name="x" /></button>
+            </div>
+            <div style={{ padding: 18, overflowY: "auto", display: "grid", gap: 8 }}>
+              {vorlagen.length === 0 && (
+                <div className="muted" style={{ fontSize: 13.5, lineHeight: 1.5 }}>
+                  Noch keine Vorlage. Lade oben ein ausfüllbares PDF hoch – etwa das
+                  SEPA-Lastschriftmandat. Die Formularfelder werden automatisch erkannt.
+                </div>
+              )}
+              {vorlagen.map((v) => {
+                const felder = (() => { try { return JSON.parse(v.formFields || "[]").length; } catch { return 0; } })();
+                return (
+                  <div key={v.id} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 10,
+                                           display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                    <Icon name="file-text" size={15} />
+                    <span style={{ fontWeight: 600, fontSize: 14 }}>{v.name}</span>
+                    <span className="muted" style={{ fontSize: 12 }}>
+                      v{v.version}{felder ? ` · ${felder} Formularfelder` : ""}
+                    </span>
+                    <button className="btn btn-primary" style={{ marginLeft: "auto" }} disabled={busy === "vorlage"}
+                      onClick={() => ausVorlage(v.id, v.name)}>
+                      <Icon name="save" /> {busy === "vorlage" ? "Legt ab…" : "Vorausgefüllt ablegen"}
+                    </button>
+                  </div>
+                );
+              })}
+              <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
+                Vorausgefüllt werden Firmenname, Anschrift, Steuernummer, USt-IdNr. sowie Ort und Datum.
+                <b> Bankverbindung bleibt leer</b> – IBAN und Kontoinhaber trägst du im geöffneten PDF selbst ein;
+                das Dokument bleibt ausfüllbar.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {busy === "scan" && (
         <div className="card" style={{ padding: 14, marginBottom: 12 }}>

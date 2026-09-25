@@ -962,3 +962,20 @@
   Begründung im Code festgehalten: Drei Monate sind das zulässige Minimum (kürzer = unwirksam),
   Textform statt Schriftform (§ 309 Nr. 13 BGB), und ohne den Ausnahmekatalog wäre die ganze
   Klausel unwirksam.
+
+## 25.09.2026 — Betriebsakte: Formulare aus Vorlagen (z. B. SEPA-Lastschriftmandat)
+- **Wunsch Daniel:** Ein SEPA-Lastschriftmandat beim Mandanten unter „Finanzamt" hinterlegen –
+  und zwar **zum Ausfüllen**. (Die Datei lag auf seinem Rechner, nicht auf dem Server – sie wird
+  über die Oberfläche hochgeladen.)
+- **Vorlagen gelten jetzt auch für Mandanten:** `POST /api/organization-documents` nimmt neben einer
+  Datei auch `templateId` entgegen und erzeugt daraus ein Dokument in der Betriebsakte –
+  **vorausgefüllt mit den Firmendaten**.
+- **Neue Zuordnung `MANDANT_FELDZUORDNUNG` + `werteAusMandant`** (`src/lib/documents.ts`):
+  Firmenname, Namenszusatz, Straße, PLZ, Ort, Land, Steuernummer, USt-IdNr. sowie „Ort, Datum".
+  **Bankverbindung bleibt bewusst leer** – IBAN und Kontoinhaber hält Nexus nicht vor; das PDF
+  bleibt ausfüllbar, der Rest wird von Hand eingetragen.
+- **Betriebsakte:** neuer Knopf **„Aus Vorlage"** mit Pop-up – vorhandene Vorlagen mit Angabe der
+  erkannten Formularfelder, Knopf „Vorausgefüllt ablegen" (landet in der oben gewählten Rubrik,
+  z. B. Finanzamt) und oben rechts „Vorlage" zum Hochladen eines neuen ausfüllbaren PDFs.
+  Vorlagen sind dieselben wie bei den Mitarbeiter-Dokumenten und stehen für jeden Mandanten bereit.
+- Build + Neustart, `/betriebsakte` HTTP 200.
