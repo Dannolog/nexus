@@ -7,6 +7,7 @@ import Hervorheben, { sucheBegriffe } from "@/components/Hervorheben";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import SuchSelect from "@/components/SuchSelect";
 import PdfViewerModal from "@/components/PdfViewerModal";
+import PdfAusgabeDialog from "@/components/PdfAusgabeDialog";
 import { Feld } from "@/components/KontaktFeld";
 import Toggle from "@/components/Toggle";
 import ScanAnimation from "@/components/ScanAnimation";
@@ -107,7 +108,8 @@ export default function ScanPage() {
   const [umbenennen, setUmbenennen] = useState<{ id: string; titel: string } | null>(null);
   const [zuordnen, setZuordnen] = useState<{ scan: Scan; employeeId: string; groupId: string } | null>(null);
   const [loeschen, setLoeschen] = useState<Scan | null>(null);
-  const [viewer, setViewer] = useState<{ url: string; titel: string } | null>(null);
+  const [viewer, setViewer] = useState<{ url: string; titel: string; dateiname: string } | null>(null);
+  const [ausgabe, setAusgabe] = useState<{ scan: Scan; modus: "speichern" | "drucken" } | null>(null);
   const [mitarbeiter, setMitarbeiter] = useState<any[]>([]);
   const [gruppen, setGruppen] = useState<any[]>([]);
 
@@ -230,12 +232,11 @@ export default function ScanPage() {
     } catch (e: any) { setMsg("Fehler: " + e.message); }
   }
 
-  async function oeffnen(s: Scan, speichern: boolean) {
+  async function oeffnen(s: Scan) {
     setBusy("open" + s.id);
     try {
       const { blob, name } = await ladeDatei(`/api/scan-inbox/${s.id}/file`);
-      if (speichern) speichereBlob(blob, name);
-      else setViewer({ url: URL.createObjectURL(blob), titel: `${s.title} · ${s.pages} Seite${s.pages === 1 ? "" : "n"}` });
+      setViewer({ url: URL.createObjectURL(blob), titel: `${s.title} · ${s.pages} Seite${s.pages === 1 ? "" : "n"}`, dateiname: name });
     } catch (e: any) { setMsg("Fehler: " + e.message); }
     finally { setBusy(""); }
   }
@@ -558,7 +559,7 @@ export default function ScanPage() {
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                     {/* Vorschau der ersten Seite – ein Klick öffnet den Scan */}
                     {s.thumb ? (
-                      <button type="button" onClick={() => oeffnen(s, false)} title="Scan öffnen"
+                      <button type="button" onClick={() => oeffnen(s)} title="Scan öffnen"
                         style={{ border: 0, background: "transparent", padding: 0, cursor: "zoom-in", lineHeight: 0 }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={s.thumb} alt="" style={{ width: 44, height: 58, objectFit: "cover", borderRadius: 6,
@@ -619,11 +620,16 @@ export default function ScanPage() {
                   )}
 
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    <button className="btn" disabled={busy === "open" + s.id} onClick={() => oeffnen(s, false)}>
+                    <button className="btn" disabled={busy === "open" + s.id} onClick={() => oeffnen(s)}>
                       <Icon name="eye" /> Öffnen
                     </button>
-                    <button className="btn" disabled={busy === "open" + s.id} onClick={() => oeffnen(s, true)}>
-                      <Icon name="save" /> Speichern
+                    <button className="btn" title="Herunterladen oder Speichern unter – ganz oder einzelne Seiten"
+                      onClick={() => setAusgabe({ scan: s, modus: "speichern" })}>
+                      <Icon name="download" /> Herunterladen
+                    </button>
+                    <button className="btn" title="Drucken – ganz oder einzelne Seiten"
+                      onClick={() => setAusgabe({ scan: s, modus: "drucken" })}>
+                      <Icon name="printer" /> Drucken
                     </button>
                     {s.status === "offen" && (
                       <button className="btn btn-primary" onClick={() => setZuordnen({ scan: s, employeeId: "", groupId: "" })}>
@@ -709,7 +715,19 @@ export default function ScanPage() {
         <PdfViewerModal
           url={viewer.url}
           titel={viewer.titel}
+          dateiname={viewer.dateiname}
           onClose={() => { URL.revokeObjectURL(viewer.url); setViewer(null); }}
+        />
+      )}
+
+      {ausgabe && (
+        <PdfAusgabeDialog
+          key={ausgabe.scan.id + ausgabe.modus}
+          quelle={() => ladeDatei(`/api/scan-inbox/${ausgabe.scan.id}/file`).then((d) => d.blob)}
+          dateiname={ausgabe.scan.fileName || `${ausgabe.scan.title}.pdf`}
+          titel={ausgabe.scan.title}
+          modus={ausgabe.modus}
+          onClose={() => setAusgabe(null)}
         />
       )}
 

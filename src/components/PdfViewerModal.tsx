@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Icon from "./Icon";
+import PdfAusgabeDialog from "./PdfAusgabeDialog";
 
 // Der PDF-Viewer stammt aus ProjectEye (pdf.js + pdf-lib) und wird nur im Browser geladen –
 // pdf.js braucht window/Worker und darf nicht serverseitig gerendert werden.
@@ -22,17 +23,22 @@ export default function PdfViewerModal({
   titel,
   onClose,
   onSavePdf,
+  dateiname,
 }: {
   url: string;
   titel?: string;
+  /** Vorschlag für den Dateinamen beim Herunterladen (sonst aus dem Titel) */
+  dateiname?: string;
   onClose: () => void;
   onSavePdf?: (blob: Blob, opts: { replace?: boolean }) => Promise<void> | void;
 }) {
   const [dunkel, setDunkel] = useState(false);
+  // Herunterladen / Drucken – ganz oder nur bestimmte Seiten
+  const [ausgabe, setAusgabe] = useState<"speichern" | "drucken" | null>(null);
 
   useEffect(() => {
     setDunkel(document.documentElement.classList.contains("dark"));
-    const bei = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const bei = (e: KeyboardEvent) => { if (e.key === "Escape" && !document.getElementById("pdf-ausgabe-offen")) onClose(); };
     window.addEventListener("keydown", bei);
     // Hintergrund nicht mitscrollen lassen
     const vorher = document.body.style.overflow;
@@ -56,14 +62,34 @@ export default function PdfViewerModal({
         <span style={{ fontWeight: 600, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {titel || "Dokument"}
         </span>
+        <button onClick={() => setAusgabe("speichern")} title="Herunterladen – ganz oder einzelne Seiten"
+          style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, border: `1px solid ${T.line}`, background: "transparent", color: T.ink, borderRadius: 8, padding: "7px 10px", cursor: "pointer", fontSize: 14 }}>
+          <Icon name="download" size={16} /> <span className="btn-label">Herunterladen</span>
+        </button>
+        <button onClick={() => setAusgabe("drucken")} title="Drucken – ganz oder einzelne Seiten"
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, border: `1px solid ${T.line}`, background: "transparent", color: T.ink, borderRadius: 8, padding: "7px 10px", cursor: "pointer", fontSize: 14 }}>
+          <Icon name="printer" size={16} /> <span className="btn-label">Drucken</span>
+        </button>
         <button onClick={onClose} title="Schließen (Esc)"
-          style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, border: `1px solid ${T.line}`, background: "transparent", color: T.ink, borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 14 }}>
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, border: `1px solid ${T.line}`, background: "transparent", color: T.ink, borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 14 }}>
           <Icon name="x" size={16} /> Schließen
         </button>
       </div>
       <div style={{ flex: 1, minHeight: 0 }}>
         {url ? <PdfDocViewer url={url} T={T} onSavePdf={onSavePdf} /> : null}
       </div>
+      {ausgabe && url && (
+        <>
+          <span id="pdf-ausgabe-offen" hidden />
+          <PdfAusgabeDialog
+            quelle={() => fetch(url).then((r) => r.blob())}
+            dateiname={dateiname || `${(titel || "Dokument").split(" · ")[0]}.pdf`}
+            titel={titel}
+            modus={ausgabe}
+            onClose={() => setAusgabe(null)}
+          />
+        </>
+      )}
     </div>
   );
 }

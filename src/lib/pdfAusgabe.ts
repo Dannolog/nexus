@@ -193,3 +193,44 @@ export async function druckeSeiten(bytes: ArrayBuffer, seiten: number[], fortsch
   // Manche Mobil-Browser feuern kein afterprint – spätestens nach einer Minute aufräumen
   setTimeout(aufraeumen, 60000);
 }
+
+/**
+ * Liefert das Dokument als PDF-Bytes. Bilder (z. B. vom Handy fotografierte Belege im
+ * Posteingang) werden zu einem einseitigen PDF; andere Dateitypen → null.
+ */
+export async function alsPdfBytes(blob: Blob): Promise<ArrayBuffer | null> {
+  const buf = await blob.arrayBuffer();
+  const kopf = new Uint8Array(buf.slice(0, 1024));
+  const text = String.fromCharCode(...Array.from(kopf));
+  if (text.includes("%PDF")) return buf;
+
+  const istJpg = kopf[0] === 0xff && kopf[1] === 0xd8;
+  const istPng = kopf[0] === 0x89 && kopf[1] === 0x50 && kopf[2] === 0x4e && kopf[3] === 0x47;
+  if (!istJpg && !istPng && !blob.type.startsWith("image/")) return null;
+
+  const doc = await PDFDocument.create();
+  let bild;
+  if (istJpg) bild = await doc.embedJpg(buf);
+  else if (istPng) bild = await doc.embedPng(buf);
+  else {
+    // Andere Bildformate (WebP, HEIC wo unterstützt …) über ein Canvas nach JPEG wandeln
+    const bmp = await createImageBitmap(blob);
+    const c = document.createElement("canvas");
+    c.width = bmp.width; c.height = bmp.height;
+    const ctx = c.getContext("2d")!;
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(bmp, 0, 0);
+    const jpg: Blob = await new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error("Bild konnte nicht umgewandelt werden"))), "image/jpeg", 0.92));
+    bild = await doc.embedJpg(await jpg.arrayBuffer());
+  }
+  // Auf A4 einpassen (Hoch- oder Querformat je nach Bild), 10 mm Rand
+  const quer = bild.width > bild.height;
+  const [bw, bh] = quer ? [841.89, 595.28] : [595.28, 841.89];
+  const rand = 28.35;
+  const f = Math.min((bw - 2 * rand) / bild.width, (bh - 2 * rand) / bild.height);
+  const w = bild.width * f, h = bild.height * f;
+  const seite = doc.addPage([bw, bh]);
+  seite.drawImage(bild, { x: (bw - w) / 2, y: (bh - h) / 2, width: w, height: h });
+  const out = await doc.save();
+  return out.buffer.slice(out.byteOffset, out.byteOffset + out.byteLength) as ArrayBuffer;
+}
