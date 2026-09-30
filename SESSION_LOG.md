@@ -979,3 +979,19 @@
   z. B. Finanzamt) und oben rechts „Vorlage" zum Hochladen eines neuen ausfüllbaren PDFs.
   Vorlagen sind dieselben wie bei den Mitarbeiter-Dokumenten und stehen für jeden Mandanten bereit.
 - Build + Neustart, `/betriebsakte` HTTP 200.
+
+## 30.09.2026 — Scans/PDFs: Herunterladen, Speichern unter, Drucken – auch einzelne Seiten
+- **Wunsch Daniel:** Scans herunterladen, aber auch nur bestimmte Seiten; „Speichern unter" und
+  Drucken – alles muss funktionieren.
+- **Neu `src/lib/pdfAusgabe.ts`:** Seitenangabe parsen („1-3, 5", „4-"), Seiten per pdf-lib
+  herauslösen, Dateiname mit Seitenangabe (`Scan_S1-3_5.pdf`), `speichernUnter` (echter
+  Dateidialog über `showSaveFilePicker` in Chrome/Edge, sonst Download unter dem gewählten Namen),
+  `druckeSeiten` (pdf.js rendert die Seiten mit ~200 dpi als Bilder in einen eigenen Druckbereich,
+  `@media print` blendet den Rest aus → funktioniert in jedem Browser, auch Handy),
+  `alsPdfBytes` (Fotos/Bilder im Posteingang werden zu einem A4-PDF).
+- **Neu `PdfAusgabeDialog`:** Vorschaubilder aller Seiten zum An-/Abwählen, Textfeld für die
+  Seitenauswahl, „Alle"/„Keine", Dateiname; unten Abbrechen | Speichern unter … | Drucken | Herunterladen.
+- **Eingebaut:** Posteingang je Scan „Herunterladen" und „Drucken" (ersetzt das alte „Speichern");
+  im **PDF-Betrachter** (`PdfViewerModal`) oben „Herunterladen" und „Drucken" – damit auch in
+  Dokumente und Betriebsakte verfügbar.
+- tsc sauber, Build + Neustart, `/scan` HTTP 200; Seitenlogik per Node-Test geprüft.
