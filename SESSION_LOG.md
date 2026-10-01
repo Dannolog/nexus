@@ -1019,3 +1019,17 @@
   Duplikat-Warnung berücksichtigt auch Dokumente der Betriebsakte.
 - tsc sauber, Build + Neustart, `/scan` und `/betriebsakte` 200, Aufteilung per Node-Test geprüft.
   Ende-zu-Ende-Test im Browser durch Daniel steht aus.
+
+## 01.10.2026 — Scannen: Papier im Einzug sofort erkennen
+- **Anlass:** Daniel bekam „Der Scanner hat den Auftrag abgelehnt (Status: Idle, Einzug: ScannerAdfEmpty)".
+  Diese Meldung stammt aus **kontor** (`kontor/src/lib/scanner.ts`) – dort arbeitet gerade eine andere
+  Session (ungesicherte Änderungen + neue Status-Route), daher kontor nicht angefasst.
+- **Nexus:** `scannerStatus()` + `einzugProblem()` in `src/lib/scanner.ts` (eSCL `/eSCL/ScannerStatus`,
+  `pwg:State`, `scan:AdfState`). Neue Route `GET /api/scanners/[id]/status` → `{ state, adf, papierImEinzug, problem }`.
+- **Vorabprüfung:** Scan mit Einzug, aber Einzug leer/Stau/Klappe offen → klare Meldung, kein Auftrag ans Gerät.
+  Abgelehnter Auftrag (≠ 201) fragt den Status nach und nennt den Grund.
+- **`useEinzug` (`src/lib/einzug.ts`):** fragt alle 3 s (nur bei sichtbarem Fenster, nicht während des Scans).
+  Neu erkanntes Papier wählt **einmalig** den Einzug vor; Flachbett bleibt per Knopf wählbar und wird nicht
+  zurückgedreht. Hinweisleiste auf `/scan` („Papier im Einzug erkannt" / „… trotzdem vom Flachbett" /
+  „Einzug ist leer") mit Knopf zum Umschalten; kompakter Hinweis neben „Scannen" in der Betriebsakte.
+- Build + Neustart, `/scan` 200; Gerät 192.168.10.54 meldete beim Test `ScannerAdfLoaded`.
