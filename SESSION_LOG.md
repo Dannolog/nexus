@@ -995,3 +995,27 @@
   im **PDF-Betrachter** (`PdfViewerModal`) oben „Herunterladen" und „Drucken" – damit auch in
   Dokumente und Betriebsakte verfügbar.
 - tsc sauber, Build + Neustart, `/scan` HTTP 200; Seitenlogik per Node-Test geprüft.
+
+## 01.10.2026 — Scans zuordnen: Mitarbeiter- oder Betriebsakte, einzelne Seiten; eigene Akten
+- **Wunsch Daniel:** Scans auch der Betriebsakte zuordnen, nur bestimmte Seiten, danach Abfrage
+  „Rest löschen oder alles im Posteingang behalten"; in der Betriebsakte eigene Akten anlegen
+  (Rückfrage beantwortet: „Eigene Akten anlegen" – frei benannt, neben den Mandanten).
+- **Schema:** neues Modell `Dossier` (eigene Akte: name, note, color, sort). Dokumente liegen wie bei
+  Mandanten in `OrganizationDocument.orgId` (= Dossier.id). `ScanDocument` + `orgId`, `zuordnungen`
+  (JSON-Verlauf: welche Seiten wohin). `db push` + Live-Trigger `nexus_live_trg` auf "Dossier".
+- **`src/lib/ablage.ts` → `findeAblage(id)`:** Mandant oder Akte. Genutzt von organization-documents
+  (Vorlagen bei Akten ohne Vorausfüllung), Direkt-Scan in die Betriebsakte, Zuordnung.
+- **API `/api/dossiers`** (GET mit Dokumentanzahl, POST) und `/api/dossiers/[id]` (PATCH, DELETE nur
+  wenn leer).
+- **`POST /api/scan-inbox/[id]/assign` neu:** `ziel` mitarbeiter|betriebsakte, `seiten` (0-basiert),
+  `rest`: `behalten` (Scan wird auf die restlichen Seiten gekürzt, bleibt offen, neue Vorschau vom
+  Browser), `alles` (Scan bleibt unverändert offen), `loeschen` (Scan behält nur die abgelegten
+  Seiten und ist erledigt). Seiten werden serverseitig mit pdf-lib herausgelöst.
+- **UI:** `SeitenWahl` (gemeinsame Seitenauswahl, auch im Download-Dialog), `ScanZuordnenDialog`
+  (Ziel umschaltbar, Mandant/Akte-Auswahl mit „neue Akte eintippen", Rubrik, Titel, Seiten,
+  Rest-Abfrage). Posteingang zeigt den Verlauf („Seiten 1, 2 von 5 → …").
+  Betriebsakte: Auswahl „Mandant oder Akte", Knopf **Neue Akte**, Bearbeiten/Entfernen der Akte.
+- Nebenbei: Rubrik löschen setzt jetzt auch Betriebsakte-Dokumente auf „Ohne Zuordnung";
+  Duplikat-Warnung berücksichtigt auch Dokumente der Betriebsakte.
+- tsc sauber, Build + Neustart, `/scan` und `/betriebsakte` 200, Aufteilung per Node-Test geprüft.
+  Ende-zu-Ende-Test im Browser durch Daniel steht aus.
