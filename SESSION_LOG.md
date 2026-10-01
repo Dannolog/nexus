@@ -1033,3 +1033,14 @@
   zurückgedreht. Hinweisleiste auf `/scan` („Papier im Einzug erkannt" / „… trotzdem vom Flachbett" /
   „Einzug ist leer") mit Knopf zum Umschalten; kompakter Hinweis neben „Scannen" in der Betriebsakte.
 - Build + Neustart, `/scan` 200; Gerät 192.168.10.54 meldete beim Test `ScannerAdfLoaded`.
+
+## 01.10.2026 — Einzug leer → automatisch Flachbett; Vorlage immer sichtbar (+ kontor)
+- **Wunsch Daniel:** „Einzug kein Papier mehr, trotzdem schaltet nicht um – ich muss auch manuell umschalten
+  können"; in **kontor** die Scanner-Einstellungen übersichtlicher und immer sichtbar.
+- **Nexus:** `useEinzug(…, beiPapier, beiLeer)` – Papier rein → Einzug, Einzug leer → Flachbett (nur bei
+  Zustandswechsel, dazwischen gilt die Hand-Wahl). `/scan`: Knopfpaar „Flachbett (Glas) | Einzug (ADF)"
+  immer sichtbar, am Einzug-Knopf live „Papier"/„leer"; Schalter aus den aufklappbaren Einstellungen entfernt.
+  Betriebsakte: gleiches Zurückschalten.
+- **kontor** (`src/app/(app)/scan/page.tsx`, Commit 5d9cda6): Einstellungen immer sichtbar als Knopfreihen
+  (Vorlage, Auflösung, ein-/beidseitig – Duplex nur mit Einzug), gleiches Auto-Umschalten, Changelog-Eintrag.
+  Die parallel laufende kontor-Session hatte `scanner.ts` geändert – nicht angefasst.
