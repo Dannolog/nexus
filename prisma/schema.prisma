@@ -460,6 +460,8 @@ model ScanDocument {
   employeeId  String   @default("")               // gesetzt beim Zuordnen
   groupId     String   @default("")               // Rubrik in der Akte
   documentId  String   @default("")               // daraus entstandenes EmployeeDocument
+  orgId       String   @default("")               // Betriebsakte (Mandant oder eigene Akte), wenn dorthin zugeordnet
+  zuordnungen String   @default("[]") @db.Text     // Verlauf: welche Seiten wohin abgelegt wurden (JSON)
   note        String   @default("") @db.Text
   deletedAt   DateTime?
   createdAt   DateTime @default(now())
@@ -474,7 +476,7 @@ model ScanDocument {
 // Aufbau wie EmployeeDocument – nur hängt es an einer Organisation statt an einer Person.
 model OrganizationDocument {
   id        String   @id @default(cuid())
-  orgId     String
+  orgId     String                             // Organization.id oder Dossier.id (eigene Akte)
   groupId   String   @default("")              // Rubrik (DocumentGroup)
   title     String   @default("")
   fileName  String
@@ -494,6 +496,19 @@ model OrganizationDocument {
   @@index([groupId])
   @@index([docKey])
   @@index([documentDate])
+}
+
+// ---- Eigene Akte in der Betriebsakte (frei benannt, z. B. „Fuhrpark", „Immobilie Hauptstraße") ----
+// Steht neben den Mandanten; ihre Dokumente liegen wie dort in OrganizationDocument (orgId = Dossier.id).
+model Dossier {
+  id        String   @id @default(cuid())
+  name      String
+  note      String   @default("") @db.Text
+  color     String   @default("")
+  sort      Int      @default(0)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ---- Ablage-Gruppe (Rubrik in der Mitarbeiter- **und** Betriebsakte, z. B. „Finanzamt") ----
