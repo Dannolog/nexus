@@ -8,6 +8,7 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import SuchSelect from "@/components/SuchSelect";
 import PdfViewerModal from "@/components/PdfViewerModal";
 import PdfAusgabeDialog from "@/components/PdfAusgabeDialog";
+import ScanZuordnenDialog from "@/components/ScanZuordnenDialog";
 import { Feld } from "@/components/KontaktFeld";
 import Toggle from "@/components/Toggle";
 import ScanAnimation from "@/components/ScanAnimation";
@@ -26,7 +27,7 @@ import { useSeitenZustand } from "@/lib/seitenzustand";
 type Scan = {
   id: string; title: string; fileName: string; mimeType: string; size: number; pages: number;
   sha256: string; thumb?: string; scannerName: string; scannedAt: string; status: string;
-  employeeId: string; groupId: string; documentId: string; note: string;
+  employeeId: string; groupId: string; documentId: string; orgId: string; zuordnungen: string; note: string;
   warnungen: { name: boolean; inhalt: boolean; bereitsAbgelegt: boolean };
 };
 
@@ -59,15 +60,10 @@ async function ladeDatei(pfad: string): Promise<{ blob: Blob; name: string }> {
   return { blob: await res.blob(), name: decodeURIComponent(res.headers.get("X-Dateiname") || "scan.pdf") };
 }
 
-function speichereBlob(blob: Blob, name: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
+type Ablage = { ziel: string; name: string; seiten?: number[]; von?: number };
+/** Verlauf der Ablagen eines Scans (welche Seiten wohin). */
+function verlauf(s: Scan): Ablage[] {
+  try { return JSON.parse(s.zuordnungen || "[]"); } catch { return []; }
 }
 
 function dateiZuBase64(f: File): Promise<string> {
@@ -106,7 +102,9 @@ export default function ScanPage() {
   const [scannerLoeschen, setScannerLoeschen] = useState<Geraet | null>(null);
   const [optionenOffen, setOptionenOffen] = useState(false);
   const [umbenennen, setUmbenennen] = useState<{ id: string; titel: string } | null>(null);
-  const [zuordnen, setZuordnen] = useState<{ scan: Scan; employeeId: string; groupId: string } | null>(null);
+  const [zuordnen, setZuordnen] = useState<Scan | null>(null);
+  const [mandanten, setMandanten] = useState<any[]>([]);
+  const [akten, setAkten] = useState<any[]>([]);
   const [loeschen, setLoeschen] = useState<Scan | null>(null);
   const [viewer, setViewer] = useState<{ url: string; titel: string; dateiname: string } | null>(null);
   const [ausgabe, setAusgabe] = useState<{ scan: Scan; modus: "speichern" | "drucken" } | null>(null);
@@ -134,7 +132,13 @@ export default function ScanPage() {
   useLive(["ScanDocument", "EmployeeDocument"], ladeScans);
   useLive(["Scanner"], ladeGeraete);
   useLive(["DocumentGroup"], () => { api("/api/doc-groups").then((d) => setGruppen(d.data || [])).catch(() => {}); });
+  const ladeAblagen = useCallback(() => {
+    api("/api/organizations").then((d) => setMandanten(d.data || [])).catch(() => {});
+    api("/api/dossiers").then((d) => setAkten(d.data || [])).catch(() => {});
+  }, []);
+  useLive(["Organization", "Dossier"], ladeAblagen);
   useEffect(() => {
+    ladeAblagen();
     api("/api/employees").then((d) => setMitarbeiter(d.data || [])).catch(() => {});
     api("/api/doc-groups").then((d) => setGruppen(d.data || [])).catch(() => {});
   }, []);
@@ -265,20 +269,15 @@ export default function ScanPage() {
     } catch (e: any) { setMsg("Fehler: " + e.message); }
   }
 
-  async function zuordnenSpeichern() {
-    if (!zuordnen?.employeeId) { setMsg("Bitte einen Mitarbeiter wählen."); return; }
-    setBusy("zuordnen");
+  /** Neue eigene Akte (Betriebsakte) direkt aus der Auswahl heraus anlegen. */
+  async function akteAnlegen(name: string) {
     try {
-      const d = await api(`/api/scan-inbox/${zuordnen.scan.id}/assign`, {
-        method: "POST",
-        body: JSON.stringify({ employeeId: zuordnen.employeeId, groupId: zuordnen.groupId }),
-      });
-      const name = mitarbeiter.find((m) => m.id === zuordnen.employeeId)?.name || "";
-      setMsg(`In die Akte von ${name} abgelegt: ${d.dokument.fileName}`);
-      setZuordnen(null);
-      ladeScans();
+      const a = await api("/api/dossiers", { method: "POST", body: JSON.stringify({ name }) });
+      ladeAblagen();
+      setAkten((alt) => [...alt, a]);
+      setMsg(`Akte „${a.name}" angelegt.`);
+      return a.id as string;
     } catch (e: any) { setMsg("Fehler: " + e.message); }
-    finally { setBusy(""); }
   }
 
   async function verwerfen() {
@@ -611,10 +610,22 @@ export default function ScanPage() {
                     </div>
                   )}
 
-                  {s.status === "zugeordnet" && (
+                  {/* Bisherige Ablagen – auch Teilablagen einzelner Seiten */}
+                  {verlauf(s).map((z, i) => (
+                    <div key={i} className="muted" style={{ fontSize: 12.5, display: "flex", alignItems: "center", gap: 6 }}>
+                      <Icon name="check" size={13} />
+                      {z.seiten && z.von && z.seiten.length < z.von
+                        ? `Seite${z.seiten.length === 1 ? "" : "n"} ${z.seiten.join(", ")} von ${z.von} → `
+                        : "zugeordnet: "}
+                      {z.ziel === "betriebsakte" ? `Betriebsakte ${z.name}` : z.name}
+                    </div>
+                  ))}
+                  {s.status === "zugeordnet" && verlauf(s).length === 0 && (
                     <div className="muted" style={{ fontSize: 12.5, display: "flex", alignItems: "center", gap: 6 }}>
                       <Icon name="check" size={13} />
-                      zugeordnet: {mitarbeiter.find((m) => m.id === s.employeeId)?.name || "Mitarbeiter"}
+                      zugeordnet: {s.orgId
+                        ? `Betriebsakte ${[...mandanten, ...akten].find((m) => m.id === s.orgId)?.name || ""}`
+                        : mitarbeiter.find((m) => m.id === s.employeeId)?.name || "Mitarbeiter"}
                       {s.groupId ? ` · ${gruppen.find((g) => g.id === s.groupId)?.name || "Rubrik"}` : ""}
                     </div>
                   )}
@@ -632,8 +643,9 @@ export default function ScanPage() {
                       <Icon name="printer" /> Drucken
                     </button>
                     {s.status === "offen" && (
-                      <button className="btn btn-primary" onClick={() => setZuordnen({ scan: s, employeeId: "", groupId: "" })}>
-                        <Icon name="user" /> Mitarbeiter zuordnen
+                      <button className="btn btn-primary" onClick={() => setZuordnen(s)}
+                        title="In die Mitarbeiter- oder Betriebsakte legen – ganz oder nur bestimmte Seiten">
+                        <Icon name="folder" /> Zuordnen
                       </button>
                     )}
                     <button className="btn btn-icon btn-danger" title="Verwerfen" onClick={() => setLoeschen(s)}>
@@ -649,66 +661,20 @@ export default function ScanPage() {
 
       {/* ── Zuordnen ── */}
       {zuordnen && (
-        <div onClick={() => setZuordnen(null)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "grid", placeItems: "center", padding: 16, zIndex: 60 }}>
-          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster"
-            style={{ width: 520, maxWidth: "94vw", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
-              <h2 style={{ fontSize: 17, fontWeight: 700, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                „{zuordnen.scan.title}" zuordnen
-              </h2>
-              <button className="btn btn-icon" aria-label="Schließen" onClick={() => setZuordnen(null)}><Icon name="x" /></button>
-            </div>
-            <div style={{ padding: 18, display: "grid", gap: 12 }}>
-              <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                <span className="muted">Mitarbeiter</span>
-                <SuchSelect
-                  value={zuordnen.employeeId}
-                  onChange={(v) => setZuordnen({ ...zuordnen, employeeId: v })}
-                  platzhalter="— Mitarbeiter wählen —"
-                  suchePlatzhalter="Name oder Personalnummer…"
-                  options={mitarbeiter.map((m) => ({ value: m.id, label: m.name, hint: m.employeeNumber || m.email || "" }))}
-                />
-              </label>
-              <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                <span className="muted">Rubrik in der Akte</span>
-                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <SuchSelect
-                      value={zuordnen.groupId}
-                      onChange={(v) => setZuordnen({ ...zuordnen, groupId: v })}
-                      platzhalter="— ohne Zuordnung —"
-                      suchePlatzhalter="Rubrik suchen oder neue eintippen…"
-                      options={gruppen.map((g: any) => ({ value: g.id, label: g.name }))}
-                      erlaubeNeu
-                      neuText="als neue Rubrik anlegen"
-                      onNeu={rubrikAnlegen}
-                    />
-                  </div>
-                  {zuordnen.groupId && (
-                    <button className="btn btn-icon" title="Rubrik umbenennen"
-                      onClick={() => rubrikUmbenennen(zuordnen.groupId)}>
-                      <Icon name="pencil" size={14} />
-                    </button>
-                  )}
-                </div>
-                <span className="muted" style={{ fontSize: 12 }}>
-                  Neue Rubrik einfach eintippen – sie steht danach überall zur Verfügung.
-                </span>
-              </label>
-              <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
-                Der Scan wird als Dokument in die Akte gelegt (Dateiname nach dem üblichen Schema)
-                und bleibt hier als erledigt vermerkt.
-              </div>
-            </div>
-            <div style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button className="btn" onClick={() => setZuordnen(null)}>Abbrechen</button>
-              <button className="btn btn-primary" disabled={busy === "zuordnen"} onClick={zuordnenSpeichern}>
-                <Icon name="save" /> {busy === "zuordnen" ? "Legt ab…" : "In die Akte legen"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ScanZuordnenDialog
+          key={zuordnen.id}
+          scan={zuordnen}
+          ladeBlob={() => ladeDatei(`/api/scan-inbox/${zuordnen.id}/file`).then((d) => d.blob)}
+          mitarbeiter={mitarbeiter}
+          gruppen={gruppen}
+          mandanten={mandanten}
+          akten={akten}
+          onRubrikNeu={rubrikAnlegen}
+          onRubrikUmbenennen={rubrikUmbenennen}
+          onAkteNeu={akteAnlegen}
+          onFertig={(m) => { setMsg(m); setZuordnen(null); ladeScans(); }}
+          onClose={() => setZuordnen(null)}
+        />
       )}
 
       {viewer && (
