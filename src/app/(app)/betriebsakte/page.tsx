@@ -11,6 +11,7 @@ import { Feld } from "@/components/KontaktFeld";
 import { useLive } from "@/lib/live";
 import { useSeitenZustand } from "@/lib/seitenzustand";
 import ScanAnimation from "@/components/ScanAnimation";
+import { useEinzug } from "@/lib/einzug";
 
 /**
  * Betriebsakte: Dokumente je **Mandant** oder je **eigener Akte** (frei benannt, z. B. „Fuhrpark"),
@@ -92,6 +93,8 @@ export default function BetriebsaktePage() {
   const [geraete, setGeraete] = useState<any[]>([]);
   const [geraetId, setGeraetId] = useState("");
   const [scanQuelle, setScanQuelle] = useState<"Platen" | "Feeder">("Platen");
+  // Papier im Einzug erkannt → Einzug vorwählen (Flachbett bleibt per Knopf wählbar)
+  const { papier, problem: einzugFehler } = useEinzug(geraetId, !!orgId && busy !== "scan", () => setScanQuelle("Feeder"));
   // Vorlagen (z. B. SEPA-Lastschriftmandat) – werden mit den Firmendaten vorausgefüllt
   const [vorlagen, setVorlagen] = useState<any[]>([]);
   const [vorlagenOffen, setVorlagenOffen] = useState(false);
@@ -454,6 +457,17 @@ export default function BetriebsaktePage() {
                 {scanQuelle === "Feeder" ? "Einzug" : "Flachbett"}
               </button>
             </div>
+          )}
+          {geraete.length > 0 && busy !== "scan" && (papier || einzugFehler || (papier === false && scanQuelle === "Feeder")) && (
+            <span style={{
+              fontSize: 12.5, alignSelf: "center", display: "inline-flex", alignItems: "center", gap: 6,
+              color: einzugFehler || !papier ? "var(--warn, #c47f17)" : "var(--accent, #3b82f6)",
+            }}>
+              <Icon name={einzugFehler || !papier ? "alert" : "file-text"} size={14} />
+              {einzugFehler || (papier
+                ? (scanQuelle === "Feeder" ? "Papier im Einzug erkannt" : "Papier im Einzug – es wird trotzdem vom Flachbett gescannt")
+                : "Einzug ist leer – Papier einlegen oder Flachbett wählen")}
+            </span>
           )}
           <span className="muted" style={{ fontSize: 12, alignSelf: "center" }}>
             {ablageName ? `Ablage für ${ablageName}${akte ? " (eigene Akte)" : ""}` : "Erst einen Mandanten oder eine Akte wählen"}

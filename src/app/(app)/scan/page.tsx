@@ -14,6 +14,7 @@ import Toggle from "@/components/Toggle";
 import ScanAnimation from "@/components/ScanAnimation";
 import { useLive } from "@/lib/live";
 import { useSeitenZustand } from "@/lib/seitenzustand";
+import { useEinzug } from "@/lib/einzug";
 
 /**
  * Scannen und Posteingang.
@@ -157,6 +158,10 @@ export default function ScanPage() {
       .catch((e) => { setFaehig(null); setMsg(e.message); });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [geraetId]);
+
+  // Einzug beobachten: neu eingelegtes Papier wählt den Einzug vor – Flachbett bleibt wählbar
+  const einzugMoeglich = !!faehig?.sources?.includes("Feeder");
+  const { papier, problem: einzugFehler } = useEinzug(geraetId, einzugMoeglich && busy !== "scan", () => setQuelle("Feeder"));
 
   async function scannerHinzufuegen() {
     const host = neuerScanner.trim();
@@ -338,6 +343,31 @@ export default function ScanPage() {
       </div>
 
       {msg && <div className="card" style={{ padding: "8px 12px", marginBottom: 12, fontSize: 14 }}>{msg}</div>}
+
+      {/* ── Einzug-Hinweis: sofort sichtbar, sobald Papier erkannt wird ── */}
+      {einzugMoeglich && (papier || einzugFehler || (papier === false && quelle === "Feeder")) && busy !== "scan" && (
+        <div className="card" style={{
+          padding: "10px 14px", marginBottom: 12, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", fontSize: 14,
+          borderColor: einzugFehler || (!papier && quelle === "Feeder") ? "var(--warn, #c47f17)" : "var(--accent, #3b82f6)",
+          background: einzugFehler || (!papier && quelle === "Feeder") ? "rgba(196,127,23,.08)" : "rgba(59,130,246,.08)",
+        }}>
+          <Icon name={einzugFehler || (!papier && quelle === "Feeder") ? "alert" : "file-text"} size={18} />
+          <span style={{ flex: "1 1 240px" }}>
+            {einzugFehler
+              ? einzugFehler
+              : papier && quelle === "Feeder"
+                ? <><b>Papier im Einzug erkannt</b> – gescannt wird über den Einzug.</>
+                : papier
+                  ? <><b>Papier liegt im Einzug</b> – gescannt wird trotzdem vom Flachbett.</>
+                  : <><b>Einzug ist leer</b> – Papier einlegen oder Flachbett wählen.</>}
+          </span>
+          {quelle === "Feeder" ? (
+            <button className="btn" onClick={() => setQuelle("Platen")}><Icon name="file-text" size={14} /> Flachbett verwenden</button>
+          ) : papier ? (
+            <button className="btn" onClick={() => setQuelle("Feeder")}><Icon name="copy" size={14} /> Einzug verwenden</button>
+          ) : null}
+        </div>
+      )}
 
       {/* ── Gerät: Auswahl immer sichtbar, Einstellungen aufklappbar (spart Platz auf dem Handy) ── */}
       <div className="card" style={{ padding: 14, marginBottom: 12, display: "grid", gap: 12 }}>

@@ -4,7 +4,7 @@ import { requireAuth } from "@/lib/auth";
 import { handle, json, ApiError } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 import { findeAblage } from "@/lib/ablage";
-import { scanne, seitenAlsPdf, vorschauBild, abbrechen, ScanOptionen } from "@/lib/scanner";
+import { scanne, seitenAlsPdf, vorschauBild, abbrechen, ScanOptionen, scannerStatus, einzugProblem } from "@/lib/scanner";
 import { miniaturAusBild } from "@/lib/bilder";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +35,13 @@ export const POST = (req: NextRequest, { params }: { params: { id: string } }) =
       resolution: Number(body.resolution) || 200,
       duplex: !!body.duplex,
     };
+
+    // Einzug gewählt, aber leer/Stau/Klappe offen? Dann gar nicht erst einen Auftrag schicken.
+    if (optionen.source === "Feeder") {
+      const st = await scannerStatus(s.host).catch(() => null);
+      const problem = st ? einzugProblem(st.adf) : "";
+      if (problem) throw new ApiError(problem, 409);
+    }
 
     let pdf: Buffer;
     let seitenzahl = 0;

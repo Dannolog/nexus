@@ -95,7 +95,16 @@ export async function scanne(host: string, opts: ScanOptionen = {}): Promise<Buf
     method: "POST", path: "/eSCL/ScanJobs", body: einstellungenXml(opts),
     headers: { "Content-Type": "text/xml" }, timeout: 20000,
   });
-  if (post.status !== 201) throw new Error(`Scan-Auftrag abgelehnt (HTTP ${post.status}). Ist der Scanner frei?`);
+  if (post.status !== 201) {
+    // Grund beim Gerät nachfragen, statt nur den HTTP-Code zu melden
+    let grund = "Ist der Scanner frei?";
+    try {
+      const st = await scannerStatus(host);
+      grund = (opts.source === "Feeder" && einzugProblem(st.adf))
+        || (st.state && st.state !== "Idle" ? "Der Scanner ist gerade beschäftigt – bitte kurz warten und erneut versuchen." : grund);
+    } catch { /* Status ist nur Zusatzinfo */ }
+    throw new Error(`Scan-Auftrag abgelehnt (HTTP ${post.status}). ${grund}`);
+  }
   const loc = post.headers.location;
   if (!loc) throw new Error("Keine Job-Adresse vom Scanner erhalten.");
   const jobPfad = String(loc).replace(/^https?:\/\/[^/]+/, "");
@@ -117,6 +126,31 @@ export async function scanne(host: string, opts: ScanOptionen = {}): Promise<Buf
   }
   if (!seiten.length) throw new Error("Keine Seite gescannt – liegt eine Vorlage auf dem Glas oder im Einzug?");
   return seiten;
+}
+
+export type ScannerZustand = { state: string; adf: string };
+
+/**
+ * Kurzstatus: Zustand (`Idle`, `Processing`, …) und Einzug
+ * (`ScannerAdfLoaded` = Papier liegt im Einzug, `ScannerAdfEmpty`, `ScannerAdfJam`, `ScannerAdfHatchOpen`, …).
+ */
+export async function scannerStatus(host: string, timeout = 6000): Promise<ScannerZustand> {
+  const r = await anfrage(host, { path: "/eSCL/ScannerStatus", timeout });
+  if (r.status !== 200) throw new Error(`Status nicht abrufbar (HTTP ${r.status})`);
+  const x = r.body.toString("utf8");
+  return {
+    state: (/<pwg:State>([^<]+)/.exec(x) || [])[1] || "",
+    adf: (/<scan:AdfState>([^<]+)/.exec(x) || [])[1] || "",
+  };
+}
+
+/** Verständlicher Text zum Einzug-Zustand – leer, wenn alles in Ordnung ist. */
+export function einzugProblem(adf: string): string {
+  if (/Empty/i.test(adf)) return "Im Einzug liegt kein Papier – Papier einlegen oder Flachbett wählen.";
+  if (/Jam/i.test(adf)) return "Papierstau im Einzug – bitte am Gerät beheben.";
+  if (/HatchOpen|Open/i.test(adf)) return "Die Klappe des Einzugs ist offen – bitte schließen.";
+  if (/Mispick/i.test(adf)) return "Der Einzug konnte das Blatt nicht greifen – Papier neu einlegen.";
+  return "";
 }
 
 /** Laufenden Auftrag abbrechen (z. B. wenn der Nutzer abbricht). */
