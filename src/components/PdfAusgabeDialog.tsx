@@ -1,11 +1,9 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Icon from "./Icon";
 import { Feld } from "./KontaktFeld";
-import {
-  ladePdfJs, parseSeiten, seitenText, seitenAuswaehlen, nameMitSeiten,
-  speichereBlob, speichernUnter, druckeSeiten, alsPdfBytes,
-} from "@/lib/pdfAusgabe";
+import { SeitenWahl, usePdfSeiten } from "./SeitenWahl";
+import { seitenAuswaehlen, nameMitSeiten, speichereBlob, speichernUnter, druckeSeiten } from "@/lib/pdfAusgabe";
 
 /**
  * Herunterladen, „Speichern unter" und Drucken – wahlweise alle oder nur bestimmte Seiten.
@@ -27,90 +25,23 @@ export default function PdfAusgabeDialog({
   modus?: "speichern" | "drucken";
   onClose: () => void;
 }) {
-  const [bytes, setBytes] = useState<ArrayBuffer | null>(null);
-  const [anzahl, setAnzahl] = useState(0);
-  const [vorschau, setVorschau] = useState<string[]>([]);
+  const { bytes, anzahl, vorschau, fehler: ladeFehler, original } = usePdfSeiten(quelle);
   const [auswahl, setAuswahl] = useState<number[]>([]);
-  const [seitenEingabe, setSeitenEingabe] = useState("");
+  const [seitenFehler, setSeitenFehler] = useState("");
   const [name, setName] = useState(dateiname.replace(/\.pdf$/i, ""));
-  const [fehler, setFehler] = useState("");
+  const [fehlerAktion, setFehler] = useState("");
   const [hinweis, setHinweis] = useState("");
   const [busy, setBusy] = useState("");
-  const [original, setOriginal] = useState<Blob | null>(null);
-  const vorschauUrls = useRef<string[]>([]);
-  // Quelle nur einmal beim Öffnen laden – eine neue Funktions-Instanz beim Neuzeichnen soll nicht neu laden
-  const quelleRef = useRef(quelle);
+  const fehler = ladeFehler || seitenFehler || fehlerAktion;
 
-  // PDF laden, Seiten zählen, kleine Vorschaubilder rendern
-  useEffect(() => {
-    let abbruch = false;
-    (async () => {
-      try {
-        const q = quelleRef.current;
-        const blob = typeof q === "function" ? await q() : q;
-        const buf = await alsPdfBytes(blob);
-        if (abbruch) return;
-        if (!buf) {
-          // Weder PDF noch Bild – dann gibt es nur das Original zum Herunterladen
-          setOriginal(blob);
-          return;
-        }
-        setBytes(buf);
-        const pdfjs = await ladePdfJs();
-        const doc = await pdfjs.getDocument({ data: buf.slice(0) }).promise;
-        if (abbruch) { doc.destroy?.(); return; }
-        const n = doc.numPages;
-        setAnzahl(n);
-        const alle = Array.from({ length: n }, (_, i) => i);
-        setAuswahl(alle);
-        setSeitenEingabe(n > 1 ? seitenText(alle) : "1");
-        for (let i = 0; i < n && !abbruch; i++) {
-          const page = await doc.getPage(i + 1);
-          const b = page.getViewport({ scale: 1 });
-          const vp = page.getViewport({ scale: 220 / Math.max(b.width, b.height) });
-          const c = document.createElement("canvas");
-          c.width = Math.floor(vp.width); c.height = Math.floor(vp.height);
-          const ctx = c.getContext("2d")!;
-          ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
-          await page.render({ canvasContext: ctx, viewport: vp }).promise;
-          const url: string = await new Promise((res) => c.toBlob((bl) => res(bl ? URL.createObjectURL(bl) : ""), "image/jpeg", 0.8));
-          vorschauUrls.current.push(url);
-          if (!abbruch) setVorschau((v) => { const k = [...v]; k[i] = url; return k; });
-        }
-        doc.destroy?.();
-      } catch (e: any) {
-        if (!abbruch) setFehler("PDF konnte nicht geladen werden: " + (e?.message || e));
-      }
-    })();
-    return () => {
-      abbruch = true;
-      vorschauUrls.current.forEach((u) => u && URL.revokeObjectURL(u));
-      vorschauUrls.current = [];
-    };
-  }, []);
+  // Sobald die Seitenzahl bekannt ist: alle Seiten vorwählen
+  useEffect(() => { if (anzahl) setAuswahl(Array.from({ length: anzahl }, (_, i) => i)); }, [anzahl]);
 
   useEffect(() => {
     const bei = (e: KeyboardEvent) => { if (e.key === "Escape" && !busy) { e.stopPropagation(); onClose(); } };
     window.addEventListener("keydown", bei, true);
     return () => window.removeEventListener("keydown", bei, true);
   }, [onClose, busy]);
-
-  function setzeAuswahl(neu: number[]) {
-    const s = Array.from(new Set(neu)).sort((a, b) => a - b);
-    setAuswahl(s);
-    setSeitenEingabe(seitenText(s));
-    setFehler("");
-  }
-
-  function eingabeAendern(v: string) {
-    setSeitenEingabe(v);
-    const p = parseSeiten(v, anzahl);
-    if (p === null) setFehler(`Ungültige Seitenangabe – erlaubt sind Seiten 1 bis ${anzahl}, z. B. „1-3, 5".`);
-    else { setFehler(""); setAuswahl(p); }
-  }
-
-  const umschalten = (i: number) =>
-    setzeAuswahl(auswahl.includes(i) ? auswahl.filter((x) => x !== i) : [...auswahl, i]);
 
   const alleGewaehlt = anzahl > 0 && auswahl.length === anzahl;
   const bereit = !!bytes && anzahl > 0 && auswahl.length > 0 && !fehler;
@@ -194,62 +125,17 @@ export default function PdfAusgabeDialog({
             </div>
           ) : !bytes || !anzahl ? (
             <div className="muted" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              {!fehler && drehen("lädt")} {fehler || "Dokument wird geladen …"}
+              {!ladeFehler && drehen("lädt")} {ladeFehler || "Dokument wird geladen …"}
             </div>
           ) : (
             <>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <span className="muted" style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
-                  <Icon name="file-text" size={14} /> Seiten: {auswahl.length} von {anzahl} gewählt
-                </span>
-                {anzahl > 1 && (
-                  <span style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-                    <button className="btn" disabled={alleGewaehlt} onClick={() => setzeAuswahl(Array.from({ length: anzahl }, (_, i) => i))}>
-                      <Icon name="check" size={14} /> Alle
-                    </button>
-                    <button className="btn" disabled={!auswahl.length} onClick={() => setzeAuswahl([])}>
-                      <Icon name="x" size={14} /> Keine
-                    </button>
-                  </span>
-                )}
-              </div>
-
-              {anzahl > 1 && (
-                <Feld label="Seitenauswahl (z. B. 1-3, 5)" icon="file-text" wert={seitenEingabe}
-                  setWert={eingabeAendern} platzhalter={`1-${anzahl}`} kopierbar={false} />
-              )}
-
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))", gap: 10 }}>
-                {Array.from({ length: anzahl }, (_, i) => {
-                  const an = auswahl.includes(i);
-                  return (
-                    <button key={i} type="button" onClick={() => anzahl > 1 && umschalten(i)} title={`Seite ${i + 1}`}
-                      style={{
-                        all: "unset", cursor: anzahl > 1 ? "pointer" : "default", position: "relative", display: "grid", gap: 4,
-                        justifyItems: "center", padding: 6, borderRadius: 10,
-                        border: `2px solid ${an ? "var(--accent, #3b82f6)" : "var(--border)"}`,
-                        opacity: an ? 1 : 0.45, background: an ? "rgba(59,130,246,.08)" : "transparent",
-                      }}>
-                      <div style={{ width: "100%", aspectRatio: "0.72", display: "grid", placeItems: "center", background: "#fff", borderRadius: 4, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,.2)" }}>
-                        {vorschau[i]
-                          ? <img src={vorschau[i]} alt={`Seite ${i + 1}`} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
-                          : <span style={{ color: "#999" }}>{drehen("lädt")}</span>}
-                      </div>
-                      <span style={{ fontSize: 12, fontWeight: 600 }}>Seite {i + 1}</span>
-                      {an && (
-                        <span style={{ position: "absolute", top: 2, right: 2, width: 20, height: 20, borderRadius: "50%", background: "var(--accent, #3b82f6)", color: "#fff", display: "grid", placeItems: "center" }}>
-                          <Icon name="check" size={12} />
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+              <SeitenWahl anzahl={anzahl} vorschau={vorschau} auswahl={auswahl}
+                onChange={(v) => { setAuswahl(v); setFehler(""); }} onFehler={setSeitenFehler} />
 
               <Feld label="Dateiname" icon="file-text" wert={name} setWert={setName} platzhalter="Dokument" kopierbar={false}
                 hinweis={`Wird gespeichert als „${zielName()}"`} />
 
-              {fehler && <div style={{ color: "var(--danger, #dc2626)", fontSize: 13, display: "flex", gap: 6, alignItems: "center" }}><Icon name="alert" size={14} /> {fehler}</div>}
+              {fehlerAktion && <div style={{ color: "var(--danger, #dc2626)", fontSize: 13, display: "flex", gap: 6, alignItems: "center" }}><Icon name="alert" size={14} /> {fehlerAktion}</div>}
               {hinweis && <div className="muted" style={{ fontSize: 13 }}>{hinweis}</div>}
             </>
           )}
