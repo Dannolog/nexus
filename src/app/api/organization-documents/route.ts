@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { requireAuth } from "@/lib/auth";
 import { handle, json, ApiError } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
+import { findeAblage } from "@/lib/ablage";
 import { fuelleFormular, loesePlatzhalter, werteAusMandant, MANDANT_FELDZUORDNUNG, filtereAufVorhandene, leseFormularfelder } from "@/lib/documents";
 
 export const dynamic = "force-dynamic";
@@ -53,8 +54,10 @@ export const POST = (req: NextRequest) =>
     if (!orgId) throw new ApiError("Mandant fehlt", 400);
     if (!base64 && !templateId) throw new ApiError("Weder Datei noch Vorlage übergeben", 400);
 
-    const org = await prisma.organization.findFirst({ where: { id: orgId, deletedAt: null } });
-    if (!org) throw new ApiError("Mandant nicht gefunden", 404);
+    // Ziel: Mandant oder eigene Akte
+    const ablage = await findeAblage(orgId);
+    if (!ablage) throw new ApiError("Mandant bzw. Akte nicht gefunden", 404);
+    const org = ablage.org;
 
     let daten: Buffer;
     let dateiname = String(body.fileName || "Dokument.pdf");
@@ -68,7 +71,8 @@ export const POST = (req: NextRequest) =>
       daten = Buffer.from(t.data);
       dateiname = `${t.name}.pdf`;
       ausVorlage = t.name;
-      if (body.fill !== false) {
+      // Vorausfüllen nur bei Mandanten – eine eigene Akte hat keine Firmendaten
+      if (body.fill !== false && org) {
         const felder = await leseFormularfelder(daten);
         const eigene = (() => { try { return JSON.parse(t.fieldMap || "{}"); } catch { return {}; } })();
         const zuordnung = filtereAufVorhandene({ ...MANDANT_FELDZUORDNUNG, ...eigene }, felder);

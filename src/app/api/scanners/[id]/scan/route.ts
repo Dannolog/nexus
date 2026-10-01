@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { requireAuth } from "@/lib/auth";
 import { handle, json, ApiError } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
+import { findeAblage } from "@/lib/ablage";
 import { scanne, seitenAlsPdf, vorschauBild, abbrechen, ScanOptionen } from "@/lib/scanner";
 import { miniaturAusBild } from "@/lib/bilder";
 
@@ -81,8 +82,7 @@ export const POST = (req: NextRequest, { params }: { params: { id: string } }) =
 
     // Direkt in die Betriebsakte, wenn ein Mandant angegeben ist
     if (orgId) {
-      const org = await prisma.organization.findFirst({ where: { id: orgId, deletedAt: null } });
-      if (!org) throw new ApiError("Mandant nicht gefunden", 404);
+      if (!(await findeAblage(orgId))) throw new ApiError("Mandant bzw. Akte nicht gefunden", 404);
       const titel0 = String(body.title || "").trim() || `Scan ${jetzt.toLocaleDateString("de-DE")}`;
       const docKey = String(body.docKey || titel0.toLowerCase().replace(/[^a-z0-9]+/g, "-")).slice(0, 60) || "scan";
       const letzte = await prisma.organizationDocument.findFirst({

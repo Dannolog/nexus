@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 const FELDER = {
   id: true, title: true, fileName: true, mimeType: true, size: true, pages: true, sha256: true, thumb: true,
   scannerName: true, scannedAt: true, status: true, employeeId: true, groupId: true,
-  documentId: true, note: true, createdAt: true,
+  documentId: true, orgId: true, zuordnungen: true, note: true, createdAt: true,
 } as const;
 
 /**
@@ -44,7 +44,14 @@ export const GET = (req: NextRequest) =>
           select: { sha256: true, fileName: true, employeeId: true },
         })
       : [];
-    const abgelegtNach = new Map(abgelegt.map((d) => [d.sha256, d]));
+    // … oder in der Betriebsakte
+    const imBetrieb = hashes.length
+      ? await prisma.organizationDocument.findMany({
+          where: { deletedAt: null, sha256: { in: hashes } },
+          select: { sha256: true },
+        })
+      : [];
+    const abgelegtNach = new Map<string, unknown>([...abgelegt.map((d) => [d.sha256, d] as const), ...imBetrieb.map((d) => [d.sha256, d] as const)]);
 
     const data = rows.map((r) => ({
       ...r,

@@ -27,6 +27,7 @@ export const DELETE = (req: NextRequest, { params }: { params: { id: string } })
   handle(async () => {
     await requireAuth(req);
     await prisma.employeeDocument.updateMany({ where: { groupId: params.id }, data: { groupId: "" } });
+    await prisma.organizationDocument.updateMany({ where: { groupId: params.id }, data: { groupId: "" } });
     await prisma.employeeNote.updateMany({ where: { groupId: params.id }, data: { groupId: "" } });
     await prisma.documentGroup.update({ where: { id: params.id }, data: { deletedAt: new Date() } });
     return json({ ok: true });
