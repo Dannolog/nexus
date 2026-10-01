@@ -13,7 +13,8 @@ import { useSeitenZustand } from "@/lib/seitenzustand";
 import ScanAnimation from "@/components/ScanAnimation";
 
 /**
- * Betriebsakte: Dokumente je **Mandant**, gegliedert nach Rubriken (z. B. Finanzamt,
+ * Betriebsakte: Dokumente je **Mandant** oder je **eigener Akte** (frei benannt, z. B. „Fuhrpark"),
+ * gegliedert nach Rubriken (z. B. Finanzamt,
  * Versicherungen, Verträge) – wahlweise als **Zeitstrahl**, der den Verlauf über die Jahre zeigt.
  *
  * Aufbau wie die Mitarbeiterakte: Rubriken sind dieselben (`DocumentGroup`), lassen sich hier
@@ -67,6 +68,10 @@ export default function BetriebsaktePage() {
   // Mandant, Ansicht und Suche bleiben erhalten – auch nach einem Abstecher in ein Dokument
   const [seite, setSeite] = useSeitenZustand("betriebsakte", { ansicht: "rubriken", q: "", org: "" });
   const [mandanten, setMandanten] = useState<any[]>([]);
+  // Eigene Akten – stehen in der Auswahl neben den Mandanten
+  const [akten, setAkten] = useState<any[]>([]);
+  const [akteForm, setAkteForm] = useState<{ id: string; name: string; note: string } | null>(null);
+  const [akteLoeschen, setAkteLoeschen] = useState<any | null>(null);
   const orgId = seite.org;
   const setOrgId = (v: string) => setSeite({ org: v });
   const [gruppen, setGruppen] = useState<Gruppe[]>([]);
@@ -125,7 +130,58 @@ export default function BetriebsaktePage() {
   useLive(["OrganizationDocument"], () => ladeDokumente(orgId));
   useLive(["DocumentGroup"], ladeGruppen);
 
+  const ladeAkten = useCallback(async () => {
+    try {
+      const d = await api("/api/dossiers");
+      setAkten(d.data || []);
+    } catch (e: any) { setMsg("Akten: " + e.message); }
+  }, []);
+  useEffect(() => { ladeAkten(); }, [ladeAkten]);
+  useLive(["Dossier", "OrganizationDocument"], ladeAkten);
+
+  /** Akte anlegen bzw. umbenennen. */
+  async function akteSpeichern() {
+    if (!akteForm) return;
+    const name = akteForm.name.trim();
+    if (!name) { setMsg("Bitte einen Namen für die Akte eingeben."); return; }
+    try {
+      if (akteForm.id) {
+        await api(`/api/dossiers/${akteForm.id}`, { method: "PATCH", body: JSON.stringify({ name, note: akteForm.note }) });
+        setMsg(`Akte „${name}" gespeichert.`);
+      } else {
+        const a = await api("/api/dossiers", { method: "POST", body: JSON.stringify({ name, note: akteForm.note }) });
+        setOrgId(a.id);
+        setMsg(`Akte „${a.name}" angelegt – hier kannst du jetzt Dokumente ablegen.`);
+      }
+      setAkteForm(null);
+      ladeAkten();
+    } catch (e: any) { setMsg("Fehler: " + e.message); }
+  }
+
+  /** Neue Akte direkt aus der Auswahl heraus (eingetippter Name). */
+  async function akteAusAuswahl(name: string) {
+    try {
+      const a = await api("/api/dossiers", { method: "POST", body: JSON.stringify({ name }) });
+      setMsg(`Akte „${a.name}" angelegt.`);
+      ladeAkten();
+      return a.id as string;
+    } catch (e: any) { setMsg("Fehler: " + e.message); }
+  }
+
+  async function akteEntfernen() {
+    if (!akteLoeschen) return;
+    try {
+      await api(`/api/dossiers/${akteLoeschen.id}`, { method: "DELETE" });
+      setMsg(`Akte „${akteLoeschen.name}" entfernt.`);
+      if (orgId === akteLoeschen.id) setOrgId("");
+      ladeAkten();
+    } catch (e: any) { setMsg("Fehler: " + e.message); }
+    finally { setAkteLoeschen(null); }
+  }
+
   const mandant = mandanten.find((m) => m.id === orgId);
+  const akte = akten.find((a) => a.id === orgId);
+  const ablageName = mandant?.name || akte?.name || "";
 
   /** Neue Rubrik direkt aus der Auswahl heraus anlegen. */
   async function rubrikAnlegen(name: string) {
@@ -138,7 +194,7 @@ export default function BetriebsaktePage() {
   }
 
   async function hochladen(f: File, groupId: string) {
-    if (!orgId) { setMsg("Bitte zuerst einen Mandanten wählen."); return; }
+    if (!orgId) { setMsg("Bitte zuerst einen Mandanten oder eine Akte wählen."); return; }
     setBusy("upload");
     try {
       const base64 = await dateiZuBase64(f);
@@ -157,14 +213,14 @@ export default function BetriebsaktePage() {
 
   /** Dokument aus einer Vorlage erzeugen – vorausgefüllt mit den Daten des Mandanten. */
   async function ausVorlage(templateId: string, name: string) {
-    if (!orgId) { setMsg("Bitte zuerst einen Mandanten wählen."); return; }
+    if (!orgId) { setMsg("Bitte zuerst einen Mandanten oder eine Akte wählen."); return; }
     setBusy("vorlage");
     try {
       const d = await api("/api/organization-documents", {
         method: "POST",
         body: JSON.stringify({ orgId, templateId, groupId: zielGruppe, fill: true }),
       });
-      setMsg(`${name} vorausgefüllt abgelegt${d.version > 1 ? ` (Version ${d.version})` : ""} – zum Ausfüllen öffnen.`);
+      setMsg(`${name} ${akte ? "" : "vorausgefüllt "}abgelegt${d.version > 1 ? ` (Version ${d.version})` : ""} – zum Ausfüllen öffnen.`);
       setVorlagenOffen(false);
       ladeDokumente(orgId);
     } catch (e: any) { setMsg("Fehler: " + e.message); }
@@ -191,7 +247,7 @@ export default function BetriebsaktePage() {
    * Posteingang** in die gewählte Rubrik des Mandanten.
    */
   async function scannen(groupId: string, rubrikName: string) {
-    if (!orgId) { setMsg("Bitte zuerst einen Mandanten wählen."); return; }
+    if (!orgId) { setMsg("Bitte zuerst einen Mandanten oder eine Akte wählen."); return; }
     if (!geraetId) { setMsg("Kein Scanner eingerichtet – auf der Seite Scannen lässt sich einer hinzufügen."); return; }
     setBusy("scan");
     setMsg(`Scannt für ${rubrikName || "die Akte"}…`);
@@ -304,7 +360,7 @@ export default function BetriebsaktePage() {
             ))}
           </div>
           <span className="muted" style={{ fontSize: 12, marginLeft: "auto" }}>
-            {orgId ? `${dokumente.length} Dokumente` : "Mandant wählen"}
+            {orgId ? `${dokumente.length} Dokumente` : "Mandant oder Akte wählen"}
           </span>
         </div>
         <SearchInput value={suche} onChange={setSuche} placeholder="Titel, Dateiname, Notiz…" style={{ width: "100%", maxWidth: 380 }} />
@@ -317,15 +373,42 @@ export default function BetriebsaktePage() {
         <div className="feld-zeile feld-zeile-2">
           <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
             <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <Icon name="building" size={14} /> Mandant
+              <Icon name="building" size={14} /> Mandant oder Akte
             </span>
-            <SuchSelect
-              value={orgId}
-              onChange={setOrgId}
-              platzhalter="— Mandant wählen —"
-              suchePlatzhalter="Firma suchen…"
-              options={mandanten.map((m) => ({ value: m.id, label: m.name, hint: [m.zip, m.city].filter(Boolean).join(" ") }))}
-            />
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <SuchSelect
+                  value={orgId}
+                  onChange={setOrgId}
+                  platzhalter="— Mandant oder Akte wählen —"
+                  suchePlatzhalter="Suchen oder neue Akte eintippen…"
+                  options={[
+                    ...mandanten.map((m) => ({ value: m.id, label: m.name, hint: ["Mandant", [m.zip, m.city].filter(Boolean).join(" ")].filter(Boolean).join(" · ") })),
+                    ...akten.map((a) => ({ value: a.id, label: a.name, hint: `eigene Akte · ${a.dokumente || 0} Dok.` })),
+                  ]}
+                  erlaubeNeu
+                  neuText="als neue Akte anlegen"
+                  onNeu={akteAusAuswahl}
+                />
+              </div>
+              {akte && (
+                <>
+                  <button type="button" className="btn btn-icon" title="Akte umbenennen / Notiz"
+                    onClick={() => setAkteForm({ id: akte.id, name: akte.name, note: akte.note || "" })}>
+                    <Icon name="pencil" size={14} />
+                  </button>
+                  <button type="button" className="btn btn-icon btn-danger" title="Akte entfernen (nur wenn leer)"
+                    onClick={() => setAkteLoeschen(akte)}>
+                    <Icon name="trash" size={14} />
+                  </button>
+                </>
+              )}
+              <button type="button" className="btn" title="Eigene Akte anlegen, z. B. „Fuhrpark“ oder „Immobilie Hauptstraße“"
+                onClick={() => setAkteForm({ id: "", name: "", note: "" })}>
+                <Icon name="plus" size={14} /> <span className="btn-label">Neue Akte</span>
+              </button>
+            </div>
+            {akte?.note && <span className="muted" style={{ fontSize: 12 }}>{akte.note}</span>}
           </label>
           <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
             <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -373,7 +456,7 @@ export default function BetriebsaktePage() {
             </div>
           )}
           <span className="muted" style={{ fontSize: 12, alignSelf: "center" }}>
-            {mandant ? `Ablage für ${mandant.name}` : "Erst einen Mandanten wählen"}
+            {ablageName ? `Ablage für ${ablageName}${akte ? " (eigene Akte)" : ""}` : "Erst einen Mandanten oder eine Akte wählen"}
           </span>
         </div>
       </div>
@@ -413,16 +496,22 @@ export default function BetriebsaktePage() {
                     </span>
                     <button className="btn btn-primary" style={{ marginLeft: "auto" }} disabled={busy === "vorlage"}
                       onClick={() => ausVorlage(v.id, v.name)}>
-                      <Icon name="save" /> {busy === "vorlage" ? "Legt ab…" : "Vorausgefüllt ablegen"}
+                      <Icon name="save" /> {busy === "vorlage" ? "Legt ab…" : akte ? "Ablegen" : "Vorausgefüllt ablegen"}
                     </button>
                   </div>
                 );
               })}
-              <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
-                Vorausgefüllt werden Firmenname, Anschrift, Steuernummer, USt-IdNr. sowie Ort und Datum.
-                <b> Bankverbindung bleibt leer</b> – IBAN und Kontoinhaber trägst du im geöffneten PDF selbst ein;
-                das Dokument bleibt ausfüllbar.
-              </div>
+              {akte ? (
+                <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
+                  Eine eigene Akte hat keine Firmendaten – das Formular wird <b>leer</b> abgelegt und bleibt ausfüllbar.
+                </div>
+              ) : (
+                <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
+                  Vorausgefüllt werden Firmenname, Anschrift, Steuernummer, USt-IdNr. sowie Ort und Datum.
+                  <b> Bankverbindung bleibt leer</b> – IBAN und Kontoinhaber trägst du im geöffneten PDF selbst ein;
+                  das Dokument bleibt ausfüllbar.
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -437,7 +526,8 @@ export default function BetriebsaktePage() {
 
       {!orgId && (
         <div className="card muted" style={{ padding: 16, fontSize: 14 }}>
-          Bitte einen Mandanten wählen – dann erscheinen hier dessen Dokumente.
+          Bitte einen Mandanten oder eine eigene Akte wählen – dann erscheinen hier die Dokumente.
+          Eigene Akten (z. B. „Fuhrpark", „Immobilie Hauptstraße") legst du über <b>Neue Akte</b> an.
         </div>
       )}
 
@@ -591,6 +681,44 @@ export default function BetriebsaktePage() {
           onClose={() => { URL.revokeObjectURL(viewer.url); setViewer(null); }} />
       )}
 
+      {/* ── Eigene Akte anlegen / bearbeiten ── */}
+      {akteForm && (
+        <div onClick={() => setAkteForm(null)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "grid", placeItems: "center", padding: 16, zIndex: 60 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster"
+            style={{ width: 480, maxWidth: "94vw", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
+              <Icon name="folder" size={18} />
+              <h2 style={{ fontSize: 17, fontWeight: 700, flex: 1 }}>{akteForm.id ? "Akte bearbeiten" : "Neue Akte"}</h2>
+              <button className="btn btn-icon" aria-label="Schließen" onClick={() => setAkteForm(null)}><Icon name="x" /></button>
+            </div>
+            <div style={{ padding: 18, display: "grid", gap: 12 }}>
+              <Feld label="Name der Akte" icon="folder" wert={akteForm.name} autoFocus
+                setWert={(v) => setAkteForm({ ...akteForm, name: v })} platzhalter="z. B. Fuhrpark, Immobilie Hauptstraße" />
+              <Feld label="Notiz (optional)" icon="pencil" wert={akteForm.note}
+                setWert={(v) => setAkteForm({ ...akteForm, note: v })} platzhalter="Wofür ist die Akte?" />
+              <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
+                Eigene Akten stehen in der Auswahl neben den Mandanten und haben dieselben Rubriken,
+                Zeitstrahl, Scannen und Ablage. Auch Scans aus dem Posteingang lassen sich hierher zuordnen.
+              </div>
+            </div>
+            <div style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button className="btn" onClick={() => setAkteForm(null)}><Icon name="x" /> Abbrechen</button>
+              <button className="btn btn-primary" onClick={akteSpeichern}>
+                <Icon name="save" /> {akteForm.id ? "Speichern" : "Akte anlegen"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={!!akteLoeschen}
+        title="Akte entfernen?"
+        message={`„${akteLoeschen?.name || ""}" wird entfernt. Das geht nur, wenn die Akte leer ist.`}
+        onConfirm={akteEntfernen}
+        onCancel={() => setAkteLoeschen(null)}
+      />
       <ConfirmDialog
         open={!!loeschen}
         title="Dokument entfernen?"
