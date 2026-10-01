@@ -161,7 +161,7 @@ export default function ScanPage() {
 
   // Einzug beobachten: neu eingelegtes Papier wählt den Einzug vor – Flachbett bleibt wählbar
   const einzugMoeglich = !!faehig?.sources?.includes("Feeder");
-  const { papier, problem: einzugFehler } = useEinzug(geraetId, einzugMoeglich && busy !== "scan", () => setQuelle("Feeder"));
+  const { papier, problem: einzugFehler } = useEinzug(geraetId, einzugMoeglich && busy !== "scan", () => setQuelle("Feeder"), () => setQuelle("Platen"));
 
   async function scannerHinzufuegen() {
     const host = neuerScanner.trim();
@@ -391,28 +391,38 @@ export default function ScanPage() {
           </button>
         </div>
 
+        {/* Vorlage: immer sichtbar und jederzeit umschaltbar */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span className="muted" style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <Icon name="file-text" size={14} /> Vorlage
+          </span>
+          <button className="btn" onClick={() => setQuelle("Platen")}
+            style={{ background: quelle === "Platen" ? "var(--accent)" : undefined, color: quelle === "Platen" ? "#fff" : undefined }}>
+            Flachbett (Glas)
+          </button>
+          <button className="btn" disabled={!einzugMoeglich} onClick={() => setQuelle("Feeder")}
+            title={einzugMoeglich ? "Über den Einzug scannen" : "Dieses Gerät hat keinen Einzug"}
+            style={{ background: quelle === "Feeder" ? "var(--accent)" : undefined, color: quelle === "Feeder" ? "#fff" : undefined }}>
+            Einzug (ADF)
+            {einzugMoeglich && papier !== null && (
+              <span style={{ fontSize: 11, padding: "1px 7px", borderRadius: 999, marginLeft: 4,
+                background: papier ? "rgba(22,163,74,.2)" : "rgba(127,127,127,.2)",
+                color: quelle === "Feeder" ? "#fff" : papier ? "#16a34a" : "inherit" }}>
+                {papier ? "Papier" : "leer"}
+              </span>
+            )}
+          </button>
+        </div>
+
         <button className="btn" style={{ justifySelf: "start" }} onClick={() => setOptionenOffen((v) => !v)}>
           <Icon name="tag" /> Einstellungen {optionenOffen ? "ausblenden" : "anzeigen"}
           <span className="muted" style={{ fontSize: 12 }}>
-            {` · ${quelle === "Feeder" ? "Einzug" : "Flachbett"}, ${farbe === "RGB24" ? "Farbe" : "Graustufen"}, ${aufloesung} dpi`}
+            {` · ${farbe === "RGB24" ? "Farbe" : "Graustufen"}, ${aufloesung} dpi`}
           </span>
         </button>
 
         {optionenOffen && (
         <div style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "center" }}>
-          {/* Vorlage: Flachbett oder Einzug – ein Schalter statt zweier Listeneinträge */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5 }}>
-            <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <Icon name="file-text" size={14} /> Flachbett
-            </span>
-            <Toggle
-              checked={quelle === "Feeder"}
-              disabled={!faehig?.sources?.includes("Feeder")}
-              onChange={(an) => setQuelle(an ? "Feeder" : "Platen")}
-              label={<span style={{ fontSize: 13.5 }}>Einzug</span>}
-            />
-          </div>
-
           {/* Farbe oder Graustufen */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5 }}>
             <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>

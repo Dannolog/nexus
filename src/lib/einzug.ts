@@ -5,15 +5,17 @@ import { api } from "@/lib/clientApi";
 /**
  * Einzug beobachten: fragt den Scanner alle paar Sekunden, ob Papier im Einzug liegt.
  * Sobald Papier **neu** erkannt wird, ruft der Hook `beiPapier` auf (z. B. um den Einzug
- * vorzuwählen). Danach bleibt die Wahl beim Menschen – Flachbett lässt sich jederzeit
+ * vorzuwählen), wird der Einzug leer, `beiLeer` (zurück aufs Flachbett). Dazwischen bleibt die Wahl beim Menschen – Flachbett lässt sich jederzeit
  * wieder einstellen, ohne dass der Hook es zurückdreht.
  */
-export function useEinzug(geraetId: string, aktiv: boolean, beiPapier?: () => void) {
+export function useEinzug(geraetId: string, aktiv: boolean, beiPapier?: () => void, beiLeer?: () => void) {
   const [papier, setPapier] = useState<boolean | null>(null);   // null = unbekannt
   const [problem, setProblem] = useState("");
   const vorher = useRef<boolean | null>(null);
   const rueckruf = useRef(beiPapier);
   rueckruf.current = beiPapier;
+  const rueckrufLeer = useRef(beiLeer);
+  rueckrufLeer.current = beiLeer;
 
   useEffect(() => {
     vorher.current = null;
@@ -31,6 +33,8 @@ export function useEinzug(geraetId: string, aktiv: boolean, beiPapier?: () => vo
           setPapier(da);
           setProblem(st.problem || "");
           if (da && vorher.current !== true) rueckruf.current?.();
+          // Einzug leer geworden (oder beim Öffnen leer) → z. B. zurück aufs Flachbett
+          if (!da && vorher.current !== false) rueckrufLeer.current?.();
           vorher.current = da;
         } catch {
           if (!aus) { setPapier(null); setProblem(""); }

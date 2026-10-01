@@ -94,7 +94,7 @@ export default function BetriebsaktePage() {
   const [geraetId, setGeraetId] = useState("");
   const [scanQuelle, setScanQuelle] = useState<"Platen" | "Feeder">("Platen");
   // Papier im Einzug erkannt → Einzug vorwählen (Flachbett bleibt per Knopf wählbar)
-  const { papier, problem: einzugFehler } = useEinzug(geraetId, !!orgId && busy !== "scan", () => setScanQuelle("Feeder"));
+  const { papier, problem: einzugFehler } = useEinzug(geraetId, !!orgId && busy !== "scan", () => setScanQuelle("Feeder"), () => setScanQuelle("Platen"));
   // Vorlagen (z. B. SEPA-Lastschriftmandat) – werden mit den Firmendaten vorausgefüllt
   const [vorlagen, setVorlagen] = useState<any[]>([]);
   const [vorlagenOffen, setVorlagenOffen] = useState(false);
