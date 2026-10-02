@@ -287,12 +287,16 @@ export async function vorschauBild(seiten: Buffer[]): Promise<string> {
 }
 
 /** Gescannte Seiten (JPEG) zu einem PDF zusammenfassen – eine Seite je Bild, A4-treu. */
-export async function seitenAlsPdf(seiten: Buffer[]): Promise<Buffer> {
+export async function seitenAlsPdf(seiten: Buffer[], dpi = 200): Promise<Buffer> {
   const pdf = await PDFDocument.create();
+  // Seitengröße in Punkt (1/72 Zoll) aus Pixeln und Scanauflösung – sonst wäre ein
+  // A4-Scan mit 200 dpi als ca. 58 cm große Seite angelegt und druckt falsch skaliert.
+  const f = 72 / (dpi > 0 ? dpi : 200);
   for (const jpg of seiten) {
     const bild = await pdf.embedJpg(jpg);
-    const seite = pdf.addPage([bild.width, bild.height]);
-    seite.drawImage(bild, { x: 0, y: 0, width: bild.width, height: bild.height });
+    const w = bild.width * f, h = bild.height * f;
+    const seite = pdf.addPage([w, h]);
+    seite.drawImage(bild, { x: 0, y: 0, width: w, height: h });
   }
   return Buffer.from(await pdf.save());
 }

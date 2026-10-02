@@ -51,7 +51,7 @@ export const POST = (req: NextRequest, { params }: { params: { id: string } }) =
       const seiten = await scanne(s.host, optionen);
       seitenzahl = seiten.length;
       ersteSeite = seiten[0] ?? null;
-      pdf = await seitenAlsPdf(seiten);
+      pdf = await seitenAlsPdf(seiten, optionen.resolution);
       vorschau = await vorschauBild(seiten);
     } catch (e: any) {
       await abbrechen(s.host);
