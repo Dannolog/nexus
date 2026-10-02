@@ -1052,3 +1052,24 @@
   zurück auf die Seite; Entwürfe (`entwurf.ts`) werden wie bisher wieder angeboten.
   Die Vorwarnleiste 5 Minuten vor Ablauf bleibt.
 - Build + Neustart, `/login` 200.
+
+## 02.10.2026 — Arbeitsverträge: Handy, Untermenü mit PDF-Ansicht, Änderungsdatum, Unterschrift
+- **Wunsch Daniel:** Seite mobil-tauglich, gespeicherte Verträge als Untermenü mit PDF-Ansicht und
+  „zuletzt geändert"; Unterschrift-Option für Arbeitgeber und Arbeitnehmer „wie bei clocker/kontor".
+- **Vorlage geprüft:** kontor `SignaturePad.tsx` (Canvas, PNG-data-URL, jsPDF `addImage`), clocker inline.
+  Beide: nur eine Partei, keine Sperre nach Unterschrift → in Nexus erweitert.
+- **Schema `EmploymentContract`:** `signEmployerImage/Name/At`, `signEmployeeImage/Name/At`, `signHash`
+  (geschützt in `entities.ts`, nur über `POST/DELETE /api/contracts/[id]/sign`).
+- **`src/lib/vertragSignatur.ts`:** Inhalts-Prüfsumme; Sperre in `updateEntity` (revision.ts): ist
+  unterschrieben, sind nur `status`, `archived`, `title` änderbar (sonst HTTP 423). Beide unterschrieben →
+  Status „aktiv", `signDate` gesetzt. Zurücksetzen per DELETE (im Verlauf protokolliert, `record` exportiert).
+- **`UnterschriftDialog`:** Pointer-Events + coalesced Punkte, devicePixelRatio, dunkle Tinte auf weißem
+  Feld, „Aus Foto/Bild", Bestätigungs-Häkchen, „Vertrag vorher ansehen", zugeschnitten auf 3:1, Handy-Vollbild.
+- **PDF (`vertragPdf.ts`) + Vorschau (`VertragDokument.tsx`):** Unterschrift über der Linie, Name
+  („… für Baier Maschinen"), „digital unterschrieben am … Uhr".
+- **Seite `/contracts`:** Untermenü „Gespeicherte Verträge (N)" (Suche, sortiert nach Änderung, Status,
+  Unterschriftsstand, „geändert …", PDF ansehen / Bearbeiten / Unterschreiben); Kopf zeigt „zuletzt
+  geändert/angelegt"; Karte „Unterschriften"; Formular bei Unterschrift gesperrt (`fieldset disabled`);
+  PDF direkt im Betrachter (mit Herunterladen/Drucken); Handy: feste Leiste unten (Verträge | PDF | Speichern).
+- **Register:** `web.signature-pad` und `web.pdf-page-select` (canonical nexus) eingetragen.
+- Build + Neustart, `/contracts` 200; Sperr-/Prüfsummenlogik per Node-Test geprüft.
