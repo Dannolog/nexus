@@ -1073,3 +1073,17 @@
   PDF direkt im Betrachter (mit Herunterladen/Drucken); Handy: feste Leiste unten (Verträge | PDF | Speichern).
 - **Register:** `web.signature-pad` und `web.pdf-page-select` (canonical nexus) eingetragen.
 - Build + Neustart, `/contracts` 200; Sperr-/Prüfsummenlogik per Node-Test geprüft.
+
+## 02.10.2026 — Scannen repariert (Fixes aus ProjectEye + kontor übernommen)
+- **Meldung Daniel:** Scannen funktioniert nicht, in ProjectEye wurde der Fehler behoben.
+- **ProjectEye (`server/scanner.js`, 5b50f23):** Scanfläche je Quelle aus den Fähigkeiten
+  (`PlatenInputCaps` / `AdfSimplexInputCaps`), `ContentRegionUnits` = 1/300 Zoll, `MustHonor="false"`.
+- **kontor (`src/lib/scanner.ts`, 5f6c055):** HP-„Webscan"-Auftragsformat als Ausweich bei 409/400,
+  Format je Gerät gemerkt, bis zu 3 Wiederholungen bei 409/503.
+- **Nexus `src/lib/scanner.ts`:** beides übernommen (`einstellungenXml` + `webscanXml`, `formatJeGeraet`),
+  `faehigkeiten()` liefert `flaeche` je Quelle; verständlicher Grund bei endgültiger Ablehnung.
+- **Zusatz-Fix:** `seitenAlsPdf(seiten, dpi)` – Seitengröße jetzt in Punkt aus Pixel/Auflösung
+  (vorher Pixel = Punkt → A4-Scan als ~58-cm-Seite).
+- Gerät 192.168.10.54: war kurz unerreichbar (EHOSTUNREACH, VPN-Router ingpropi online) – danach
+  wieder da; Fläche gelesen: Flachbett 2550×3508, Einzug 2550×4200 (1/300 Zoll).
+- Kein Testscan ausgelöst (physisches Gerät) – Test durch Daniel.
