@@ -1044,3 +1044,11 @@
 - **kontor** (`src/app/(app)/scan/page.tsx`, Commit 5d9cda6): Einstellungen immer sichtbar als Knopfreihen
   (Vorlage, Auflösung, ein-/beidseitig – Duplex nur mit Einzug), gleiches Auto-Umschalten, Changelog-Eintrag.
   Die parallel laufende kontor-Session hatte `scanner.ts` geändert – nicht angefasst.
+
+## 02.10.2026 — Kein Fenster „Anmeldung abgelaufen" mehr
+- **Wunsch Daniel:** Fenster entfernen, einfach zur Login-Seite umleiten.
+- `SitzungsWaechter`: Bei 401 oder abgelaufener Token-Zeit **sofort** `/login?weiter=<aktuelle Seite>`
+  (nur einmal, auch wenn mehrere Anfragen gleichzeitig 401 liefern). Nach der Anmeldung geht es
+  zurück auf die Seite; Entwürfe (`entwurf.ts`) werden wie bisher wieder angeboten.
+  Die Vorwarnleiste 5 Minuten vor Ablauf bleibt.
+- Build + Neustart, `/login` 200.
