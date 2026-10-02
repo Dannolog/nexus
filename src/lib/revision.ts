@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { istUnterschrieben, geaenderteInhaltsfelder } from "./vertragSignatur";
 import { ApiError } from "./http";
 import { getEntity, EntityName } from "./entities";
 import { mailKaskade } from "./mailKaskade";
@@ -53,7 +54,7 @@ async function applySnapshot(
   await delegate.update({ where: { id: entityId }, data });
 }
 
-async function record(
+export async function record(
   tx: Tx,
   args: {
     txId: string;
@@ -177,6 +178,13 @@ export async function updateEntity(
       throw new ApiError("Versionskonflikt", 409, { current });
     }
     const clean = sanitize(entity, data);
+    // Unterschriebener Arbeitsvertrag: Inhalt gesperrt (nur Status/Archiv/Name änderbar)
+    if (entity === "EmploymentContract" && istUnterschrieben(current)) {
+      const geaendert = geaenderteInhaltsfelder(current, clean);
+      if (geaendert.length) {
+        throw new ApiError("Der Vertrag ist bereits unterschrieben – der Inhalt ist gesperrt. Zum Ändern erst die Unterschriften zurücksetzen.", 423);
+      }
+    }
     if (entity === "Employee" && ("firstName" in clean || "lastName" in clean)) {
       zieheNamenZusammen(clean, current);
     }
