@@ -7,6 +7,16 @@ import VertragDokument, { A4_W, vertragsNr, type Contract } from "@/components/V
 import { generateVertragPdf } from "@/lib/vertragPdf";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import SuchSelect from "@/components/SuchSelect";
+import PdfViewerModal from "@/components/PdfViewerModal";
+import UnterschriftDialog from "@/components/UnterschriftDialog";
+import SearchInput from "@/components/SearchInput";
+import { ARBEITGEBER } from "@/components/VertragDokument";
+
+/** „02.10.2026, 14:05" */
+const zeitpunkt = (v?: string | null) =>
+  v ? new Date(v).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+
+type Rolle = "arbeitgeber" | "arbeitnehmer";
 
 
 const LEER: Contract = {
@@ -77,6 +87,14 @@ export default function ContractsPage() {
   // Bereits in der Mitarbeiterakte abgelegte Stände dieses Vertrags (für „Version N")
   const [staende, setStaende] = useState<any[]>([]);
   const [ablegen, setAblegen] = useState(false);
+  // Untermenü „Gespeicherte Verträge" (Liste mit PDF-Ansicht und Änderungsdatum)
+  const [listeOffen, setListeOffen] = useState(false);
+  const [listeSuche, setListeSuche] = useState("");
+  const [pdf, setPdf] = useState<{ url: string; titel: string; dateiname: string } | null>(null);
+  const [pdfBusy, setPdfBusy] = useState("");
+  // Unterschreiben (Arbeitgeber / Arbeitnehmer)
+  const [unterschrift, setUnterschrift] = useState<{ vertrag: Contract; rolle: Rolle } | null>(null);
+  const [zuruecksetzen, setZuruecksetzen] = useState(false);
   // Auf dem Handy ist die A4-Vorschau stark verkleinert und damit kaum lesbar – dort
   // startet sie eingeklappt; gelesen wird der Vertrag über die PDF-Ansicht.
   const [vorschauOffen, setVorschauOffen] = useState(true);
@@ -251,6 +269,57 @@ export default function ContractsPage() {
     window.open(`/vertrag/${form.id}`, "_blank", "noopener");
   }
 
+  /** Vertrag als PDF im Betrachter öffnen (mit Herunterladen/Drucken). */
+  async function pdfOeffnen(c: Contract) {
+    setPdfBusy(c.id || "form");
+    try {
+      const blob = await generateVertragPdf(c);
+      const nr = vertragsNr(c.number);
+      setPdf({
+        url: URL.createObjectURL(blob),
+        titel: `${nr ? nr + " · " : ""}${c.title || c.employeeName || "Arbeitsvertrag"}`,
+        dateiname: `${nr || "Arbeitsvertrag"}${c.employeeName ? "_" + String(c.employeeName).replace(/[^\wäöüÄÖÜß-]+/g, "_") : ""}.pdf`,
+      });
+    } catch (e: any) {
+      setMsg("PDF konnte nicht erzeugt werden: " + e.message);
+    } finally { setPdfBusy(""); }
+  }
+
+  /** Unterschrift speichern – danach Liste und (falls offen) den Vertrag im Editor aktualisieren. */
+  async function unterschreiben(bild: string, name: string) {
+    if (!unterschrift?.vertrag.id) return;
+    const up = await api(`/api/contracts/${unterschrift.vertrag.id}/sign`, {
+      method: "POST", body: JSON.stringify({ rolle: unterschrift.rolle, bild, name }),
+    });
+    if (form.id === up.id) setForm(up);
+    const beide = up.signEmployerImage && up.signEmployeeImage;
+    setMsg(beide
+      ? "Unterschrieben – beide Seiten haben unterzeichnet, der Vertrag ist jetzt aktiv."
+      : `Unterschrift ${unterschrift.rolle === "arbeitgeber" ? "Arbeitgeber" : "Arbeitnehmer"} gespeichert.`);
+    setUnterschrift(null);
+    loadContracts();
+  }
+
+  async function unterschriftenZuruecksetzen() {
+    if (!form.id) return;
+    try {
+      const up = await api(`/api/contracts/${form.id}/sign`, { method: "DELETE" });
+      setForm(up);
+      setMsg("Unterschriften zurückgesetzt – der Vertrag lässt sich wieder bearbeiten.");
+      loadContracts();
+    } catch (e: any) { setMsg("Fehler: " + e.message); }
+    finally { setZuruecksetzen(false); }
+  }
+
+  const gesperrt = !!(form.signEmployerImage || form.signEmployeeImage);
+  const listeGefiltert = contracts
+    .filter((c) => {
+      const teile = listeSuche.toLowerCase().split(/\s+/).filter(Boolean);
+      const text = [vertragsNr(c.number), c.title, c.employeeName, c.jobTitle, c.status].join(" ").toLowerCase();
+      return teile.every((t) => text.includes(t));
+    })
+    .sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
+
   const befristet = form.contractType === "befristet";
 
   return (
@@ -285,6 +354,11 @@ export default function ContractsPage() {
           </button>
         )}
         <button className="btn" onClick={neu}><Icon name="plus" /> Neu</button>
+        {/* Untermenü: gespeicherte Verträge mit PDF-Ansicht */}
+        <button className="btn" onClick={() => setListeOffen(true)}>
+          <Icon name="folder" /> <span className="nur-desktop">Gespeicherte Verträge</span><span className="nur-handy">Verträge</span>
+          {contracts.length ? ` (${contracts.length})` : ""}
+        </button>
         <div className="vertrag-aktionen" style={{ display: "flex", gap: 8, marginLeft: "auto", flexWrap: "wrap" }}>
           <button className="btn btn-primary" onClick={speichern} disabled={saving}>
             <Icon name="save" /> {saving ? "Speichert…" : "Speichern"}
@@ -299,7 +373,8 @@ export default function ContractsPage() {
             </span>
             <span className="nur-handy">Akte</span>
           </button>
-          <button className="btn" onClick={pdfAnsicht} title={form.id ? "PDF-Vorschau öffnen – dort drucken oder als PDF speichern" : "Erst speichern, dann PDF-Ansicht"}>
+          <button className="btn" onClick={() => (form.id ? pdfOeffnen(form) : pdfAnsicht())} disabled={pdfBusy === (form.id || "form")}
+            title={form.id ? "PDF ansehen – dort herunterladen oder drucken" : "Erst speichern, dann PDF-Ansicht"}>
             <Icon name="file-text" />
             <span className="nur-desktop">PDF-Vorschau / Drucken</span>
             <span className="nur-handy">PDF</span>
@@ -313,55 +388,66 @@ export default function ContractsPage() {
         </div>
       </div>
 
+      {form.id && (
+        <div className="muted" style={{ fontSize: 12.5, margin: "-8px 0 12px", display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Icon name="history" size={13} /> zuletzt geändert {zeitpunkt(form.updatedAt)}</span>
+          {form.createdAt && <span>angelegt {zeitpunkt(form.createdAt)}</span>}
+        </div>
+      )}
       {msg && <div className="card" style={{ padding: "8px 12px", marginBottom: 12, fontSize: 14 }}>{msg}</div>}
 
       <div className="contract-grid">
         {/* ── Linke Spalte: gespeicherte Verträge + Formular ── */}
         <div style={{ display: "grid", gap: 16 }}>
-          <div className="card" style={{ padding: 12 }}>
-            <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em", marginBottom: 8 }}>Gespeicherte Verträge</div>
-            {contracts.length === 0 && <div className="muted" style={{ fontSize: 13 }}>Noch keine Verträge angelegt.</div>}
-            <div style={{ display: "grid", gap: 4, maxHeight: 180, overflowY: "auto" }}>
-              {contracts.map((c) => (
-                <button key={c.id} onClick={() => laden(c.id)}
-                  style={{
-                    textAlign: "left", padding: "7px 9px", borderRadius: 8, fontSize: 13, cursor: "pointer",
-                    border: "1px solid var(--border)",
-                    background: c.id === form.id ? "var(--accent)" : "var(--bg)",
-                    color: c.id === form.id ? "#fff" : "var(--fg)",
-                    display: "flex", justifyContent: "space-between", gap: 8,
-                  }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: 7, overflow: "hidden" }}>
-                    {vertragsNr(c.number) && (
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        className="nr-badge"
-                        title="Vertragsnummer kopieren"
-                        onClick={(ev) => { ev.stopPropagation(); nrKopieren(vertragsNr(c.number)); }}
-                        onKeyDown={(ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); ev.stopPropagation(); nrKopieren(vertragsNr(c.number)); } }}
-                        style={{
-                          flexShrink: 0, fontSize: 11.5, fontWeight: 700, fontVariantNumeric: "tabular-nums",
-                          padding: "1px 6px", borderRadius: 6, cursor: "pointer",
-                          border: "1px solid " + (c.id === form.id ? "rgba(255,255,255,.5)" : "var(--border)"),
-                          background: c.id === form.id ? "rgba(255,255,255,.18)" : "var(--card, transparent)",
-                        }}
-                      >
-                        {copied === vertragsNr(c.number) ? "kopiert ✓" : vertragsNr(c.number)}
-                      </span>
+          {/* ── Unterschriften: Arbeitgeber und Arbeitnehmer ── */}
+          {form.id && (
+            <div className="card" style={{ padding: 14, display: "grid", gap: 10 }}>
+              <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em", display: "flex", alignItems: "center", gap: 6 }}>
+                <Icon name="pencil" size={14} /> Unterschriften
+              </div>
+              {(["arbeitgeber", "arbeitnehmer"] as Rolle[]).map((r) => {
+                const bild = r === "arbeitgeber" ? form.signEmployerImage : form.signEmployeeImage;
+                const wer = r === "arbeitgeber" ? form.signEmployerName : form.signEmployeeName;
+                const am = r === "arbeitgeber" ? form.signEmployerAt : form.signEmployeeAt;
+                return (
+                  <div key={r} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", border: "1px solid var(--border)", borderRadius: 10, padding: "8px 10px" }}>
+                    <div style={{ width: 96, height: 32, background: "#fff", borderRadius: 6, border: "1px solid var(--border)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {bild ? <img src={bild} alt="" style={{ maxWidth: "100%", maxHeight: "100%" }} /> : <Icon name="pencil" size={14} />}
+                    </div>
+                    <div style={{ flex: "1 1 160px", minWidth: 0, fontSize: 13 }}>
+                      <div style={{ fontWeight: 600 }}>{r === "arbeitgeber" ? "Arbeitgeber" : "Arbeitnehmer"}</div>
+                      <div className="muted" style={{ fontSize: 12 }}>
+                        {bild ? `${wer} · ${zeitpunkt(am)}` : "noch nicht unterschrieben"}
+                      </div>
+                    </div>
+                    {!bild && (
+                      <button className="btn btn-primary" onClick={() => setUnterschrift({ vertrag: form, rolle: r })}>
+                        <Icon name="pencil" /> Unterschreiben
+                      </button>
                     )}
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {c.title || c.employeeName || "Ohne Namen"}
-                      {c.employeeName && c.title && c.title !== c.employeeName ? <span style={{ opacity: 0.6 }}> · {c.employeeName}</span> : null}
-                    </span>
+                  </div>
+                );
+              })}
+              {gesperrt && (
+                <div style={{ fontSize: 12.5, display: "flex", gap: 8, alignItems: "flex-start", flexWrap: "wrap" }}>
+                  <span className="muted" style={{ flex: "1 1 220px" }}>
+                    <Icon name="lock" size={13} /> Der Inhalt ist gesperrt, weil bereits unterschrieben wurde. Status und Vertragsname bleiben änderbar.
                   </span>
-                  <span style={{ opacity: 0.7, flexShrink: 0 }}>{c.status}</span>
-                </button>
-              ))}
+                  <button className="btn btn-danger" onClick={() => setZuruecksetzen(true)}>
+                    <Icon name="undo" /> Unterschriften zurücksetzen
+                  </button>
+                </div>
+              )}
             </div>
-          </div>
+          )}
 
           <div className="card" style={{ padding: 16, display: "grid", gap: 12 }}>
+            <Feld label="Vertragsname (zur Zuordnung)">
+              <input className="input" placeholder={form.employeeName ? `Arbeitsvertrag – ${form.employeeName}` : "z. B. Arbeitsvertrag – Max Mustermann"}
+                value={form.title || ""} onChange={(e) => set("title", e.target.value)} />
+            </Feld>
+            <fieldset disabled={gesperrt} style={{ border: 0, padding: 0, margin: 0, minWidth: 0, display: "grid", gap: 12, opacity: gesperrt ? 0.6 : 1 }}>
             <Feld label="Vorlage">
               <SuchSelect
                   value={form.template || "vollstaendig"}
@@ -551,6 +637,7 @@ export default function ContractsPage() {
               </Feld>
             </div>
 
+            </fieldset>
             <Feld label="Status">
               <SuchSelect
                 value={form.status || "entwurf"}
@@ -623,6 +710,107 @@ export default function ContractsPage() {
           )}
         </div>
       </div>
+
+      {/* Handy: Speichern immer greifbar am unteren Rand (Hauptaktion rechts) */}
+      <div className="vertrag-handyleiste">
+        <button className="btn" onClick={() => setListeOffen(true)}><Icon name="folder" /> Verträge</button>
+        <button className="btn" onClick={() => (form.id ? pdfOeffnen(form) : pdfAnsicht())}><Icon name="eye" /> PDF</button>
+        <button className="btn btn-primary" onClick={speichern} disabled={saving}><Icon name="save" /> {saving ? "Speichert…" : "Speichern"}</button>
+      </div>
+
+      {/* ── Untermenü: Gespeicherte Verträge ── */}
+      {listeOffen && (
+        <div onClick={() => setListeOffen(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "grid", placeItems: "center", padding: 16, zIndex: 60 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster"
+            style={{ width: 760, maxWidth: "96vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--border)", display: "grid", gap: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Icon name="folder" size={18} />
+                <h2 style={{ fontSize: 17, fontWeight: 700, flex: 1 }}>Gespeicherte Verträge ({contracts.length})</h2>
+                <button className="btn btn-icon" aria-label="Schließen" onClick={() => setListeOffen(false)}><Icon name="x" /></button>
+              </div>
+              <SearchInput value={listeSuche} onChange={setListeSuche} placeholder="Nummer, Name, Tätigkeit, Status…" style={{ width: "100%" }} />
+            </div>
+            <div style={{ padding: 14, overflowY: "auto", display: "grid", gap: 8, flex: 1, minHeight: 0, alignContent: "start" }}>
+              {listeGefiltert.length === 0 && (
+                <div className="muted" style={{ fontSize: 13.5 }}>{contracts.length ? "Kein Treffer." : "Noch keine Verträge angelegt."}</div>
+              )}
+              {listeGefiltert.map((c) => {
+                const ag = !!c.signEmployerImage, an = !!c.signEmployeeImage;
+                const nr = vertragsNr(c.number);
+                return (
+                  <div key={c.id} style={{ border: `1px solid ${c.id === form.id ? "var(--accent)" : "var(--border)"}`, borderRadius: 10, padding: 10, display: "grid", gap: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      {nr && (
+                        <button type="button" className="btn" title="Vertragsnummer kopieren" onClick={() => nrKopieren(nr)}
+                          style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums", padding: "2px 8px", minHeight: 0, fontSize: 12.5 }}>
+                          <Icon name={copied === nr ? "check" : "copy"} size={13} /> {nr}
+                        </button>
+                      )}
+                      <span style={{ fontWeight: 600, fontSize: 14, flex: "1 1 200px", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {c.title || c.employeeName || "Ohne Namen"}
+                      </span>
+                      <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, border: "1px solid var(--border)",
+                        background: c.status === "aktiv" ? "rgba(22,163,74,.12)" : c.status === "beendet" ? "rgba(127,127,127,.15)" : "rgba(196,127,23,.12)" }}>
+                        {c.status || "entwurf"}
+                      </span>
+                    </div>
+                    <div className="muted" style={{ fontSize: 12.5, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+                      {c.employeeName && <span style={{ display: "inline-flex", gap: 5, alignItems: "center" }}><Icon name="user" size={13} /> {c.employeeName}</span>}
+                      <span style={{ display: "inline-flex", gap: 5, alignItems: "center" }}><Icon name="history" size={13} /> geändert {zeitpunkt(c.updatedAt)}</span>
+                      <span style={{ display: "inline-flex", gap: 5, alignItems: "center", color: ag && an ? "#16a34a" : undefined }}>
+                        <Icon name="pencil" size={13} /> {ag && an ? "von beiden unterschrieben" : ag ? "Arbeitgeber unterschrieben" : an ? "Arbeitnehmer unterschrieben" : "nicht unterschrieben"}
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      <button className="btn btn-primary" disabled={pdfBusy === c.id} onClick={() => pdfOeffnen(c)}>
+                        <Icon name="eye" /> {pdfBusy === c.id ? "Erstellt…" : "PDF ansehen"}
+                      </button>
+                      <button className="btn" onClick={() => { laden(c.id); setListeOffen(false); }}>
+                        <Icon name="pencil" /> Bearbeiten
+                      </button>
+                      {(!ag || !an) && (
+                        <button className="btn" onClick={() => setUnterschrift({ vertrag: c, rolle: !ag ? "arbeitgeber" : "arbeitnehmer" })}>
+                          <Icon name="check" /> Unterschreiben ({!ag ? "Arbeitgeber" : "Arbeitnehmer"})
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {unterschrift && (
+        <UnterschriftDialog
+          titel={`Vertrag unterschreiben – ${unterschrift.rolle === "arbeitgeber" ? "Arbeitgeber" : "Arbeitnehmer"}`}
+          untertitel={`${vertragsNr(unterschrift.vertrag.number)} · ${unterschrift.vertrag.title || unterschrift.vertrag.employeeName || ""}`}
+          rolle={unterschrift.rolle === "arbeitgeber" ? "Arbeitgeber" : "Arbeitnehmer"}
+          nameVorschlag={unterschrift.rolle === "arbeitgeber" ? ARBEITGEBER.inhaber.replace(/^Inh\.\s*/, "") : unterschrift.vertrag.employeeName}
+          bestaetigung={unterschrift.rolle === "arbeitnehmer"
+            ? "Ich habe den Arbeitsvertrag vollständig gelesen und bin mit seinem Inhalt einverstanden."
+            : `Ich unterschreibe für ${ARBEITGEBER.name} und bin dazu berechtigt.`}
+          onPdf={() => pdfOeffnen(unterschrift.vertrag)}
+          onSpeichern={unterschreiben}
+          onClose={() => setUnterschrift(null)}
+        />
+      )}
+
+      {pdf && (
+        <PdfViewerModal url={pdf.url} titel={pdf.titel} dateiname={pdf.dateiname}
+          onClose={() => { URL.revokeObjectURL(pdf.url); setPdf(null); }} />
+      )}
+
+      <ConfirmDialog
+        open={zuruecksetzen}
+        title="Unterschriften zurücksetzen?"
+        message="Beide Unterschriften werden entfernt und der Vertrag kann wieder bearbeitet werden. Danach muss neu unterschrieben werden. (Im Verlauf nachvollziehbar.)"
+        onConfirm={unterschriftenZuruecksetzen}
+        onCancel={() => setZuruecksetzen(false)}
+      />
 
       <ConfirmDialog
         open={deleting}

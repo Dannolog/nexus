@@ -169,7 +169,7 @@ export default function UnterschriftDialog({
 
   return (
     <div onClick={() => !busy && onClose()}
-      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", display: "grid", placeItems: "center", padding: 16, zIndex: 320 }}>
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", display: "grid", placeItems: "center", padding: 16, zIndex: 250 }}>
       <div onClick={(e) => e.stopPropagation()} className="card dm-fenster" data-swipe-lock
         style={{ width: 640, maxWidth: "96vw", maxHeight: "94vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>

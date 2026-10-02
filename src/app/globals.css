@@ -317,6 +317,7 @@ mark.treffer {
 
 /* Nur auf dem Handy bzw. nur am Desktop sichtbar (Vertragsseite) */
 .nur-handy { display: none !important; }
+.vertrag-handyleiste { display: none; }
 @media (max-width: 768px) {
   .nur-handy { display: inline-flex !important; }
   .card.nur-handy { display: block !important; }
@@ -342,6 +343,15 @@ mark.treffer {
   .vertrag-aktionen { width: 100%; margin-left: 0 !important; }
   .vertrag-aktionen .btn { flex: 1 1 auto; justify-content: center; }
   .vertrag-aktionen .btn-icon { flex: 0 0 auto; }
+
+  /* Feste Leiste unten mit Speichern – bei langen Verträgen nicht erst hochscrollen */
+  .vertrag-handyleiste {
+    display: flex !important; gap: 8px; position: sticky; bottom: 0; z-index: 20;
+    margin: 16px -16px calc(-16px - env(safe-area-inset-bottom)); padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    background: var(--card, var(--bg)); border-top: 1px solid var(--border);
+  }
+  .vertrag-handyleiste .btn { flex: 1; justify-content: center; min-height: 44px; }
+  .vertrag-handyleiste .btn-primary { flex: 1.4; }
 }
 
 @media (max-width: 430px) {
