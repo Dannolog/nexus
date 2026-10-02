@@ -69,7 +69,10 @@ export const ENTITIES: Record<EntityName, EntityDef> = {
     delegate: "employmentContract",
     searchable: ["title", "employeeName", "jobTitle", "status"],
     // number ist server-verwaltet (fortlaufende Vertragsnummer) → nie vom Client setzbar.
-    protectedFields: [...PROTECTED, "number"],
+    // Unterschriften nur über /api/contracts/[id]/sign.
+    protectedFields: [...PROTECTED, "number",
+      "signEmployerImage", "signEmployerName", "signEmployerAt",
+      "signEmployeeImage", "signEmployeeName", "signEmployeeAt", "signHash"],
     autoNumberField: "number",
   },
   Supplier: {

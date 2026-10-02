@@ -398,6 +398,15 @@ model EmploymentContract {
   signDate        DateTime?                               // Datum der Unterzeichnung
   status          String   @default("entwurf")            // entwurf | aktiv | beendet
   archived        Boolean  @default(false)
+  // Digitale Unterschriften (nur über /api/contracts/[id]/sign setzbar, nicht per PATCH).
+  // Bild = PNG als data-URL; ist mindestens eine gesetzt, ist der Vertragsinhalt gesperrt.
+  signEmployerImage String    @default("") @db.Text
+  signEmployerName  String    @default("")
+  signEmployerAt    DateTime?
+  signEmployeeImage String    @default("") @db.Text
+  signEmployeeName  String    @default("")
+  signEmployeeAt    DateTime?
+  signHash          String    @default("")              // Prüfsumme des Vertragsinhalts beim Unterschreiben
   version         Int      @default(1)
   deletedAt       DateTime?
   createdAt       DateTime @default(now())
