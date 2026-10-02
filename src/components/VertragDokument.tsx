@@ -416,16 +416,27 @@ export default function VertragDokument({ form, befristet }: { form: Contract; b
   });
   flow.push({ key: "sign", heading: false, node: (
     <div style={{ marginTop: 22 }}>
-      <p style={{ margin: "0 0 42px" }}>{txt(form.signCity, "________")}, den {fmtDate(form.signDate)}</p>
+      <p style={{ margin: "0 0 12px" }}>{txt(form.signCity, "________")}, den {fmtDate(form.signDate)}</p>
       <div style={{ display: "flex", gap: 48 }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ borderTop: "1.5px solid #1a1a1a", paddingTop: 6, fontSize: 11.5, fontWeight: 600 }}>Arbeitgeber</div>
-          <div style={{ fontSize: 11, color: "#555" }}>{ARBEITGEBER.name}</div>
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ borderTop: "1.5px solid #1a1a1a", paddingTop: 6, fontSize: 11.5, fontWeight: 600 }}>Arbeitnehmer</div>
-          <div style={{ fontSize: 11, color: "#555" }}>{txt(form.employeeName, "")}</div>
-        </div>
+        {([
+          ["Arbeitgeber", ARBEITGEBER.name, form.signEmployerImage, form.signEmployerName, form.signEmployerAt],
+          ["Arbeitnehmer", txt(form.employeeName, ""), form.signEmployeeImage, form.signEmployeeName, form.signEmployeeAt],
+        ] as const).map(([rolle, name, bild, wer, am]) => (
+          <div key={rolle} style={{ flex: 1 }}>
+            {/* Platz für die (digitale) Unterschrift über der Linie */}
+            <div style={{ height: 56, display: "flex", alignItems: "flex-end" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {bild ? <img src={String(bild)} alt={`Unterschrift ${rolle}`} style={{ height: 56, maxWidth: "100%", objectFit: "contain", objectPosition: "left bottom" }} /> : null}
+            </div>
+            <div style={{ borderTop: "1.5px solid #1a1a1a", paddingTop: 6, fontSize: 11.5, fontWeight: 600 }}>{rolle}</div>
+            <div style={{ fontSize: 11, color: "#555" }}>{wer ? `${wer}${rolle === "Arbeitgeber" ? ` für ${ARBEITGEBER.name}` : ""}` : name}</div>
+            {bild && am ? (
+              <div style={{ fontSize: 9.5, color: "#888" }}>
+                digital unterschrieben am {new Date(String(am)).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })} Uhr
+              </div>
+            ) : null}
+          </div>
+        ))}
       </div>
     </div>
   )});

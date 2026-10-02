@@ -307,20 +307,33 @@ export async function generateVertragPdf(form: Contract): Promise<Blob> {
   });
 
   // ── Unterschriften ──
-  platz(34);
+  platz(40);
   y += 6;
   doc.setFont("helvetica", "normal"); doc.setFontSize(SIZE); doc.setTextColor(20);
   doc.text(`${txt(form.signCity, "________")}, den ${fmtDate(form.signDate)}`, MX, y);
-  y += 18;
+  y += 22;
   const spaltenW = (CONTENT_W - 16) / 2;
-  [["Arbeitgeber", ARBEITGEBER.name], ["Arbeitnehmer", txt(form.employeeName, "")]].forEach(([rolle, name], i) => {
+  const stempel = (v: any) => new Date(v).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  ([
+    ["Arbeitgeber", ARBEITGEBER.name, form.signEmployerImage, form.signEmployerName, form.signEmployerAt],
+    ["Arbeitnehmer", txt(form.employeeName, ""), form.signEmployeeImage, form.signEmployeeName, form.signEmployeeAt],
+  ] as const).forEach(([rolle, name, bild, wer, am], i) => {
     const x = MX + i * (spaltenW + 16);
+    // Digitale Unterschrift über der Linie (Seitenverhältnis 3:1)
+    if (bild) {
+      const h = 15, w = Math.min(spaltenW, h * 3);
+      try { doc.addImage(String(bild), "PNG", x, y - h - 0.5, w, h); } catch { /* Bild defekt → Linie bleibt leer */ }
+    }
     doc.setDrawColor(30); doc.setLineWidth(0.4);
     doc.line(x, y, x + spaltenW, y);
     doc.setFont("helvetica", "bold"); doc.setFontSize(8.5); doc.setTextColor(20);
     doc.text(rolle, x, y + 4);
     doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(90);
-    doc.text(name, x, y + 8);
+    doc.text(wer ? `${wer}${rolle === "Arbeitgeber" ? ` für ${ARBEITGEBER.name}` : ""}` : name, x, y + 8);
+    if (bild && am) {
+      doc.setFontSize(7); doc.setTextColor(120);
+      doc.text(`digital unterschrieben am ${stempel(am)} Uhr`, x, y + 11.5);
+    }
   });
 
   // ── Fußzeilen auf allen Seiten (erst am Ende, wenn die Gesamtzahl feststeht) ──
