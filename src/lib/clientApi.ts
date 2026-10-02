@@ -62,8 +62,7 @@ export async function api(path: string, opts: RequestInit = {}) {
   if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(path, { ...opts, headers });
   if (res.status === 401) {
-    // Früher wurde hier sofort zur Anmeldung gesprungen – ungespeicherte Eingaben waren weg.
-    // Jetzt meldet sich der Sitzungswächter, sichert Entwürfe und fragt nach.
+    // Der Sitzungswächter leitet zur Anmeldung weiter (mit Rücksprung); Entwürfe sind lokal gesichert.
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("nexus-sitzung-abgelaufen"));
     }
