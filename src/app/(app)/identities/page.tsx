@@ -13,6 +13,12 @@ import { useLive } from "@/lib/live";
 const APPS = ["kontor", "clocker", "cnc", "schaltplan", "projecteye", "vision"];
 
 type Access = { appKey: string; allowed: boolean; role: string };
+
+/** Zusätzliche Rollen, die einzelne Apps kennen (neben user/admin). */
+const APP_ROLLEN: Record<string, { value: string; label: string }[]> = {
+  // clocker: Buchhaltung = alle Zeiten, Stundenzettel, Fahrten, Belege, Abrechnung; Stammdaten nur lesen
+  clocker: [{ value: "buchhaltung", label: "buchhaltung" }],
+};
 type Form = {
   id?: string; email: string; name: string; password: string; globalRole: string; version?: number;
   access: Record<string, Access>;
@@ -572,8 +578,10 @@ export default function IdentitiesPage() {
                         options={[
                           { value: "user", label: "user" },
                           { value: "admin", label: "admin" },
+                          // App-eigene Rollen (z. B. clocker: Buchhaltung)
+                          ...(APP_ROLLEN[a] ?? []),
                           // In der App vergebene Sonderrolle beibehalten, falls vorhanden
-                          ...(ac.role && !["user", "admin"].includes(ac.role) ? [{ value: ac.role, label: ac.role }] : []),
+                          ...(ac.role && !["user", "admin", ...(APP_ROLLEN[a] ?? []).map(r => r.value)].includes(ac.role) ? [{ value: ac.role, label: ac.role }] : []),
                         ]}
                       />
                     </div>
