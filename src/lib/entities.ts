@@ -32,7 +32,7 @@ const PROTECTED = ["id", "version", "createdAt", "updatedAt", "deletedAt"];
 export const ENTITIES: Record<EntityName, EntityDef> = {
   Customer: {
     delegate: "customer",
-    searchable: ["companyName", "contactName", "shortCode", "email", "city"],
+    searchable: ["companyName", "contactName", "shortCode", "email", "city", "website", "invoiceEmail", "orderEmail"],
     // Die Kundensuche findet auch Ansprechpartner (zentrales Kontaktregister).
     searchRelations: [{ relation: "contacts", fields: ["name", "role", "email", "phone", "mobile"] }],
     includeRelations: ["contacts"],

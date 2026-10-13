@@ -15,6 +15,7 @@ import { useLive } from "@/lib/live";
 import { useSeitenZustand } from "@/lib/seitenzustand";
 import SuchSelect from "@/components/SuchSelect";
 import TextField from "@/components/TextField";
+import { KopierKnopf } from "@/components/KontaktFeld";
 
 const LOGO_RESOURCES = ["customers", "organizations"];
 
@@ -443,15 +444,27 @@ function EditModal({ resourceKey, hasLogo, initial, onClose, onSave }: {
   // Einzelnes Eingabe-Control zu einem Feld (wird in beiden Layouts wiederverwendet)
   const fieldControl = (f: Field) =>
     f.type === "textarea" ? (
-      <textarea className="input" rows={3} value={form[f.key] ?? ""}
-        onChange={(e) => set(f.key, e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") {
-            e.preventDefault();
-            if (String((e.target as HTMLTextAreaElement).value).length > 0) set(f.key, "");
-            else (e.currentTarget as HTMLTextAreaElement).blur();
-          }
-        }} />
+      <div style={{ position: "relative" }}>
+        <textarea className="input" rows={3} value={form[f.key] ?? ""}
+          style={{ paddingRight: form[f.key] ? 62 : undefined }}
+          onChange={(e) => set(f.key, e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              e.preventDefault();
+              if (String((e.target as HTMLTextAreaElement).value).length > 0) set(f.key, "");
+              else (e.currentTarget as HTMLTextAreaElement).blur();
+            }
+          }} />
+        {form[f.key] ? (
+          <div style={{ position: "absolute", right: 6, top: 6, display: "flex", gap: 2 }}>
+            <button type="button" tabIndex={-1} aria-label="Feld leeren" onClick={() => set(f.key, "")}
+              style={{ border: 0, background: "transparent", cursor: "pointer", opacity: 0.5, padding: 3, display: "flex", color: "var(--fg)" }}>
+              <Icon name="x" size={14} />
+            </button>
+            <KopierKnopf wert={String(form[f.key])} was={f.label} klein />
+          </div>
+        ) : null}
+      </div>
     ) : f.type === "checkbox" ? (
       <div style={{ marginTop: 6 }}><Toggle checked={!!form[f.key]} onChange={(v) => set(f.key, v)} /></div>
     ) : f.type === "select" ? (
@@ -475,6 +488,7 @@ function EditModal({ resourceKey, hasLogo, initial, onClose, onSave }: {
         type={f.type === "number" ? "number" : f.type === "email" ? "email" : "text"}
         value={form[f.key]}
         onChange={(v) => set(f.key, f.type === "number" ? (v === "" ? 0 : Number(v)) : v)}
+        kopieren
       />
     );
 

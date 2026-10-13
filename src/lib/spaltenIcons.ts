@@ -5,7 +5,7 @@
  */
 const NACH_FELD: Record<string, string> = {
   name: "user", companyName: "building", contactName: "user", title: "tag",
-  email: "mail", phone: "phone", mobile: "smartphone", web: "command",
+  email: "mail", phone: "phone", mobile: "smartphone", web: "command", website: "command", invoiceEmail: "mail", orderEmail: "mail",
   city: "home", zip: "home", street: "home", country: "home",
   role: "tag", category: "tag", status: "check", priority: "alert",
   number: "tag", employeeNumber: "id-card", customerNumber: "id-card", shortCode: "tag",

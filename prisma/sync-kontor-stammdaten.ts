@@ -127,7 +127,8 @@ async function main() {
   const nKunden = await prisma.customer.findMany({ where: { deletedAt: null } });
   const kKunden = (await kontor.query(
     `SELECT id, name, company, salutation, "shortName", "customerNumber", "distanceKm",
-            street, zip, city, country, email, phone, "taxNumber", "ustId", notes, "updatedAt"
+            street, zip, city, country, email, phone, website, "invoiceEmail", "orderEmail",
+            "taxNumber", "ustId", notes, "updatedAt"
        FROM "Client"`
   )).rows;
   let kdNexus = 0, kdKontor = 0, kdNeuNexus = 0, kdNeuKontor = 0;
@@ -143,6 +144,7 @@ async function main() {
             companyName: k.company || "", contactName: k.name || "", salutation: k.salutation || "",
             shortCode: k.shortName || "", street: k.street || "", zip: k.zip || "", city: k.city || "",
             country: k.country || "Deutschland", email: k.email || "", phone: k.phone || "",
+            website: k.website || "", invoiceEmail: k.invoiceEmail || "", orderEmail: k.orderEmail || "",
             taxNumber: k.taxNumber || "", ustId: k.ustId || "", distanceKm: Number(k.distanceKm) || 0,
             notes: k.notes || "",
           },
@@ -162,6 +164,9 @@ async function main() {
       { nexusFeld: "city", kontorSpalte: "city", nexusWert: c.city, kontorWert: k.city },
       { nexusFeld: "email", kontorSpalte: "email", nexusWert: c.email, kontorWert: k.email },
       { nexusFeld: "phone", kontorSpalte: "phone", nexusWert: c.phone, kontorWert: k.phone },
+      { nexusFeld: "website", kontorSpalte: "website", nexusWert: c.website, kontorWert: k.website },
+      { nexusFeld: "invoiceEmail", kontorSpalte: "invoiceEmail", nexusWert: c.invoiceEmail, kontorWert: k.invoiceEmail },
+      { nexusFeld: "orderEmail", kontorSpalte: "orderEmail", nexusWert: c.orderEmail, kontorWert: k.orderEmail },
       { nexusFeld: "taxNumber", kontorSpalte: "taxNumber", nexusWert: c.taxNumber, kontorWert: k.taxNumber },
       { nexusFeld: "ustId", kontorSpalte: "ustId", nexusWert: c.ustId, kontorWert: k.ustId },
       { nexusFeld: "notes", kontorSpalte: "notes", nexusWert: c.notes, kontorWert: k.notes },
@@ -187,11 +192,13 @@ async function main() {
       if (!TROCKEN) {
         await kontor.query(
           `INSERT INTO "Client" (id, name, company, salutation, "shortName", street, zip, city, country,
-                                 email, phone, "taxNumber", "ustId", notes, "distanceKm", "createdAt", "updatedAt")
-           VALUES (gen_random_uuid()::text, $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14, now(), now())`,
+                                 email, phone, "taxNumber", "ustId", notes, "distanceKm",
+                                 website, "invoiceEmail", "orderEmail", "createdAt", "updatedAt")
+           VALUES (gen_random_uuid()::text, $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17, now(), now())`,
           [c.contactName || anzeige, c.companyName || "", c.salutation || "", c.shortCode || "",
            c.street || "", c.zip || "", c.city || "", c.country || "Deutschland", c.email || "",
-           c.phone || "", c.taxNumber || "", c.ustId || "", c.notes || "", Number(c.distanceKm) || 0]
+           c.phone || "", c.taxNumber || "", c.ustId || "", c.notes || "", Number(c.distanceKm) || 0,
+           c.website || "", c.invoiceEmail || "", c.orderEmail || ""]
         );
       }
       kdNeuKontor++;

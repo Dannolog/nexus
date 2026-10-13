@@ -43,6 +43,9 @@ model Customer {
   addressFree String  @default("")
   email       String  @default("")
   phone       String  @default("")
+  website      String  @default("")  // Webseite des Kunden
+  invoiceEmail String  @default("")  // Rechnungsempfang (E-Mail für Rechnungen)
+  orderEmail   String  @default("")  // Bestellungen / Auftragsbestätigungen
   taxNumber   String  @default("")
   ustId       String  @default("")
   distanceKm  Float   @default(0)

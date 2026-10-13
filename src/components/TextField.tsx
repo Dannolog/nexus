@@ -2,6 +2,7 @@
 import { useState } from "react";
 import type { KeyboardEvent, RefObject } from "react";
 import Icon from "@/components/Icon";
+import { kopiere } from "@/lib/kopieren";
 
 /**
  * Einzeiliges Eingabefeld mit:
@@ -9,6 +10,7 @@ import Icon from "@/components/Icon";
  * - Passwort-Auge (👁) bei type="password" zum Ein-/Ausblenden
  * - ESC bei gefülltem Feld → leert das Feld
  * - ESC bei leerem Feld → hebt den Fokus auf (blur)
+ * - optional Kopier-Knopf (`kopieren`), sobald Inhalt vorhanden
  */
 export default function TextField({
   value,
@@ -25,6 +27,7 @@ export default function TextField({
   autoFocus,
   name,
   id,
+  kopieren,
 }: {
   value: string | number | null | undefined;
   onChange: (v: string) => void;
@@ -43,14 +46,18 @@ export default function TextField({
   autoFocus?: boolean;
   name?: string;
   id?: string;
+  /** Kopier-Knopf neben dem Kreuz anzeigen (nie bei Passwörtern). */
+  kopieren?: boolean;
 }) {
   const [showPw, setShowPw] = useState(false);
+  const [kopiert, setKopiert] = useState(false);
   const v = value ?? "";
   const hasValue = String(v).length > 0;
   const isPw = type === "password";
   const effType = isPw && showPw ? "text" : type;
   const showClear = hasValue && !disabled;
-  const controls = (isPw ? 1 : 0) + (showClear ? 1 : 0);
+  const showCopy = !!kopieren && hasValue && !isPw;
+  const controls = (isPw ? 1 : 0) + (showClear ? 1 : 0) + (showCopy ? 1 : 0);
 
   const iconBtn: React.CSSProperties = {
     border: 0, background: "transparent", cursor: "pointer", opacity: 0.5,
@@ -88,6 +95,13 @@ export default function TextField({
           {showClear && (
             <button type="button" tabIndex={-1} aria-label="Feld leeren" onMouseDown={(e) => e.preventDefault()} onClick={() => onChange("")} style={iconBtn}>
               <Icon name="x" size={14} />
+            </button>
+          )}
+          {showCopy && (
+            <button type="button" tabIndex={-1} aria-label="Inhalt kopieren" title="Kopieren" onMouseDown={(e) => e.preventDefault()}
+              onClick={async () => { if (await kopiere(String(v))) { setKopiert(true); setTimeout(() => setKopiert(false), 1200); } }}
+              style={{ ...iconBtn, opacity: kopiert ? 1 : 0.5, color: kopiert ? "var(--accent)" : "var(--fg)" }}>
+              <Icon name={kopiert ? "check" : "copy"} size={14} />
             </button>
           )}
           {isPw && (

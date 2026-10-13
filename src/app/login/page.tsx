@@ -4,6 +4,7 @@ import { setSession } from "@/lib/clientApi";
 import AppLogo from "@/components/AppLogo";
 import Icon from "@/components/Icon";
 import TextField from "@/components/TextField";
+import LoginHintergrund from "./LoginHintergrund";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("admin@nexus.local");
@@ -45,25 +46,40 @@ export default function LoginPage() {
 
   return (
     <main
+      className="login-seite"
       style={{
         display: "grid",
         placeItems: "center",
-        minHeight: "100vh",
-        padding: 16,
+        minHeight: "100dvh",
+        position: "relative",
+        overflow: "hidden",
+        padding: "max(24px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom))",
         background:
-          "radial-gradient(900px 500px at 50% -5%, rgba(59,130,246,0.14), transparent 70%), var(--bg)",
+          "radial-gradient(900px 500px at 50% -5%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%), " +
+          "radial-gradient(700px 420px at 100% 110%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 70%), var(--bg)",
       }}
     >
+      <style>{`
+        .login-karte { padding: 32px; width: 380px; }
+        @media (max-width: 480px) {
+          .login-karte { padding: 24px 18px; width: 100%; border-radius: 18px; }
+          .login-karte h1 { font-size: 22px !important; }
+        }
+      `}</style>
+      <LoginHintergrund />
       <form
         onSubmit={submit}
-        className="card"
+        className="card login-karte"
         style={{
-          padding: 32,
-          width: 380,
+          position: "relative",
+          zIndex: 1,
           maxWidth: "100%",
           display: "grid",
           gap: 16,
           boxShadow: "0 12px 40px rgba(0,0,0,0.10)",
+          background: "color-mix(in srgb, var(--card) 92%, transparent)",
+          backdropFilter: "blur(6px)",
+          WebkitBackdropFilter: "blur(6px)",
         }}
       >
         <div style={{ display: "grid", justifyItems: "center", gap: 10, marginBottom: 4 }}>
