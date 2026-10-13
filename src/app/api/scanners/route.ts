@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { handle, json, ApiError } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
-import { faehigkeiten } from "@/lib/scanner";
+import { findeAdresse } from "@/lib/scanner";
 
 export const dynamic = "force-dynamic";
 
@@ -22,17 +22,17 @@ export const POST = (req: NextRequest) =>
   handle(async () => {
     await requireAuth(req);
     const body = await req.json().catch(() => ({}));
-    const host = String(body.host || "").trim();
-    if (!host) throw new ApiError("IP-Adresse oder Hostname fehlt", 400);
-    const doppelt = await prisma.scanner.findFirst({ where: { host, deletedAt: null } });
-    if (doppelt) throw new ApiError(`„${host}" ist bereits eingerichtet.`, 409);
+    const eingabe = String(body.host || "").trim();
+    if (!eingabe) throw new ApiError("IP-Adresse oder Hostname fehlt", 400);
 
-    let model = "";
+    let host = "", model = "";
     try {
-      model = (await faehigkeiten(host)).model;
+      ({ host, model } = await findeAdresse(eingabe));
     } catch (e: any) {
-      throw new ApiError(`Scanner unter ${host} antwortet nicht: ${e.message}`, 400);
+      throw new ApiError(e.message, 400);
     }
+    const doppelt = await prisma.scanner.findFirst({ where: { host, deletedAt: null } });
+    if (doppelt) throw new ApiError(`„${host}" ist bereits als „${doppelt.name}" eingerichtet.`, 409);
     const scanner = await prisma.scanner.create({
       data: { host, name: String(body.name || "").trim() || model || host, model, note: String(body.note || "") },
     });

@@ -1,4 +1,5 @@
 import https from "https";
+import http from "http";
 import { PDFDocument } from "pdf-lib";
 
 /**
@@ -26,21 +27,45 @@ export type ScanOptionen = {
 
 type Antwort = { status: number; headers: Record<string, any>; body: Buffer };
 
-/** Ein HTTPS-Request an den Scanner (selbstsigniertes Zertifikat → nicht prüfen). */
+/**
+ * Gespeicherte Adresse zerlegen. Erlaubt sind „192.168.1.50“ (HTTPS, Port 443),
+ * „http://192.168.1.50“, „host:8080“ und „https://host:8443/…“ – ein angehängter Pfad
+ * (z. B. „/eSCL“ aus der Geräte-Webseite kopiert) wird ignoriert.
+ */
+export function zerlegeAdresse(eingabe: string): { proto: "http" | "https"; hostname: string; port: number } {
+  let t = String(eingabe || "").trim();
+  const m = t.match(/^(https?):\/\//i);
+  const proto = (m ? m[1].toLowerCase() : "https") as "http" | "https";
+  t = t.replace(/^https?:\/\//i, "").replace(/[/?#].*$/, "");
+  const pm = t.match(/^(.*):(\d{1,5})$/);
+  const hostname = (pm ? pm[1] : t).replace(/^\[|\]$/g, "");
+  const port = pm ? Number(pm[2]) : proto === "http" ? 80 : 443;
+  return { proto, hostname, port };
+}
+
+/** Einheitliche Schreibweise zum Speichern: Standardfall (HTTPS/443) nur als nackte Adresse. */
+export function adresseText(a: { proto: "http" | "https"; hostname: string; port: number }) {
+  const std = a.proto === "https" ? 443 : 80;
+  const hp = a.port === std ? a.hostname : `${a.hostname}:${a.port}`;
+  return a.proto === "https" ? hp : `http://${hp}`;
+}
+
+/** Ein Request an den Scanner – HTTPS (selbstsigniertes Zertifikat → nicht prüfen) oder HTTP. */
 function anfrage(
   host: string,
   { method = "GET", path, body, headers = {}, timeout = 70000 }:
     { method?: string; path: string; body?: string; headers?: Record<string, string>; timeout?: number }
 ): Promise<Antwort> {
+  const a = zerlegeAdresse(host);
   return new Promise((resolve, reject) => {
-    const r = https.request(
-      { host, port: 443, path, method, rejectUnauthorized: false, timeout, headers },
-      (res) => {
-        const teile: Buffer[] = [];
-        res.on("data", (c) => teile.push(c as Buffer));
-        res.on("end", () => resolve({ status: res.statusCode || 0, headers: res.headers as any, body: Buffer.concat(teile) }));
-      }
-    );
+    const antwort = (res: http.IncomingMessage) => {
+      const teile: Buffer[] = [];
+      res.on("data", (c) => teile.push(c as Buffer));
+      res.on("end", () => resolve({ status: res.statusCode || 0, headers: res.headers as any, body: Buffer.concat(teile) }));
+    };
+    const r = a.proto === "https"
+      ? https.request({ host: a.hostname, port: a.port, path, method, rejectUnauthorized: false, timeout, headers }, antwort)
+      : http.request({ host: a.hostname, port: a.port, path, method, timeout, headers }, antwort);
     r.on("error", reject);
     r.on("timeout", () => r.destroy(new Error("Zeitüberschreitung")));
     if (body) r.write(body);
@@ -299,4 +324,64 @@ export async function seitenAlsPdf(seiten: Buffer[], dpi = 200): Promise<Buffer>
     seite.drawImage(bild, { x: 0, y: 0, width: w, height: h });
   }
   return Buffer.from(await pdf.save());
+}
+
+/** Kurztest: antwortet unter dieser Adresse ein eSCL-Scanner? Liefert dann das Modell. */
+async function pruefe(host: string, timeout: number): Promise<string | null> {
+  try {
+    const r = await anfrage(host, { path: "/eSCL/ScannerCapabilities", timeout });
+    if (r.status !== 200) return null;
+    const xml = r.body.toString("utf8");
+    if (!/ScannerCapabilities/.test(xml)) return null;
+    return (xml.match(/<pwg:MakeAndModel>([^<]*)</) || [])[1] || "Scanner";
+  } catch { return null; }
+}
+
+/**
+ * Eingegebene Adresse in eine funktionierende übersetzen. Ohne Angabe des Protokolls
+ * wird erst HTTPS (443), dann HTTP (80) versucht – viele Geräte (Canon, Brother, Epson)
+ * sprechen eSCL nur unverschlüsselt. Wirft mit verständlichem Grund, wenn nichts antwortet.
+ */
+export async function findeAdresse(eingabe: string): Promise<{ host: string; model: string }> {
+  const a = zerlegeAdresse(eingabe);
+  if (!a.hostname) throw new Error("IP-Adresse fehlt");
+  const explizit = /^https?:\/\//i.test(eingabe.trim()) || /:\d{1,5}(\/|$)/.test(eingabe.trim());
+  const kandidaten = explizit
+    ? [adresseText(a)]
+    : [adresseText({ ...a, proto: "https", port: 443 }), adresseText({ ...a, proto: "http", port: 80 })];
+  for (const k of kandidaten) {
+    const model = await pruefe(k, 8000);
+    if (model) return { host: k, model };
+  }
+  throw new Error(`Unter ${a.hostname} antwortet kein Netzwerk-Scanner (eSCL/AirScan, ${explizit ? kandidaten[0] : "HTTPS und HTTP"} geprüft). ` +
+    "Ist das Gerät eingeschaltet, im selben Netz und ist „AirScan/eSCL“ bzw. „Webscan“ in seinen Einstellungen aktiv?");
+}
+
+/** Lokale /24-Netze nach eSCL-Scannern durchsuchen (HTTPS und HTTP). */
+export async function sucheScanner(timeout = 1500): Promise<{ host: string; ip: string; model: string }[]> {
+  const os = await import("os");
+  const basen = new Set<string>();
+  for (const liste of Object.values(os.networkInterfaces())) {
+    for (const ni of liste || []) {
+      if (ni.family === "IPv4" && !ni.internal) {
+        const t = ni.address.split(".");
+        if (t.length === 4) basen.add(`${t[0]}.${t[1]}.${t[2]}.`);
+      }
+    }
+  }
+  const ips: string[] = [];
+  for (const b of basen) for (let i = 1; i <= 254; i++) ips.push(b + i);
+  const gefunden: { host: string; ip: string; model: string }[] = [];
+  let idx = 0;
+  const arbeiter = async () => {
+    while (idx < ips.length) {
+      const ip = ips[idx++];
+      let model = await pruefe(ip, timeout);
+      let host = ip;
+      if (!model) { host = `http://${ip}`; model = await pruefe(host, timeout); }
+      if (model) gefunden.push({ host, ip, model });
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(48, ips.length) }, arbeiter));
+  return gefunden.sort((x, y) => x.ip.localeCompare(y.ip, undefined, { numeric: true }));
 }
