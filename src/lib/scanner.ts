@@ -357,13 +357,23 @@ export async function findeAdresse(eingabe: string): Promise<{ host: string; mod
     "Ist das Gerät eingeschaltet, im selben Netz und ist „AirScan/eSCL“ bzw. „Webscan“ in seinen Einstellungen aktiv?");
 }
 
-/** Lokale /24-Netze nach eSCL-Scannern durchsuchen (HTTPS und HTTP). */
-export async function sucheScanner(timeout = 1500): Promise<{ host: string; ip: string; model: string }[]> {
+/**
+ * Lokale /24-Netze nach eSCL-Scannern durchsuchen (HTTPS und HTTP). `weitereNetze` sind
+ * zusätzliche Adressen, deren /24 mitdurchsucht wird – z. B. die schon eingerichteter
+ * Scanner, die in einem anderen Teilnetz als der Server hängen.
+ */
+export async function sucheScanner(weitereNetze: string[] = [], timeout = 1500): Promise<{ host: string; ip: string; model: string }[]> {
   const os = await import("os");
   const basen = new Set<string>();
+  for (const w of weitereNetze) {
+    const t = zerlegeAdresse(w).hostname.split(".");
+    if (t.length === 4 && t.every((x) => /^\d+$/.test(x))) basen.add(`${t[0]}.${t[1]}.${t[2]}.`);
+  }
   for (const liste of Object.values(os.networkInterfaces())) {
     for (const ni of liste || []) {
-      if (ni.family === "IPv4" && !ni.internal) {
+      // Tailscale/CGNAT (100.64.0.0/10) und Einzeladressen auslassen – dort hängen keine Scanner.
+      const erstes = ni.address.split(".").map(Number);
+      if (ni.family === "IPv4" && !ni.internal && ni.netmask !== "255.255.255.255" && !(erstes[0] === 100 && erstes[1] >= 64 && erstes[1] < 128)) {
         const t = ni.address.split(".");
         if (t.length === 4) basen.add(`${t[0]}.${t[1]}.${t[2]}.`);
       }
