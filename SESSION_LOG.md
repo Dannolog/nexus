@@ -1087,3 +1087,11 @@
 - Gerät 192.168.10.54: war kurz unerreichbar (EHOSTUNREACH, VPN-Router ingpropi online) – danach
   wieder da; Fläche gelesen: Flachbett 2550×3508, Einzug 2550×4200 (1/300 Zoll).
 - Kein Testscan ausgelöst (physisches Gerät) – Test durch Daniel.
+
+## 2026-10-13 – Login mobil + Symbol-Hintergrund, Kunden: Webseite/Rechnungs-/Bestell-E-Mail, Kopier-Knopf in allen Feldern
+- **Login:** neue `src/app/login/LoginHintergrund.tsx` (Vorlage kontor): schwebende Stammdaten-Symbole (Kunden, Firma, Projekt, Lieferant, Artikel, Mail, Benutzer, Rechte), Kennungen (KU-/MA-/LI-/AV-), Verbindungsnetz mit „fließenden“ Linien und pulsierenden Knoten; `prefers-reduced-motion` stoppt alles. Seite jetzt `100dvh`, safe-area-Abstände, Karte auf dem Handy volle Breite/weniger Innenabstand, leicht durchscheinend (backdrop-blur). Registry: `web.login-background` eingetragen.
+- **Felder:** `TextField` hat neue Option `kopieren` (Kopier-Knopf neben dem Kreuz, nie bei Passwörtern); im Bearbeiten-Dialog aller Listen (`ResourceView`) für alle Text-/E-Mail-/Zahlenfelder an. Textareas dort ebenfalls mit Kreuz + Kopier-Knopf.
+- **Kunden:** neue Felder `website`, `invoiceEmail`, `orderEmail` (`db push` ✓), im uiSchema mit Symbolen, durchsuchbar.
+- **Abgleich:** kontor `Client` bekam dieselben Spalten (ALTER TABLE + kontor `schema.prisma`), `prisma/sync-kontor-stammdaten.ts` gleicht sie beidseitig ab (Probelauf ✓). Hinweis an kontor-Session in `shared/sync/nachrichten.md` (Felder im kontor-Formular + Rechnungsversand an `invoiceEmail`). clocker hat keine E-Mail am Kunden → nicht angefasst.
+- tsc sauber, Build + Neustart, `/login` 200.
+- **Offen:** kontor-Oberfläche zeigt die neuen Felder erst nach Umbau in der kontor-Session.
