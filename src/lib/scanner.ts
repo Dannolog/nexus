@@ -252,7 +252,7 @@ export async function scanne(host: string, opts: ScanOptionen = {}): Promise<Buf
       throw new Error(`Scanner meldete HTTP ${r.status}`);
     }
     if (fertig || !seite) break;
-    seiten.push(seite);
+    seiten.push(jpegHoeheNachtragen(seite));
   }
   if (!seiten.length) throw new Error("Keine Seite gescannt – liegt eine Vorlage auf dem Glas oder im Einzug?");
   return seiten;
@@ -312,13 +312,41 @@ export async function vorschauBild(seiten: Buffer[]): Promise<string> {
 }
 
 /** Gescannte Seiten (JPEG) zu einem PDF zusammenfassen – eine Seite je Bild, A4-treu. */
+/**
+ * JPEG-Höhe nachtragen. HP-Geräte (z. B. MFP M479fdn) kennen beim Einzug die Seitenlänge
+ * vorher nicht: im Kopf (SOF) steht Höhe **0**, die echte Höhe folgt erst nach den Bilddaten
+ * im DNL-Marker (FFDC). pdf-lib übernimmt die 0 → im PDF erscheint eine leere Seite.
+ * Hier wird die Höhe aus dem DNL in den SOF geschrieben; andere Bilder bleiben unverändert.
+ */
+export function jpegHoeheNachtragen(jpg: Buffer): Buffer {
+  if (jpg.length < 4 || jpg[0] !== 0xff || jpg[1] !== 0xd8) return jpg;
+  let i = 2, sofHoehe = -1;
+  while (i < jpg.length - 4) {
+    if (jpg[i] !== 0xff) return jpg;
+    const m = jpg[i + 1];
+    if (m === 0xff) { i++; continue; }                       // Füllbytes
+    const len = jpg.readUInt16BE(i + 2);
+    if (m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc) { sofHoehe = i + 5; break; }
+    if (m === 0xda) return jpg;                                // SOS ohne SOF – nichts zu tun
+    i += 2 + len;
+  }
+  if (sofHoehe < 0 || jpg.readUInt16BE(sofHoehe) !== 0) return jpg;
+  const dnl = jpg.indexOf(Buffer.from([0xff, 0xdc, 0x00, 0x04]), sofHoehe);
+  if (dnl < 0) return jpg;
+  const hoehe = jpg.readUInt16BE(dnl + 4);
+  if (!hoehe) return jpg;
+  const neu = Buffer.from(jpg);
+  neu.writeUInt16BE(hoehe, sofHoehe);
+  return neu;
+}
+
 export async function seitenAlsPdf(seiten: Buffer[], dpi = 200): Promise<Buffer> {
   const pdf = await PDFDocument.create();
   // Seitengröße in Punkt (1/72 Zoll) aus Pixeln und Scanauflösung – sonst wäre ein
   // A4-Scan mit 200 dpi als ca. 58 cm große Seite angelegt und druckt falsch skaliert.
   const f = 72 / (dpi > 0 ? dpi : 200);
   for (const jpg of seiten) {
-    const bild = await pdf.embedJpg(jpg);
+    const bild = await pdf.embedJpg(jpegHoeheNachtragen(jpg));
     const w = bild.width * f, h = bild.height * f;
     const seite = pdf.addPage([w, h]);
     seite.drawImage(bild, { x: 0, y: 0, width: w, height: h });
