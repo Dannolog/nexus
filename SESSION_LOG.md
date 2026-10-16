@@ -1102,3 +1102,10 @@
 - **Oberfläche `/scan`:** Kopf mit Titel + „Datei hochladen“ (Upload-Symbol) + „Scanner“ (Einstellungen-Symbol). Gerätekarte: Auswahl + Statuspunkt (bereit/antwortet nicht), Vorlage als Segment-Umschalter (Flachbett/Einzug mit Papier-Chip), Einzug-Hinweis direkt darunter, Einstellungen aufklappbar (Farbe/Graustufen-Segment, Auflösungsregler, Duplex), großer „Jetzt scannen“-Knopf volle Breite. Ohne Scanner: Leerzustand mit „Scanner hinzufügen“. Pop-up „Scanner“: Meldungen IM Fenster, Liste eingerichteter Geräte, „Im Netzwerk suchen“ mit „Hinzufügen“ je Treffer, Eingabe von Hand, Fuß mit Schließen / Prüfen und hinzufügen. Posteingang: Segment Offen·n / Alle·n, Suche darunter, Einträge als Karten (größeres Vorschaubild, Titel umbrechend, Meta darunter); auf dem Handy „Zuordnen“ volle Breite, darunter Symbolknöpfe.
 - Neue Symbole in `Icon.tsx`: `upload`, `settings`, `wifi`.
 - Test: Adress-Zerlegung ✓, vorhandener HP 4302 über `findeAdresse` ✓, Netzsuche findet HP 4302 (192.168.10.54) und HP M479fdn. tsc sauber, Build + Neustart, `/scan` 200.
+
+## 2026-10-16 – Scannen: Einzug am „Drucker Home“ (HP MFP M479fdn) lieferte leere Seiten
+- **Ursache:** Der M479fdn schreibt beim Einzug (einseitig) **Höhe 0** in den JPEG-Kopf (SOF) und die echte Höhe erst nach den Bilddaten in einen DNL-Marker (FFDC). pdf-lib übernimmt die 0 → PDF-Seite leer (`pdfimages`: „Bad image parameters“). Nachgewiesen an beiden Scans vom 16.10. (1700×0, DNL 2315–2321).
+- **Fix:** `jpegHoeheNachtragen()` in `src/lib/scanner.ts` trägt die DNL-Höhe in den SOF ein; angewendet direkt in `scanne()` (also auch für Vorschaubild) und zusätzlich in `seitenAlsPdf()`.
+- **Bestand repariert:** die zwei betroffenen Scans (Ende …m6rd, …djyn) aus den unveränderten JPEG-Daten neu als PDF gebaut + Vorschaubild erneuert (jetzt 1700×2315–2321).
+- Hinweis an kontor/ProjectEye in `shared/sync/nachrichten.md` (gleicher eSCL-Code).
+- tsc sauber, Build + Neustart, `/scan` 200.
