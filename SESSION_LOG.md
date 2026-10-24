@@ -1109,3 +1109,9 @@
 - **Bestand repariert:** die zwei betroffenen Scans (Ende …m6rd, …djyn) aus den unveränderten JPEG-Daten neu als PDF gebaut + Vorschaubild erneuert (jetzt 1700×2315–2321).
 - Hinweis an kontor/ProjectEye in `shared/sync/nachrichten.md` (gleicher eSCL-Code).
 - tsc sauber, Build + Neustart, `/scan` 200.
+
+## 2026-10-24 – Login modernisiert (Stil wie Notseite kbusd)
+- Karte im Glas-Stil (24 px Radius, starker Schatten, Unschärfe, Einblend-Animation), Logo-Kachel mit Blau→Indigo-Verlauf + Leuchtring (`AppLogo nurZeichen`), Titel 30 px, Untertitel „Zentrale Stammdaten · ein Konto für alle Apps“.
+- `TextField` neue Option `icon` (Symbol vorn im Feld) – Login mit `user`/`lock`, Fokusring in Akzentfarbe, größere Felder.
+- Anmelde-Knopf mit Verlauf + Schatten, Ladekreisel beim Anmelden, Fehler mit Symbol, Hinweiszeile „Anmeldung mit dem zentralen Nexus-Konto“. Handy: kleinere Innenabstände.
+- **Zwischenfall:** erster Build lief bei Serverlast ~37 (parallele Builds anderer Apps) in das 580-s-Zeitlimit → `.next` unvollständig, Nexus ca. 15 Min. nicht erreichbar. Neu gebaut ohne Zeitlimit, `/login` + `/scan` 200. **Lehre: Build nie mit `timeout` abbrechen – im Hintergrund ohne Limit laufen lassen.**
