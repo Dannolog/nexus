@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { setSession } from "@/lib/clientApi";
 import AppLogo from "@/components/AppLogo";
 import Icon from "@/components/Icon";
@@ -7,7 +7,15 @@ import TextField from "@/components/TextField";
 import LoginHintergrund from "./LoginHintergrund";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("admin@nexus.local");
+  // Leer starten, damit der graue Platzhalter sichtbar ist – die zuletzt benutzte
+  // E-Mail wird (nur in diesem Browser) gemerkt und wieder eingesetzt.
+  const [email, setEmail] = useState("");
+  useEffect(() => {
+    try {
+      const letzte = localStorage.getItem("nexus-letzte-email");
+      if (letzte) { setEmail(letzte); setTimeout(() => passwortRef.current?.focus(), 0); }
+    } catch { /* Speicher gesperrt – egal */ }
+  }, []);
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -25,6 +33,7 @@ export default function LoginPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Login fehlgeschlagen");
       setSession(data.token, data.identity);
+      try { localStorage.setItem("nexus-letzte-email", email.trim()); } catch { /* egal */ }
       // Nach abgelaufener Sitzung zurück auf die Seite, auf der gearbeitet wurde –
       // dort werden gesicherte Entwürfe wieder angeboten.
       const weiter = new URLSearchParams(window.location.search).get("weiter");
@@ -77,7 +86,16 @@ export default function LoginPage() {
         .login-feld { display: grid; gap: 8px; font-size: 13.5px; font-weight: 600; color: color-mix(in srgb, var(--fg) 80%, transparent); }
         .login-feld .input { padding-top: 13px; padding-bottom: 13px; border-radius: 12px; font-size: 15.5px;
           background: color-mix(in srgb, var(--bg) 70%, transparent); transition: border-color .15s, box-shadow .15s; }
+        .login-feld .input { caret-color: var(--accent); color: var(--fg); }
+        .login-feld .input::placeholder { color: var(--muted); opacity: .75; transition: opacity .15s; }
+        .login-feld .input:focus::placeholder { opacity: .4; }
         .login-feld .input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); outline: none; }
+        .login-feld .textfeld-icon { color: var(--muted) !important; transition: color .15s, opacity .15s; }
+        .login-feld:focus-within .textfeld-icon { color: var(--accent) !important; opacity: 1 !important; }
+        .login-feld:focus-within { color: var(--fg); }
+        /* Autofill des Browsers: eigene Farben behalten, Cursor bleibt in Akzentfarbe */
+        .login-feld .input:-webkit-autofill { -webkit-text-fill-color: var(--fg); caret-color: var(--accent);
+          -webkit-box-shadow: 0 0 0 1000px var(--card) inset; transition: background-color 9999s; }
         .login-knopf {
           border: 0; border-radius: 12px; padding: 14px 16px; margin-top: 6px; cursor: pointer;
           display: flex; align-items: center; justify-content: center; gap: 10px;
