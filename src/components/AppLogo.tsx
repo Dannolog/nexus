@@ -1,10 +1,10 @@
 "use client";
 
-/** Nexus-App-Symbol (Netzwerk-/Knoten-Logo). Größe über `size`. */
-export default function AppLogo({ size = 28 }: { size?: number }) {
+/** Nexus-App-Symbol (Netzwerk-/Knoten-Logo). Größe über `size`; `nurZeichen` ohne blaue Fläche (für eigene Hintergründe). */
+export default function AppLogo({ size = 28, nurZeichen }: { size?: number; nurZeichen?: boolean }) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden style={{ flexShrink: 0 }}>
-      <rect width="64" height="64" rx="14" fill="#3b82f6" />
+      {!nurZeichen && <rect width="64" height="64" rx="14" fill="#3b82f6" />}
       <g stroke="#ffffff" strokeWidth="3" strokeLinecap="round">
         <line x1="32" y1="32" x2="18" y2="16" />
         <line x1="32" y1="32" x2="48" y2="18" />

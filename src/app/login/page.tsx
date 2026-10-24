@@ -60,83 +60,83 @@ export default function LoginPage() {
       }}
     >
       <style>{`
-        .login-karte { padding: 32px; width: 380px; }
+        .login-karte {
+          position: relative; z-index: 1; width: 420px; max-width: 100%; padding: 40px 40px 28px;
+          display: grid; gap: 18px; border-radius: 24px;
+          background: color-mix(in srgb, var(--card) 86%, transparent);
+          border: 1px solid color-mix(in srgb, var(--fg) 10%, transparent);
+          box-shadow: 0 30px 80px rgba(0,0,0,.35), 0 0 0 1px rgba(255,255,255,.02) inset;
+          backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2);
+          animation: loginEin .5s cubic-bezier(.2,.8,.2,1) both;
+        }
+        .login-badge {
+          width: 72px; height: 72px; border-radius: 20px; display: grid; place-items: center;
+          background: linear-gradient(135deg, #3b82f6, #6366f1);
+          box-shadow: 0 10px 30px color-mix(in srgb, #4f6cf5 55%, transparent), 0 0 0 6px color-mix(in srgb, #4f6cf5 10%, transparent);
+        }
+        .login-feld { display: grid; gap: 8px; font-size: 13.5px; font-weight: 600; color: color-mix(in srgb, var(--fg) 80%, transparent); }
+        .login-feld .input { padding-top: 13px; padding-bottom: 13px; border-radius: 12px; font-size: 15.5px;
+          background: color-mix(in srgb, var(--bg) 70%, transparent); transition: border-color .15s, box-shadow .15s; }
+        .login-feld .input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); outline: none; }
+        .login-knopf {
+          border: 0; border-radius: 12px; padding: 14px 16px; margin-top: 6px; cursor: pointer;
+          display: flex; align-items: center; justify-content: center; gap: 10px;
+          font-size: 16px; font-weight: 700; color: #fff;
+          background: linear-gradient(90deg, #3b82f6, #6366f1);
+          box-shadow: 0 10px 28px color-mix(in srgb, #4f6cf5 40%, transparent);
+          transition: transform .12s, box-shadow .15s, filter .15s;
+        }
+        .login-knopf:hover:not(:disabled) { filter: brightness(1.08); box-shadow: 0 14px 34px color-mix(in srgb, #4f6cf5 50%, transparent); }
+        .login-knopf:active:not(:disabled) { transform: translateY(1px); }
+        .login-knopf:disabled { opacity: .7; cursor: wait; }
+        .login-dreh { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; animation: loginDreh .8s linear infinite; }
+        @keyframes loginDreh { to { transform: rotate(360deg); } }
+        @keyframes loginEin { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
+        @media (prefers-reduced-motion: reduce) { .login-karte { animation: none; } }
         @media (max-width: 480px) {
-          .login-karte { padding: 24px 18px; width: 100%; border-radius: 18px; }
-          .login-karte h1 { font-size: 22px !important; }
+          .login-karte { padding: 30px 20px 22px; border-radius: 22px; }
+          .login-badge { width: 64px; height: 64px; border-radius: 18px; }
+          .login-karte h1 { font-size: 26px !important; }
         }
       `}</style>
       <LoginHintergrund />
-      <form
-        onSubmit={submit}
-        className="card login-karte"
-        style={{
-          position: "relative",
-          zIndex: 1,
-          maxWidth: "100%",
-          display: "grid",
-          gap: 16,
-          boxShadow: "0 12px 40px rgba(0,0,0,0.10)",
-          background: "color-mix(in srgb, var(--card) 92%, transparent)",
-          backdropFilter: "blur(6px)",
-          WebkitBackdropFilter: "blur(6px)",
-        }}
-      >
-        <div style={{ display: "grid", justifyItems: "center", gap: 10, marginBottom: 4 }}>
-          <div
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: 16,
-              display: "grid",
-              placeItems: "center",
-              background: "color-mix(in srgb, var(--accent) 14%, transparent)",
-            }}
-          >
-            <AppLogo size={34} />
-          </div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, lineHeight: 1 }}>Nexus</h1>
-          <p className="muted" style={{ fontSize: 13, textAlign: "center" }}>
-            Zentrale Stammdaten-Anmeldung
+      <form onSubmit={submit} className="login-karte">
+        <div style={{ display: "grid", justifyItems: "center", gap: 12, marginBottom: 6 }}>
+          <div className="login-badge"><AppLogo size={46} nurZeichen /></div>
+          <h1 style={{ fontSize: 30, fontWeight: 800, lineHeight: 1.1, letterSpacing: "-0.01em", marginTop: 6 }}>Nexus</h1>
+          <p className="muted" style={{ fontSize: 14, textAlign: "center" }}>
+            Zentrale Stammdaten · <b style={{ color: "var(--fg)", fontWeight: 600 }}>ein Konto für alle Apps</b>
           </p>
         </div>
 
-        <label style={{ fontSize: 13, fontWeight: 500, display: "grid", gap: 6 }}>
+        <label className="login-feld">
           E-Mail
-          <TextField type="email" value={email} onChange={setEmail} autoComplete="username" placeholder="name@firma.de"
-            autoFocus enterKeyHint="next" onKeyDown={weiterZumPasswort}
-            inputStyle={{ paddingTop: 11, paddingBottom: 11 }} />
+          <TextField type="email" value={email} onChange={setEmail} autoComplete="username" placeholder="name@bgroup.de"
+            icon="user" autoFocus enterKeyHint="next" onKeyDown={weiterZumPasswort} />
         </label>
-        <label style={{ fontSize: 13, fontWeight: 500, display: "grid", gap: 6 }}>
+        <label className="login-feld">
           Passwort
           <TextField type="password" value={password} onChange={setPassword} autoComplete="current-password" placeholder="••••••••"
-            inputRef={passwortRef} enterKeyHint="go"
-            inputStyle={{ paddingTop: 11, paddingBottom: 11 }} />
+            icon="lock" inputRef={passwortRef} enterKeyHint="go" />
         </label>
 
         {err && (
-          <div
-            style={{
-              color: "#ef4444",
-              fontSize: 13,
-              background: "rgba(239,68,68,0.10)",
-              border: "1px solid rgba(239,68,68,0.30)",
-              borderRadius: 8,
-              padding: "8px 10px",
-            }}
-          >
-            {err}
+          <div role="alert" style={{
+            color: "#ef4444", fontSize: 13.5, background: "rgba(239,68,68,0.10)",
+            border: "1px solid rgba(239,68,68,0.30)", borderRadius: 12, padding: "10px 12px",
+            display: "flex", gap: 8, alignItems: "center",
+          }}>
+            <Icon name="alert" size={16} /> {err}
           </div>
         )}
 
-        <button
-          className="btn btn-primary"
-          disabled={busy}
-          type="submit"
-          style={{ justifyContent: "center", padding: "11px 16px", marginTop: 4 }}
-        >
-          {busy ? "…" : <><Icon name="login" /> Anmelden</>}
+        <button className="login-knopf" disabled={busy} type="submit">
+          {busy ? <><span className="login-dreh" /> Anmelden…</> : <><Icon name="login" size={18} /> Anmelden</>}
         </button>
+
+        <p className="muted" style={{ fontSize: 12.5, textAlign: "center", marginTop: 2 }}>
+          Anmeldung mit dem zentralen Nexus-Konto
+        </p>
       </form>
     </main>
   );

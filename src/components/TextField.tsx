@@ -28,6 +28,7 @@ export default function TextField({
   name,
   id,
   kopieren,
+  icon,
 }: {
   value: string | number | null | undefined;
   onChange: (v: string) => void;
@@ -48,6 +49,8 @@ export default function TextField({
   id?: string;
   /** Kopier-Knopf neben dem Kreuz anzeigen (nie bei Passwörtern). */
   kopieren?: boolean;
+  /** Symbol vorn im Feld (z. B. "user", "lock"). */
+  icon?: string;
 }) {
   const [showPw, setShowPw] = useState(false);
   const [kopiert, setKopiert] = useState(false);
@@ -66,6 +69,11 @@ export default function TextField({
 
   return (
     <div style={{ position: "relative", ...style }}>
+      {icon && (
+        <span className="textfeld-icon" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", display: "flex", pointerEvents: "none", color: "var(--accent)", opacity: 0.85 }}>
+          <Icon name={icon} size={16} />
+        </span>
+      )}
       <input
         ref={inputRef}
         className="input"
@@ -78,7 +86,7 @@ export default function TextField({
         autoFocus={autoFocus}
         name={name}
         id={id}
-        style={{ paddingRight: controls ? 8 + controls * 26 : undefined, ...inputStyle }}
+        style={{ paddingRight: controls ? 8 + controls * 26 : undefined, paddingLeft: icon ? 38 : undefined, ...inputStyle }}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Escape") {
