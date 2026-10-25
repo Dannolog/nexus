@@ -7,6 +7,7 @@ import AppLogo from "@/components/AppLogo";
 import Icon from "@/components/Icon";
 import CommandPalette from "@/components/CommandPalette";
 import SitzungsWaechter from "@/components/SitzungsWaechter";
+import NavLoader from "@/components/NavLoader";
 
 const NAV = [
   { href: "/", label: "Übersicht", icon: "home" },
@@ -209,6 +210,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <main className="main">{children}</main>
       <CommandPalette />
       <SitzungsWaechter />
+      <NavLoader />
     </div>
   );
 }
