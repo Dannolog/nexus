@@ -1116,3 +1116,9 @@
 - Anmelde-Knopf mit Verlauf + Schatten, Ladekreisel beim Anmelden, Fehler mit Symbol, Hinweiszeile „Anmeldung mit dem zentralen Nexus-Konto“. Handy: kleinere Innenabstände.
 - **Zwischenfall:** erster Build lief bei Serverlast ~37 (parallele Builds anderer Apps) in das 580-s-Zeitlimit → `.next` unvollständig, Nexus ca. 15 Min. nicht erreichbar. Neu gebaut ohne Zeitlimit, `/login` + `/scan` 200. **Lehre: Build nie mit `timeout` abbrechen – im Hintergrund ohne Limit laufen lassen.**
 - 2026-10-24 (Nachtrag): Login-Felder – Platzhalter grau (`--muted`), bei Fokus blasser; Cursor (`caret-color`) in Akzentfarbe; Feld-Symbol grau, bei Fokus Akzentfarbe; Browser-Autofill behält Farben. E-Mail startet leer, zuletzt benutzte E-Mail wird in localStorage (`nexus-letzte-email`) gemerkt und dann gleich das Passwortfeld fokussiert. Build im Hintergrund ✓, `/login` 200.
+
+## 2026-10-25 – Login mobil + Benutzer speichern
+- Login: Spalte `minmax(0,1fr)`, Karte `width:100%; max-width:420px`, Seitenabstand max(16px, safe-area) – Karte ragt nicht mehr über den Rand.
+- Zugänge (identities): Speichern mit Kreisel „Speichert…“, Knöpfe gesperrt, Fehler im Fenster statt dahinter, grüne Erfolgsleiste.
+- Versionskonflikt (Abgleich erhöht Version während Dialog offen) → automatisch mit aktueller Version erneut senden.
+- clientApi: ConflictError trägt bei fachlichem 409 (ohne current) die Servermeldung (z. B. „E-Mail bereits vergeben“).
