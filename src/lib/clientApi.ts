@@ -47,8 +47,9 @@ export function tokenLaeuftAb(): number {
 
 export class ConflictError extends Error {
   current: any;
-  constructor(current: any) {
-    super("Versionskonflikt");
+  constructor(current: any, meldung?: string) {
+    // Ohne „current“ ist es ein fachlicher Konflikt (z. B. E-Mail vergeben) – dann die Servermeldung zeigen.
+    super(meldung || "Versionskonflikt");
     this.current = current;
   }
 }
@@ -69,7 +70,7 @@ export async function api(path: string, opts: RequestInit = {}) {
     throw new SitzungAbgelaufenError();
   }
   const data = await res.json().catch(() => ({}));
-  if (res.status === 409) throw new ConflictError(data.current);
+  if (res.status === 409) throw new ConflictError(data.current, data.current ? undefined : data.error);
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
   return data;
 }

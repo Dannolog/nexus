@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
-import { api } from "@/lib/clientApi";
+import { api, ConflictError } from "@/lib/clientApi";
 import Toggle from "@/components/Toggle";
 import Icon from "@/components/Icon";
 import { kopiere, erzeugePasswort } from "@/lib/kopieren";
@@ -58,6 +58,10 @@ export default function IdentitiesPage() {
   const [neueMail, setNeueMail] = useState("");
   const [neuesLabel, setNeuesLabel] = useState("");
   const [laeuft, setLaeuft] = useState(false);
+  // Speichern: läuft gerade / Fehler im Fenster / kurze Erfolgsmeldung unten
+  const [speichert, setSpeichert] = useState(false);
+  const [dialogFehler, setDialogFehler] = useState("");
+  const [gespeichert, setGespeichert] = useState("");
 
   /**
    * Hinterlegtes Anmeldepasswort holen und anzeigen (nur globale Admins; jeder Abruf
@@ -119,6 +123,7 @@ export default function IdentitiesPage() {
     setMails(r.emails || []);
     setNeueMail("");
     setNeuesLabel("");
+    setDialogFehler("");
     setEditing({ id: r.id, email: r.email, name: r.name, password: "", globalRole: r.globalRole, version: r.version, access });
   }
 
@@ -171,21 +176,36 @@ export default function IdentitiesPage() {
   }
 
   async function save() {
-    if (!editing) return;
+    if (!editing || speichert) return;
     const appAccess = Object.values(editing.access);
     const payload: any = { email: editing.email, name: editing.name, globalRole: editing.globalRole, appAccess };
     if (editing.password) payload.password = editing.password;
+    setSpeichert(true);
+    setDialogFehler("");
     try {
       if (editing.id) {
-        payload.expectedVersion = editing.version;
-        await api(`/api/identities/${editing.id}`, { method: "PATCH", body: JSON.stringify(payload) });
+        const patch = (version?: number) =>
+          api(`/api/identities/${editing.id}`, { method: "PATCH", body: JSON.stringify({ ...payload, expectedVersion: version }) });
+        try {
+          await patch(editing.version);
+        } catch (e) {
+          // Zwischenzeitlich hat der Abgleich (clocker, Mail-Kaskade, …) den Zugang angefasst und die
+          // Version erhöht. Die Felder hier sind die eben bearbeiteten → mit aktueller Version erneut senden.
+          if (e instanceof ConflictError && e.current?.version != null) await patch(e.current.version);
+          else throw e;
+        }
       } else {
         await api("/api/identities", { method: "POST", body: JSON.stringify(payload) });
       }
-      setMsg("Gespeichert.");
+      setGespeichert(`${editing.name || editing.email} gespeichert`);
+      setTimeout(() => setGespeichert(""), 3000);
       setEditing(null);
       load();
-    } catch (e: any) { setMsg("Fehler: " + e.message); }
+    } catch (e: any) {
+      setDialogFehler(e.message || "Speichern fehlgeschlagen");
+    } finally {
+      setSpeichert(false);
+    }
   }
 
   // Suche über Name, E-Mail, Rolle, Herkunft und freigeschaltete Apps.
@@ -590,11 +610,30 @@ export default function IdentitiesPage() {
               })}
             </div>
             </div>
-            <div style={{ padding: "14px 24px", borderTop: "1px solid var(--border)", flexShrink: 0, display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button className="btn" onClick={() => setEditing(null)}><Icon name="x" /> Abbrechen</button>
-              <button className="btn btn-primary" onClick={save}><Icon name="save" /> Speichern</button>
+            <div style={{ padding: "14px 24px", borderTop: "1px solid var(--border)", flexShrink: 0, display: "grid", gap: 10 }}>
+              {dialogFehler && (
+                <div role="alert" style={{
+                  color: "#ef4444", fontSize: 13.5, background: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.30)",
+                  borderRadius: 10, padding: "8px 12px", display: "flex", gap: 8, alignItems: "center",
+                }}>
+                  <Icon name="alert" size={16} /> <span style={{ flex: 1 }}>{dialogFehler}</span>
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                <button className="btn" onClick={() => setEditing(null)} disabled={speichert}><Icon name="x" /> Abbrechen</button>
+                <button className="btn btn-primary" onClick={save} disabled={speichert} aria-busy={speichert}>
+                  {speichert
+                    ? <><span className="speichern-dreh" /> Speichert…</>
+                    : <><Icon name="save" /> Speichern</>}
+                </button>
+              </div>
             </div>
           </div>
+        </div>
+      )}
+      {gespeichert && (
+        <div className="update-leiste" role="status" style={{ background: "#16a34a" }}>
+          <Icon name="check" size={16} /> {gespeichert}
         </div>
       )}
     </div>

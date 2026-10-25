@@ -439,3 +439,9 @@ mark.treffer {
   }
   .dm-fenster > :last-child .btn { flex: 1; min-height: 46px; font-size: 15px; justify-content: center; }
 }
+
+/* Ladekreisel im Speichern-Knopf */
+.speichern-dreh {
+  width: 14px; height: 14px; border-radius: 50%; display: inline-block; flex-shrink: 0;
+  border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; animation: pe-spin .8s linear infinite;
+}

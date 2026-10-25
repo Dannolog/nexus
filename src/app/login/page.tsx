@@ -58,11 +58,14 @@ export default function LoginPage() {
       className="login-seite"
       style={{
         display: "grid",
+        // minmax(0,1fr): die Spalte darf nie breiter als der Bildschirm werden –
+        // sonst schiebt die Mindestbreite der Felder die Karte an den Rand.
+        gridTemplateColumns: "minmax(0, 1fr)",
         placeItems: "center",
         minHeight: "100dvh",
         position: "relative",
         overflow: "hidden",
-        padding: "max(24px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom))",
+        padding: "max(24px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left))",
         background:
           "radial-gradient(900px 500px at 50% -5%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%), " +
           "radial-gradient(700px 420px at 100% 110%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 70%), var(--bg)",
@@ -70,7 +73,7 @@ export default function LoginPage() {
     >
       <style>{`
         .login-karte {
-          position: relative; z-index: 1; width: 420px; max-width: 100%; padding: 40px 40px 28px;
+          position: relative; z-index: 1; width: 100%; max-width: 420px; min-width: 0; box-sizing: border-box; padding: 40px 40px 28px;
           display: grid; gap: 18px; border-radius: 24px;
           background: color-mix(in srgb, var(--card) 86%, transparent);
           border: 1px solid color-mix(in srgb, var(--fg) 10%, transparent);
@@ -83,7 +86,7 @@ export default function LoginPage() {
           background: linear-gradient(135deg, #3b82f6, #6366f1);
           box-shadow: 0 10px 30px color-mix(in srgb, #4f6cf5 55%, transparent), 0 0 0 6px color-mix(in srgb, #4f6cf5 10%, transparent);
         }
-        .login-feld { display: grid; gap: 8px; font-size: 13.5px; font-weight: 600; color: color-mix(in srgb, var(--fg) 80%, transparent); }
+        .login-feld { display: grid; gap: 8px; min-width: 0; font-size: 13.5px; font-weight: 600; color: color-mix(in srgb, var(--fg) 80%, transparent); }
         .login-feld .input { padding-top: 13px; padding-bottom: 13px; border-radius: 12px; font-size: 15.5px;
           background: color-mix(in srgb, var(--bg) 70%, transparent); transition: border-color .15s, box-shadow .15s; }
         .login-feld .input { caret-color: var(--accent); color: var(--fg); }
@@ -112,7 +115,8 @@ export default function LoginPage() {
         @keyframes loginEin { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
         @media (prefers-reduced-motion: reduce) { .login-karte { animation: none; } }
         @media (max-width: 480px) {
-          .login-karte { padding: 30px 20px 22px; border-radius: 22px; }
+          .login-karte { padding: 28px 18px 20px; border-radius: 20px; }
+          .login-karte p { font-size: 13px !important; }
           .login-badge { width: 64px; height: 64px; border-radius: 18px; }
           .login-karte h1 { font-size: 26px !important; }
         }
