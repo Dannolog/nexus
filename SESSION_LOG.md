@@ -1122,3 +1122,7 @@
 - Zugänge (identities): Speichern mit Kreisel „Speichert…“, Knöpfe gesperrt, Fehler im Fenster statt dahinter, grüne Erfolgsleiste.
 - Versionskonflikt (Abgleich erhöht Version während Dialog offen) → automatisch mit aktueller Version erneut senden.
 - clientApi: ConflictError trägt bei fachlichem 409 (ohne current) die Servermeldung (z. B. „E-Mail bereits vergeben“).
+
+## 2026-10-25 – Lade-Animation beim Seitenwechsel
+- Neu `src/components/NavLoader.tsx` (Register web.nav-loader, Vorlage clocker): Klick auf internen Link → nach 150 ms Nexus-Knoten-Animation mittig + Laufbalken, bleibt bis Seite UND /api-GETs fertig (200 ms Ruhe), weiches Ausblenden, Notbremse 20 s.
+- fetch-Hülle zählt GETs auf /api/ (ohne version/events/auth). CSS `.nl-*` in globals.css. Eingebunden im (app)-Layout.
