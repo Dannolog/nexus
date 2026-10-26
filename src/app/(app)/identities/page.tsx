@@ -11,8 +11,8 @@ import SuchSelect from "@/components/SuchSelect";
 import { useLive } from "@/lib/live";
 
 const APPS = ["kontor", "clocker", "cnc", "schaltplan", "xcat", "projecteye", "vision"];
-/** Anzeigenamen (appKey bleibt technisch gleich: „schaltplan“ = xDRAW, „xcat“ = xCAT/BlattWerk). */
-const APP_NAME: Record<string, string> = { schaltplan: "xDRAW", xcat: "xCAT", projecteye: "ProjectEye" };
+/** Anzeigenamen (appKey bleibt technisch gleich: „cnc“ = xCAM, „schaltplan“ = xDRAW, „xcat“ = xCAT/BlattWerk). */
+const APP_NAME: Record<string, string> = { cnc: "xCAM", schaltplan: "xDRAW", xcat: "xCAT", projecteye: "ProjectEye" };
 const appName = (k: string) => APP_NAME[k] ?? k;
 
 type Access = { appKey: string; allowed: boolean; role: string };
@@ -21,6 +21,8 @@ type Access = { appKey: string; allowed: boolean; role: string };
 const APP_ROLLEN: Record<string, { value: string; label: string }[]> = {
   // clocker: Buchhaltung = alle Zeiten, Stundenzettel, Fahrten, Belege, Abrechnung; Stammdaten nur lesen
   clocker: [{ value: "buchhaltung", label: "buchhaltung" }],
+  // xCAM (cnc): dreher = bearbeiten ohne Löschen, viewer = nur lesen
+  cnc: [{ value: "dreher", label: "dreher" }, { value: "viewer", label: "viewer" }],
 };
 type Form = {
   id?: string; email: string; name: string; password: string; globalRole: string; version?: number;
