@@ -1126,3 +1126,7 @@
 ## 2026-10-25 – Lade-Animation beim Seitenwechsel
 - Neu `src/components/NavLoader.tsx` (Register web.nav-loader, Vorlage clocker): Klick auf internen Link → nach 150 ms Nexus-Knoten-Animation mittig + Laufbalken, bleibt bis Seite UND /api-GETs fertig (200 ms Ruhe), weiches Ausblenden, Notbremse 20 s.
 - fetch-Hülle zählt GETs auf /api/ (ohne version/events/auth). CSS `.nl-*` in globals.css. Eingebunden im (app)-Layout.
+
+## 2026-10-26 – Freigaben xCAT/xDRAW
+- Userverwaltung: APPS um `xcat` ergänzt, Anzeigenamen (schaltplan = xDRAW, xcat = xCAT). auth.ts: `APP_KEY_XCAT` (Wert trägt Daniel in .env ein).
+- nachrichten.md + direkte Nachricht an Screen-Sessions xCAT und xDRAW_schaltplan: Login nur mit Nexus-appAccess, Projektfreigabe pro User (alle/Liste), ohne Freigabe keine Projekte, Bestand vorerst „alle“.
