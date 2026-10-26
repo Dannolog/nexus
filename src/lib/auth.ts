@@ -8,7 +8,8 @@ const APP_KEYS: Record<string, string | undefined> = {
   kontor: process.env.APP_KEY_KONTOR,
   clocker: process.env.APP_KEY_CLOCKER,
   cnc: process.env.APP_KEY_CNC,
-  schaltplan: process.env.APP_KEY_SCHALTPLAN,
+  schaltplan: process.env.APP_KEY_SCHALTPLAN, // xDRAW
+  xcat: process.env.APP_KEY_XCAT, // xCAT (BlattWerk)
   projecteye: process.env.APP_KEY_PROJECTEYE,
   vision: process.env.APP_KEY_VISION,
   // "nexus" = die eigene UI (kein Key nötig, wird intern gesetzt)

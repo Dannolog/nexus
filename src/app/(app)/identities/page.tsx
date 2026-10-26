@@ -10,7 +10,10 @@ import TextField from "@/components/TextField";
 import SuchSelect from "@/components/SuchSelect";
 import { useLive } from "@/lib/live";
 
-const APPS = ["kontor", "clocker", "cnc", "schaltplan", "projecteye", "vision"];
+const APPS = ["kontor", "clocker", "cnc", "schaltplan", "xcat", "projecteye", "vision"];
+/** Anzeigenamen (appKey bleibt technisch gleich: „schaltplan“ = xDRAW, „xcat“ = xCAT/BlattWerk). */
+const APP_NAME: Record<string, string> = { schaltplan: "xDRAW", xcat: "xCAT", projecteye: "ProjectEye" };
+const appName = (k: string) => APP_NAME[k] ?? k;
 
 type Access = { appKey: string; allowed: boolean; role: string };
 
@@ -214,7 +217,7 @@ export default function IdentitiesPage() {
     const teile = sucheBegriffe(suche).map((t) => t.toLowerCase());
     if (teile.length === 0) return rows;
     return rows.filter((r: any) => {
-      const apps = (r.appAccess || []).filter((a: any) => a.allowed).map((a: any) => `${a.appKey} ${a.role}`).join(" ");
+      const apps = (r.appAccess || []).filter((a: any) => a.allowed).map((a: any) => `${a.appKey} ${appName(a.appKey)} ${a.role}`).join(" ");
       const text = [r.name, r.email, r.globalRole, r.origin, apps].map((f) => String(f || "")).join(" ").toLowerCase();
       return teile.every((t) => text.includes(t));
     });
@@ -288,7 +291,7 @@ export default function IdentitiesPage() {
                 </td>
                 <td style={{ padding: "10px 12px" }}><Hervorheben text={r.globalRole} suche={suche} /></td>
                 <td style={{ padding: "10px 12px", fontSize: 12 }}>
-                  {(r.appAccess || []).filter((a: any) => a.allowed).map((a: any) => `${a.appKey}:${a.role}`).join(", ") || "–"}
+                  {(r.appAccess || []).filter((a: any) => a.allowed).map((a: any) => `${appName(a.appKey)}:${a.role}`).join(", ") || "–"}
                 </td>
                 <td style={{ padding: "10px 12px", fontSize: 12.5, whiteSpace: "nowrap" }}>
                   {r.hatPasswort
@@ -336,7 +339,7 @@ export default function IdentitiesPage() {
               <span>Passwort: <b>{r.hatPasswort ? "hinterlegt" : "fehlt"}</b></span>
             </div>
             <div className="muted" style={{ fontSize: 12 }}>
-              Apps: {(r.appAccess || []).filter((a: any) => a.allowed).map((a: any) => `${a.appKey}:${a.role}`).join(", ") || "–"}
+              Apps: {(r.appAccess || []).filter((a: any) => a.allowed).map((a: any) => `${appName(a.appKey)}:${a.role}`).join(", ") || "–"}
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <button className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={() => passwortAnzeigen(r)}>
@@ -586,7 +589,7 @@ export default function IdentitiesPage() {
                 return (
                   <div key={a} className="app-freigabe" style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <div style={{ width: 140 }}>
-                      <Toggle checked={ac.allowed} label={a}
+                      <Toggle checked={ac.allowed} label={appName(a)}
                         onChange={(v) => setEditing({ ...editing, access: { ...editing.access, [a]: { ...ac, allowed: v } } })} />
                     </div>
                     <div style={{ maxWidth: 180, flex: 1 }}>
