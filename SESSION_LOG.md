@@ -1130,3 +1130,8 @@
 ## 2026-10-26 – Freigaben xCAT/xDRAW
 - Userverwaltung: APPS um `xcat` ergänzt, Anzeigenamen (schaltplan = xDRAW, xcat = xCAT). auth.ts: `APP_KEY_XCAT` (Wert trägt Daniel in .env ein).
 - nachrichten.md + direkte Nachricht an Screen-Sessions xCAT und xDRAW_schaltplan: Login nur mit Nexus-appAccess, Projektfreigabe pro User (alle/Liste), ohne Freigabe keine Projekte, Bestand vorerst „alle“.
+
+## 2026-10-26 – Logins xCAM/xCAT/xDRAW zentral
+- Nexus: cnc = „xCAM“ (Rollen dreher/viewer ergänzt), schaltplan = „xDRAW“, xcat = „xCAT“.
+- xCAT und xCAM: Login + Freigabe von ihren Sessions umgesetzt (siehe nachrichten.md).
+- xDRAW von hier umgesetzt: schaltplan/nexusauth.mjs, freigabe.mjs, server.mjs-Tor, NexusAnmeldung.jsx, FreigabeDialog.jsx, Startseite (Nutzer-Knopf, 🔒). Build aus HEAD + eigenen Dateien (offene Arbeit der xDRAW-Session nicht ausgeliefert), pm2 schaltplan neu gestartet, Commit 7091182. Bestand 20 Projekte = alle.
