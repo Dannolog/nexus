@@ -1135,3 +1135,10 @@
 - Nexus: cnc = „xCAM“ (Rollen dreher/viewer ergänzt), schaltplan = „xDRAW“, xcat = „xCAT“.
 - xCAT und xCAM: Login + Freigabe von ihren Sessions umgesetzt (siehe nachrichten.md).
 - xDRAW von hier umgesetzt: schaltplan/nexusauth.mjs, freigabe.mjs, server.mjs-Tor, NexusAnmeldung.jsx, FreigabeDialog.jsx, Startseite (Nutzer-Knopf, 🔒). Build aus HEAD + eigenen Dateien (offene Arbeit der xDRAW-Session nicht ausgeliefert), pm2 schaltplan neu gestartet, Commit 7091182. Bestand 20 Projekte = alle.
+
+## 2026-10-27 – System-ID für jeden Mitarbeiter
+- Ursache: 9 von 37 Mitarbeitern hatten keine verknüpfte Identität → in der Userverwaltung unsichtbar/nicht bearbeitbar.
+- Neu `src/lib/systemId.ts` (`systemIdSichern`): verknüpft vorhandene Identität (Rückbezug, Haupt- oder weitere Adresse) oder legt eine an (ohne App-Freigaben, Zufalls-Passwort-Hash). Fremd verknüpfte Identität wird nicht umgehängt.
+- revision.ts: createEntity/updateEntity (Employee) rufen sie in derselben Transaktion auf, mit Verlaufseintrag.
+- `prisma/system-ids.ts` (Nachtrag, nur Zahlen-Ausgabe) läuft im Abgleich nach clocker/kontor mit. Lauf: 9 geprüft, 3 angelegt, 6 per Rückbezug verknüpft, 0 offen.
+- Userverwaltung: System-ID im Bearbeiten-Dialog (Klick = kopieren).
