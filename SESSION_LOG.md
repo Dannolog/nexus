@@ -1149,3 +1149,10 @@
 - xDRAW angebunden (nexusauth.mjs qrStart/qrAbfragen, server.mjs auth/qr-start + auth/qr, NexusAnmeldung QrFeld), Commit f91bf7f; server.mjs-Teil liegt bei der offenen Arbeit der xDRAW-Session.
 - Register `auth.qr-login` (canonical nexus). Spezifikation in shared/sync/nachrichten.md, Sessions xCAT, xCAM, kontor, clocker, vision, ProjectEye per Screen informiert.
 - next.config: `staticPageGenerationTimeout: 600` – Build brach unter Serverlast (~60) beim Seiten-Sammeln ab und Nexus war kurz down. Build nur noch mit `&& test -f .next/BUILD_ID && pm2 restart`.
+
+## 2026-10-27 – Anmeldung ohne Passwort (Bestätigung auf angemeldetem Gerät)
+- Für Admins immer, für andere nur mit neuem Schalter `Identity.anmeldungBestaetigen` (db push; nur globale Admins dürfen ihn setzen; Userverwaltung-Dialog).
+- `POST /api/auth/qr/anfrage {email, app}` → {id,key,zahl,bis}; Antwort für jede Adresse gleich (ohne Berechtigung Platzhalter, läuft ab). Bremse 3/min je Adresse, 20/min je IP.
+- Zahlenabgleich: PC zeigt Zahl, Pop-up (`components/AnmeldeAnfragen.tsx` im (app)-Layout, fragt `/api/auth/qr/offen` alle 3 s) bietet 3 Zahlen + „Nein“. Falsche Zahl = abgelehnt. Freigabe nur durch die angefragte Identität.
+- Anmeldeseite: Knopf „Ohne Passwort – auf anderem Gerät bestätigen“ (`components/BestaetigungWarten.tsx`).
+- xDRAW: Server `auth/anfrage` + `NX.anfrage` (8a0f655); Oberfläche übernimmt die xDRAW-Session (baut NexusAnmeldung.jsx gerade um). Alle App-Sessions informiert (nachrichten.md).
