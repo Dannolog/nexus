@@ -8,7 +8,7 @@ import { holen, entscheiden, geraetVon, APP_NAMEN } from "@/lib/qrLogin";
 export const dynamic = "force-dynamic";
 
 /**
- * POST /api/auth/qr/:id/freigeben { ablehnen?: true } — das Handy gibt den PC frei (oder lehnt ab).
+ * POST /api/auth/qr/:id/freigeben { ablehnen?: true, zahl? } — das Handy gibt den PC frei (oder lehnt ab).
  * Der PC bekommt ein eigenes, frisch ausgestelltes Token – nie das Token des Handys.
  */
 export const POST = (req: NextRequest, { params }: { params: { id: string } }) =>
@@ -16,6 +16,12 @@ export const POST = (req: NextRequest, { params }: { params: { id: string } }) =
     const ctx = await requireAuth(req);
     const body = await req.json().catch(() => ({}));
     const s = holen(params.id);
+    // Anfrage per E-Mail: nur der angefragte Admin, und nur mit der richtigen Zahl
+    if (s.fuer && s.fuer !== ctx.identityId) throw new ApiError("Diese Anfrage gilt nicht für dein Konto.", 403);
+    if (s.fuer && !body.ablehnen && Number(body.zahl) !== s.zahl) {
+      entscheiden(params.id, null);
+      throw new ApiError("Falsche Zahl – die Anmeldung wurde abgelehnt. Bitte am Gerät neu anfragen.", 400);
+    }
     if (body.ablehnen) {
       entscheiden(params.id, null);
       return json({ ok: true, abgelehnt: true });

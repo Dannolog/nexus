@@ -287,6 +287,8 @@ model Identity {
   passwordEnc  String @default("") @db.Text
   name         String
   globalRole   String @default("user")
+  // Anmeldung ohne Passwort per Bestätigung auf einem angemeldeten Gerät (Admins dürfen es immer)
+  anmeldungBestaetigen Boolean @default(false)
   employeeId   String?
   appAccess    IdentityAppAccess[]
   emails       IdentityEmail[]                  // weitere Anmelde-Adressen

@@ -25,7 +25,7 @@ const APP_ROLLEN: Record<string, { value: string; label: string }[]> = {
   cnc: [{ value: "dreher", label: "dreher" }, { value: "viewer", label: "viewer" }],
 };
 type Form = {
-  id?: string; email: string; name: string; password: string; globalRole: string; version?: number;
+  id?: string; email: string; name: string; password: string; globalRole: string; anmeldungBestaetigen?: boolean; version?: number;
   access: Record<string, Access>;
 };
 
@@ -129,7 +129,7 @@ export default function IdentitiesPage() {
     setNeueMail("");
     setNeuesLabel("");
     setDialogFehler("");
-    setEditing({ id: r.id, email: r.email, name: r.name, password: "", globalRole: r.globalRole, version: r.version, access });
+    setEditing({ id: r.id, email: r.email, name: r.name, password: "", globalRole: r.globalRole, anmeldungBestaetigen: !!r.anmeldungBestaetigen, version: r.version, access });
   }
 
   /** Adressen des Zugangs neu holen (nach Hinzufügen, Tauschen, Entfernen). */
@@ -183,7 +183,7 @@ export default function IdentitiesPage() {
   async function save() {
     if (!editing || speichert) return;
     const appAccess = Object.values(editing.access);
-    const payload: any = { email: editing.email, name: editing.name, globalRole: editing.globalRole, appAccess };
+    const payload: any = { email: editing.email, name: editing.name, globalRole: editing.globalRole, anmeldungBestaetigen: !!editing.anmeldungBestaetigen, appAccess };
     if (editing.password) payload.password = editing.password;
     setSpeichert(true);
     setDialogFehler("");
@@ -583,6 +583,17 @@ export default function IdentitiesPage() {
                   />
                 </div>
               </label>
+            </div>
+            {/* Anmeldung ohne Passwort: Bestätigung auf einem angemeldeten Gerät (Register auth.qr-login) */}
+            <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 10, border: "1px solid var(--border)" }}>
+              <Toggle checked={editing.globalRole === "admin" || !!editing.anmeldungBestaetigen}
+                label="Anmeldung ohne Passwort (Bestätigung auf angemeldetem Gerät)"
+                onChange={(v: boolean) => editing.globalRole !== "admin" && setEditing({ ...editing, anmeldungBestaetigen: v })} />
+              <span className="muted" style={{ fontSize: 11.5, display: "block", marginTop: 4, lineHeight: 1.45 }}>
+                {editing.globalRole === "admin"
+                  ? "Für Admins immer erlaubt."
+                  : "Beim Anmelden nur die E-Mail eingeben – auf einem Gerät, auf dem der User schon angemeldet ist, erscheint eine Anfrage zum Bestätigen."}
+              </span>
             </div>
             <h3 style={{ fontSize: 14, fontWeight: 600, margin: "18px 0 8px" }}>App-Zulassung</h3>
             {editing.globalRole === "admin" && (

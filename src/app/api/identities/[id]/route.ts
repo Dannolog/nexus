@@ -22,7 +22,7 @@ export const GET = (req: NextRequest, { params }: { params: { id: string } }) =>
     return json(safe);
   });
 
-/** PATCH /api/identities/:id { name?, globalRole?, password?, expectedVersion?, appAccess?[] } → Revision */
+/** PATCH /api/identities/:id { name?, globalRole?, anmeldungBestaetigen?, password?, expectedVersion?, appAccess?[] } → Revision */
 export const PATCH = (req: NextRequest, { params }: { params: { id: string } }) =>
   handle(async () => {
     const ctx = await requireAuth(req);
@@ -50,6 +50,8 @@ export const PATCH = (req: NextRequest, { params }: { params: { id: string } }) 
           ...(neueMail ? { email: neueMail } : {}),
           ...(body.name != null ? { name: body.name } : {}),
           ...(body.globalRole != null ? { globalRole: body.globalRole } : {}),
+          // Anmeldung ohne Passwort freischalten darf nur ein globaler Admin
+          ...(typeof body.anmeldungBestaetigen === "boolean" && ctx.user.globalRole === "admin" ? { anmeldungBestaetigen: body.anmeldungBestaetigen } : {}),
           ...(passwordHash ? { passwordHash } : {}),
           ...(passwordEnc ? { passwordEnc } : {}),
           version: current.version + 1,

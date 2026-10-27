@@ -6,6 +6,7 @@ import Icon from "@/components/Icon";
 import TextField from "@/components/TextField";
 import LoginHintergrund from "./LoginHintergrund";
 import QrAnmeldung from "@/components/QrAnmeldung";
+import BestaetigungWarten from "@/components/BestaetigungWarten";
 
 export default function LoginPage() {
   // Leer starten, damit der graue Platzhalter sichtbar ist – die zuletzt benutzte
@@ -22,6 +23,8 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false);
   // Anmeldung per QR-Code (Handy gibt frei) – Register auth.qr-login
   const [qr, setQr] = useState(false);
+  // Anmeldung ohne Passwort: Bestätigung auf einem angemeldeten Gerät (Admins + freigegebene User)
+  const [bestaetigen, setBestaetigen] = useState(false);
 
   function weiterleiten() {
     // Nach abgelaufener Sitzung zurück auf die Seite, auf der gearbeitet wurde –
@@ -120,7 +123,8 @@ export default function LoginPage() {
         .login-wechsel { border: 1px solid color-mix(in srgb, var(--fg) 14%, transparent); background: transparent; color: var(--fg);
           border-radius: 12px; padding: 11px 14px; font-size: 14px; font-weight: 600; cursor: pointer;
           display: flex; align-items: center; justify-content: center; gap: 8px; transition: border-color .15s, background .15s; }
-        .login-wechsel:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+        .login-wechsel:disabled { opacity: .5; cursor: default; }
+        .login-wechsel:hover:not(:disabled) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
         .login-dreh { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; animation: loginDreh .8s linear infinite; }
         @keyframes loginDreh { to { transform: rotate(360deg); } }
         @keyframes loginEin { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
@@ -144,7 +148,12 @@ export default function LoginPage() {
 
         {qr ? (
           <QrAnmeldung onFrei={(token, identity) => { setSession(token, identity); weiterleiten(); }} />
-        ) : (<>
+        ) : bestaetigen ? (<>
+          <BestaetigungWarten email={email.trim()}
+            onFrei={(token, identity) => { setSession(token, identity); try { localStorage.setItem("nexus-letzte-email", email.trim()); } catch { /* egal */ } weiterleiten(); }}
+            onAbbruch={(m) => { setBestaetigen(false); if (m) setErr(m); }} />
+          <button type="button" className="login-wechsel" onClick={() => setBestaetigen(false)}><Icon name="x" size={16} /> Abbrechen</button>
+        </>) : (<>
         <label className="login-feld">
           E-Mail
           <TextField type="email" value={email} onChange={setEmail} autoComplete="username" placeholder="name@bgroup.de"
@@ -168,6 +177,11 @@ export default function LoginPage() {
 
         <button className="login-knopf" disabled={busy} type="submit">
           {busy ? <><span className="login-dreh" /> Anmelden…</> : <><Icon name="login" size={18} /> Anmelden</>}
+        </button>
+        <button type="button" className="login-wechsel" disabled={!/^\S+@\S+\.\S+$/.test(email.trim())}
+          title="E-Mail eingeben, dann auf einem angemeldeten Gerät bestätigen"
+          onClick={() => { setErr(""); setBestaetigen(true); }}>
+          <Icon name="shield" size={16} /> Ohne Passwort – auf anderem Gerät bestätigen
         </button>
 
         </>)}

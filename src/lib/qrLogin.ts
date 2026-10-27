@@ -29,12 +29,15 @@ export const APP_NAMEN: Record<string, string> = {
 type Offen = {
   key: string; app: string; bis: number; ip: string; ua: string;
   frei: { token: string; identity: any } | null; abgelehnt: boolean;
+  // Anmelde-Anfrage per E-Mail (nur Admins): nur diese Identität darf bestätigen, mit Zahlenabgleich
+  fuer?: string; zahl?: number; auswahl?: number[];
 };
 
 // Über Hot-Reload und alle Routen hinweg derselbe Speicher
 const g = globalThis as any;
 const offen: Map<string, Offen> = g.__nexusQrOffen || (g.__nexusQrOffen = new Map());
 const proIp: Map<string, number[]> = g.__nexusQrIp || (g.__nexusQrIp = new Map());
+const proMail: Map<string, number[]> = g.__nexusQrMail || (g.__nexusQrMail = new Map());
 
 const zufall = (n: number) => crypto.randomBytes(n).toString("base64url");
 const gleich = (a: string, b: string) => {
@@ -107,4 +110,37 @@ export function basisPruefen(roh: unknown, req: NextRequest) {
   const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "localhost:3050";
   const proto = req.headers.get("x-forwarded-proto") || "http";
   return `${proto}://${host}`;
+}
+
+/**
+ * Anmelde-Anfrage per E-Mail (ohne Passwort, **Admins + ausdrücklich freigegebene User**): Auf jeder Seite, auf der der Admin
+ * angemeldet ist, erscheint „Ein Gerät möchte sich anmelden“. Gegen versehentliches/erzwungenes
+ * Bestätigen zeigt der PC eine Zahl, die im Hinweis unter drei Zahlen angetippt werden muss.
+ * Antwort ist für jede Adresse gleich (verrät nicht, ob es das Konto gibt oder ob es ein Admin ist).
+ */
+export function anfragen(opt: { app: string; ip: string; ua: string; fuer: string | null; mail: string }) {
+  aufraeumen();
+  const nun = Date.now();
+  const l = (proIp.get(opt.ip) || []).filter((t) => t > nun - 60000);
+  const m = (proMail.get(opt.mail) || []).filter((t) => t > nun - 60000);
+  if (l.length >= 20 || m.length >= 3 || offen.size >= MAX_OFFEN) throw new ApiError("Zu viele Anfragen – bitte kurz warten.", 429);
+  l.push(nun); proIp.set(opt.ip, l); m.push(nun); proMail.set(opt.mail, m);
+  const id = zufall(18), key = zufall(24);
+  const zahl = 10 + crypto.randomInt(90);
+  const auswahl = new Set([zahl]);
+  while (auswahl.size < 3) auswahl.add(10 + crypto.randomInt(90));
+  offen.set(id, {
+    key, app: opt.app, bis: nun + GUELTIG_MS, ip: opt.ip, ua: opt.ua.slice(0, 300), frei: null, abgelehnt: false,
+    // Kein (Admin-)Konto → Platzhalter, den niemand bestätigen kann; läuft einfach ab
+    fuer: opt.fuer || "-", zahl, auswahl: [...auswahl].sort(() => crypto.randomInt(3) - 1),
+  });
+  return { id, key, zahl, bis: nun + GUELTIG_MS, gueltigSek: GUELTIG_MS / 1000 };
+}
+
+/** Offene Anfragen an diese Identität (für den Hinweis auf angemeldeten Seiten). */
+export function offeneFuer(identityId: string) {
+  const nun = Date.now();
+  return [...offen.entries()]
+    .filter(([, s]) => s.fuer === identityId && !s.frei && !s.abgelehnt && s.bis > nun)
+    .map(([id, s]) => ({ id, app: s.app, appName: APP_NAMEN[s.app] || s.app, geraet: geraetVon(s.ua), ip: s.ip, auswahl: s.auswahl, restSek: Math.ceil((s.bis - nun) / 1000) }));
 }
