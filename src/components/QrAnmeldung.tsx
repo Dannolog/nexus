@@ -52,7 +52,7 @@ export default function QrAnmeldung({ app = "nexus", onFrei }: { app?: string; o
       </div>
       {fertig ? <div style={{ fontWeight: 700 }}>Freigegeben – melde an …</div> : (
         <>
-          <ol className="muted" style={{ fontSize: 13.5, lineHeight: 1.6, margin: 0, paddingLeft: 20, maxWidth: 300 }}>
+          <ol className="muted" style={{ fontSize: 13.5, lineHeight: 1.6, margin: 0, paddingLeft: 20, maxWidth: 300, listStyle: "decimal" }}>
             <li>Mit dem Handy die Kamera auf den Code halten</li>
             <li>Am Handy in Nexus angemeldet sein</li>
             <li><b style={{ color: "var(--fg)" }}>Freigeben</b> tippen</li>

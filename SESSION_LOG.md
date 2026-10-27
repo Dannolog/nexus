@@ -1142,3 +1142,10 @@
 - revision.ts: createEntity/updateEntity (Employee) rufen sie in derselben Transaktion auf, mit Verlaufseintrag.
 - `prisma/system-ids.ts` (Nachtrag, nur Zahlen-Ausgabe) läuft im Abgleich nach clocker/kontor mit. Lauf: 9 geprüft, 3 angelegt, 6 per Rückbezug verknüpft, 0 offen.
 - Userverwaltung: System-ID im Bearbeiten-Dialog (Klick = kopieren).
+
+## 2026-10-27 – QR-Code-Anmeldung zentral (alle Apps)
+- Kern `src/lib/qrLogin.ts` + Routen `/api/auth/qr/start`, `/api/auth/qr/[id]` (Abfrage), `/[id]/info`, `/[id]/freigeben` (Handy, Nexus-Anmeldung; prüft appAccess, stellt eigenes PC-Token aus). Speicher im Prozess (globalThis), Code 2 min, Bremse 20/min je IP.
+- Handy-Seite `src/app/qr/[id]/page.tsx` (ohne Anmeldung → /login?weiter=). Anmeldeseite: Umschalter „Mit dem Handy anmelden“ (`components/QrAnmeldung.tsx`).
+- xDRAW angebunden (nexusauth.mjs qrStart/qrAbfragen, server.mjs auth/qr-start + auth/qr, NexusAnmeldung QrFeld), Commit f91bf7f; server.mjs-Teil liegt bei der offenen Arbeit der xDRAW-Session.
+- Register `auth.qr-login` (canonical nexus). Spezifikation in shared/sync/nachrichten.md, Sessions xCAT, xCAM, kontor, clocker, vision, ProjectEye per Screen informiert.
+- next.config: `staticPageGenerationTimeout: 600` – Build brach unter Serverlast (~60) beim Seiten-Sammeln ab und Nexus war kurz down. Build nur noch mit `&& test -f .next/BUILD_ID && pm2 restart`.
