@@ -456,6 +456,12 @@ export default function IdentitiesPage() {
           <div onClick={(e) => e.stopPropagation()} className="card dm-fenster" style={{ width: 560, maxWidth: "92vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <div style={{ padding: "18px 24px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
               <h2 style={{ fontSize: 18, fontWeight: 700 }}>{editing.id ? "User bearbeiten" : "Neuer User"}</h2>
+              {editing.id && (
+                <button type="button" onClick={() => inZwischenablage(editing.id!, "System-ID", "sid")} title="System-ID kopieren"
+                  style={{ marginTop: 4, padding: 0, border: "none", background: "none", cursor: "pointer", fontSize: 12, color: "var(--muted)", fontFamily: "ui-monospace, monospace" }}>
+                  System-ID {editing.id} {kopiert === "sid" ? "✓" : ""}
+                </button>
+              )}
             </div>
             <div style={{ padding: 24, overflowY: "auto", flex: 1 }}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12 }}>

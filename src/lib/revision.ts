@@ -3,6 +3,7 @@ import { istUnterschrieben, geaenderteInhaltsfelder } from "./vertragSignatur";
 import { ApiError } from "./http";
 import { getEntity, EntityName } from "./entities";
 import { mailKaskade } from "./mailKaskade";
+import { systemIdSichern } from "./systemId";
 import { AuthContext } from "./auth";
 import { randomUUID } from "crypto";
 
@@ -145,6 +146,15 @@ export async function createEntity(
       }
       const created = await (tx as any)[def.delegate].create({ data: clean });
       await record(tx, { txId, entity, entityId: created.id, action: "CREATE", before: null, after: created, ctx });
+      // Jeder Mitarbeiter bekommt sofort seine System-ID (zentrale Identität) –
+      // sonst ist er in der Userverwaltung nicht sichtbar und nicht bearbeitbar.
+      if (entity === "Employee") {
+        const sid = await systemIdSichern(tx, created);
+        if (sid) {
+          await record(tx, { txId, entity: "Identity", entityId: sid.identity.id, action: sid.before ? "UPDATE" : "CREATE", before: sid.before, after: sid.identity, ctx });
+          return { ...created, identityId: sid.identity.id };
+        }
+      }
       return created;
     });
 
@@ -200,6 +210,14 @@ export async function updateEntity(
       const mit = await mailKaskade(tx, entity, updated, String((current as any).email || ""), String(clean.email || ""), updated.name);
       if (mit) {
         await record(tx, { txId, entity: mit.entity, entityId: mit.id, action: "UPDATE", before: mit.before, after: mit.after, ctx });
+      }
+    }
+    // Mitarbeiter ohne System-ID (Altbestand) bekommt sie beim nächsten Speichern
+    if (entity === "Employee") {
+      const sid = await systemIdSichern(tx, updated);
+      if (sid) {
+        await record(tx, { txId, entity: "Identity", entityId: sid.identity.id, action: sid.before ? "UPDATE" : "CREATE", before: sid.before, after: sid.identity, ctx });
+        return { ...updated, identityId: sid.identity.id };
       }
     }
     return updated;
