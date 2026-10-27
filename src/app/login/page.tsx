@@ -5,6 +5,7 @@ import AppLogo from "@/components/AppLogo";
 import Icon from "@/components/Icon";
 import TextField from "@/components/TextField";
 import LoginHintergrund from "./LoginHintergrund";
+import QrAnmeldung from "@/components/QrAnmeldung";
 
 export default function LoginPage() {
   // Leer starten, damit der graue Platzhalter sichtbar ist – die zuletzt benutzte
@@ -19,6 +20,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  // Anmeldung per QR-Code (Handy gibt frei) – Register auth.qr-login
+  const [qr, setQr] = useState(false);
+
+  function weiterleiten() {
+    // Nach abgelaufener Sitzung zurück auf die Seite, auf der gearbeitet wurde –
+    // dort werden gesicherte Entwürfe wieder angeboten.
+    const weiter = new URLSearchParams(window.location.search).get("weiter");
+    window.location.href = weiter && weiter.startsWith("/") ? weiter : "/";
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -34,10 +44,7 @@ export default function LoginPage() {
       if (!res.ok) throw new Error(data.error || "Login fehlgeschlagen");
       setSession(data.token, data.identity);
       try { localStorage.setItem("nexus-letzte-email", email.trim()); } catch { /* egal */ }
-      // Nach abgelaufener Sitzung zurück auf die Seite, auf der gearbeitet wurde –
-      // dort werden gesicherte Entwürfe wieder angeboten.
-      const weiter = new URLSearchParams(window.location.search).get("weiter");
-      window.location.href = weiter && weiter.startsWith("/") ? weiter : "/";
+      weiterleiten();
     } catch (e: any) {
       setErr(e.message);
     } finally {
@@ -110,6 +117,10 @@ export default function LoginPage() {
         .login-knopf:hover:not(:disabled) { filter: brightness(1.08); box-shadow: 0 14px 34px color-mix(in srgb, #4f6cf5 50%, transparent); }
         .login-knopf:active:not(:disabled) { transform: translateY(1px); }
         .login-knopf:disabled { opacity: .7; cursor: wait; }
+        .login-wechsel { border: 1px solid color-mix(in srgb, var(--fg) 14%, transparent); background: transparent; color: var(--fg);
+          border-radius: 12px; padding: 11px 14px; font-size: 14px; font-weight: 600; cursor: pointer;
+          display: flex; align-items: center; justify-content: center; gap: 8px; transition: border-color .15s, background .15s; }
+        .login-wechsel:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
         .login-dreh { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; animation: loginDreh .8s linear infinite; }
         @keyframes loginDreh { to { transform: rotate(360deg); } }
         @keyframes loginEin { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
@@ -131,6 +142,9 @@ export default function LoginPage() {
           </p>
         </div>
 
+        {qr ? (
+          <QrAnmeldung onFrei={(token, identity) => { setSession(token, identity); weiterleiten(); }} />
+        ) : (<>
         <label className="login-feld">
           E-Mail
           <TextField type="email" value={email} onChange={setEmail} autoComplete="username" placeholder="name@bgroup.de"
@@ -154,6 +168,12 @@ export default function LoginPage() {
 
         <button className="login-knopf" disabled={busy} type="submit">
           {busy ? <><span className="login-dreh" /> Anmelden…</> : <><Icon name="login" size={18} /> Anmelden</>}
+        </button>
+
+        </>)}
+
+        <button type="button" className="login-wechsel" onClick={() => { setQr(!qr); setErr(""); }}>
+          <Icon name={qr ? "lock" : "smartphone"} size={16} /> {qr ? "Mit Passwort anmelden" : "Mit dem Handy anmelden (QR-Code)"}
         </button>
 
         <p className="muted" style={{ fontSize: 12.5, textAlign: "center", marginTop: 2 }}>
