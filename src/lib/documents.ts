@@ -190,6 +190,7 @@ export function werteAusMitarbeiter(emp: any, org: any | null): Record<string, s
     personalnummer: emp?.employeeNumber || "",
     email: emp?.email || "",
     telefon: emp?.phone || "",
+    email_privat: emp?.privateEmail || "",
     strasse: emp?.street || "",
     plz: emp?.zip || "",
     ort: emp?.city || "",

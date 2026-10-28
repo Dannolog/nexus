@@ -103,6 +103,21 @@ function zieheNamenZusammen(clean: Record<string, any>, aktuell?: any) {
   clean.lastName = teile[teile.length - 1] || "";
 }
 
+/**
+ * Mitarbeiter-Telefonliste säubern und die Hauptnummer `phone` daraus ableiten
+ * (für Personalunterlagen): zuerst eine private Nummer, sonst die erste überhaupt.
+ */
+function ordneTelefone(clean: Record<string, unknown>) {
+  if (!("phones" in clean)) return;
+  const roh = Array.isArray(clean.phones) ? clean.phones : [];
+  const liste = roh
+    .map((t: any) => ({ art: String(t?.art || "Telefon").trim().slice(0, 40), value: String(t?.value || "").trim().slice(0, 60) }))
+    .filter((t) => t.value)
+    .slice(0, 20);
+  clean.phones = liste;
+  clean.phone = (liste.find((t) => /privat/i.test(t.art)) || liste[0])?.value || "";
+}
+
 // ---------- CRUD (revisions-bewusst, optimistisches Locking) ----------
 
 export async function createEntity(
@@ -117,7 +132,7 @@ export async function createEntity(
       const clean = sanitize(entity, data);
       // Mitarbeiter: Der Anzeigename entsteht aus Vor- und Nachname – er bleibt die
       // Grundlage der Abgleiche mit clocker und kontor.
-      if (entity === "Employee") zieheNamenZusammen(clean);
+      if (entity === "Employee") { zieheNamenZusammen(clean); ordneTelefone(clean); }
       // Firmeneinheitliche E-Mail: Wer neu angelegt wird und noch keine Adresse hat,
       // bekommt automatisch vorname.nachname@<MAIL_DOMAIN> (Standard bgroup.de).
       if ((entity === "Employee" || entity === "Identity") && !String(clean.email || "").trim()) {
@@ -198,6 +213,7 @@ export async function updateEntity(
     if (entity === "Employee" && ("firstName" in clean || "lastName" in clean)) {
       zieheNamenZusammen(clean, current);
     }
+    if (entity === "Employee") ordneTelefone(clean);
     const updated = await delegate.update({
       where: { id },
       data: { ...clean, version: current.version + 1 },

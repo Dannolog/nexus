@@ -163,6 +163,10 @@ model Employee {
   employeeNumber String  @default("")
   // Stammdaten für Personalunterlagen (Vorausfüllen von Formularen)
   phone          String  @default("")
+  // Private Adresse und alle Nummern (Firma, Privat, Mobil …) als Liste [{art, value}].
+  // `phone` bleibt die Hauptnummer für Personalunterlagen und wird daraus abgeleitet.
+  privateEmail   String  @default("")
+  phones         Json    @default("[]")
   street         String  @default("")
   zip            String  @default("")
   city           String  @default("")

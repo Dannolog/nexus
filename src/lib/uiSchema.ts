@@ -2,7 +2,7 @@
 export type Field = {
   key: string;
   label: string;
-  type?: "text" | "number" | "color" | "checkbox" | "textarea" | "select" | "email" | "date";
+  type?: "text" | "number" | "color" | "checkbox" | "textarea" | "select" | "email" | "date" | "phones";
   options?: string[];
   group?: string; // optionale Abschnitts-Überschrift im Bearbeiten-Dialog
   span?: number; // Feldbreite in 12er-Rastern (1–12); Standard 6 (halbe Breite)
@@ -158,10 +158,12 @@ export const RESOURCES: Record<string, Resource> = {
       // Vor- und Nachname werden getrennt erfasst; der Anzeigename entsteht daraus serverseitig.
       { key: "firstName", label: "Vorname" },
       { key: "lastName", label: "Nachname" },
-      { key: "email", label: "E-Mail", type: "email" },
+      { key: "email", label: "E-Mail (Firma)", type: "email" },
+      { key: "privateEmail", label: "E-Mail privat", type: "email" },
       { key: "employeeNumber", label: "Personalnummer" },
+      // Beliebig viele Nummern (Firma, Privat, Mobil …); die Hauptnummer für Formulare leitet der Server ab
+      { key: "phones", label: "Telefonnummern", type: "phones" },
       // Stammdaten für Personalunterlagen (werden in Formulare übernommen)
-      { key: "phone", label: "Telefon" },
       { key: "street", label: "Straße und Hausnummer" },
       { key: "zip", label: "PLZ" },
       { key: "city", label: "Ort" },
