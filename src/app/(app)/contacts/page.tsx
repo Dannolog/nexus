@@ -80,6 +80,54 @@ const datum = (v?: string | null) => {
   return isNaN(d.getTime()) ? "" : d.toLocaleDateString("de-DE");
 };
 
+/** Gleichbleibender Farbton je Name – jeder Kontakt behält seine Avatarfarbe. */
+function farbton(s: string) {
+  let h = 0;
+  for (const c of String(s || "")) h = (h * 31 + c.charCodeAt(0)) % 360;
+  return h;
+}
+
+/** Initialen aus Vor- und Nachname (sonst aus dem Anzeigenamen). */
+function initialen(k: Partial<Kontakt>) {
+  const v = String(k.firstName || "").trim(), n = String(k.lastName || "").trim();
+  if (v || n) return ((v[0] || "") + (n[0] || "")).toUpperCase();
+  const t = String(k.name || k.ownerName || "?").trim().split(/\s+/);
+  return ((t[0]?.[0] || "?") + (t.length > 1 ? t[t.length - 1][0] : "")).toUpperCase();
+}
+
+function Avatar({ k, groesse }: { k: Partial<Kontakt>; groesse?: "gross" | "klein" }) {
+  const name = String(k.name || [k.firstName, k.lastName].filter(Boolean).join(" ") || "");
+  return (
+    <span className={`kt-avatar${groesse ? " " + groesse : ""}`} style={{ ["--h" as any]: farbton(name) }} aria-hidden>
+      {name ? initialen(k) : <Icon name="user" size={groesse === "gross" ? 30 : 18} />}
+    </span>
+  );
+}
+
+/** Wählbare Links: Nummer → tel: (am Handy öffnet sich direkt das Telefon), Webseite mit https. */
+const telLink = (v: string) => "tel:" + String(v || "").replace(/[^\d+]/g, "");
+const webLink = (v: string) => (/^https?:\/\//i.test(v) ? v : "https://" + v);
+const wegLink = (c: Kanal) =>
+  c.kind === "email" ? `mailto:${c.value}` : c.kind === "web" ? webLink(c.value) : c.kind === "fax" ? "" : telLink(c.value);
+
+/** Alle hinterlegten Wege – ältere Datensätze ohne Liste aus den Einzelfeldern. */
+function wegeVon(k: Kontakt): Kanal[] {
+  if ((k.channels || []).length) return (k.channels || []).filter((c) => c.value);
+  return [
+    ...(k.email ? [{ kind: "email", value: k.email, label: "" }] : []),
+    ...(k.phone ? [{ kind: "phone", value: k.phone, label: "" }] : []),
+    ...(k.mobile ? [{ kind: "mobile", value: k.mobile, label: "" }] : []),
+  ];
+}
+
+/** Anfangsbuchstabe für die A–Z-Gruppen (Nachname zuerst). */
+function buchstabe(k: Kontakt) {
+  const z = String(k.lastName || k.name || "").trim().charAt(0).toUpperCase();
+  const u = ({ Ä: "A", Ö: "O", Ü: "U" } as Record<string, string>)[z] || z;
+  return /[A-Z]/.test(u) ? u : "#";
+}
+const sortSchluessel = (k: Kontakt) => `${k.lastName || k.name || ""} ${k.firstName || ""}`.trim();
+
 export default function ContactsPage() {
   const [rows, setRows] = useState<Kontakt[]>([]);
   // Suche und Filter bleiben erhalten (Adresszeile + Rückkehr auf die Seite)
@@ -105,6 +153,16 @@ export default function ContactsPage() {
   const [grossbild, setGrossbild] = useState<{ id: string; titel: string; url: string } | null>(null);
   const [geraete, setGeraete] = useState<any[]>([]);
   const [scanLaeuft, setScanLaeuft] = useState(false);
+  // Speichern-Rückmeldung im Fenster (Kreisel, Fehler im Dialog statt dahinter)
+  const [speichert, setSpeichert] = useState(false);
+  const [dialogFehler, setDialogFehler] = useState("");
+
+  // Meldungen verschwinden nach ein paar Sekunden von selbst
+  useEffect(() => {
+    if (!msg) return;
+    const t = setTimeout(() => setMsg(""), 5000);
+    return () => clearTimeout(t);
+  }, [msg]);
 
   const laden = useCallback(async () => {
     setLaedt(true);
@@ -154,8 +212,26 @@ export default function ContactsPage() {
   const gefiltert = useMemo(() => {
     let l = art ? rows.filter((r) => r.ownerKind === art) : rows;
     if (kategorie) l = l.filter((r) => (r.category || "") === kategorie);
-    return l;
+    return [...l].sort((a, b) => sortSchluessel(a).localeCompare(sortSchluessel(b), "de", { sensitivity: "base" }));
   }, [rows, art, kategorie]);
+
+  // A–Z-Gruppen für die Kartenansicht
+  const gruppen = useMemo(() => {
+    const m = new Map<string, Kontakt[]>();
+    for (const k of gefiltert) {
+      const b = buchstabe(k);
+      if (!m.has(b)) m.set(b, []);
+      m.get(b)!.push(k);
+    }
+    return [...m.entries()].sort(([a], [b]) => (a === "#" ? 1 : b === "#" ? -1 : a.localeCompare(b)));
+  }, [gefiltert]);
+
+  // Anzahl je Firmenart für die Filterleiste
+  const anzahl = useMemo(() => {
+    const z: Record<string, number> = { "": rows.length };
+    for (const r of rows) z[r.ownerKind] = (z[r.ownerKind] || 0) + 1;
+    return z;
+  }, [rows]);
 
   // Alle tatsächlich vergebenen Kontaktarten – als Filterleiste unter den Firmenarten
   const kategorien = useMemo(
@@ -173,11 +249,13 @@ export default function ContactsPage() {
     })) || [];
 
   async function speichern() {
-    if (!editor) return;
+    if (!editor || speichert) return;
     const vorname = String(editor.firstName || "").trim();
     const nachname = String(editor.lastName || "").trim();
     const name = [vorname, nachname].filter(Boolean).join(" ") || String(editor.name || "").trim();
-    if (!name) { setMsg("Bitte mindestens einen Nachnamen eingeben."); return; }
+    if (!name) { setDialogFehler("Bitte mindestens einen Nachnamen eingeben."); return; }
+    setSpeichert(true);
+    setDialogFehler("");
     try {
       const kanaele = (editor.channels || []).filter((k) => String(k.value || "").trim());
       const nutzlast = {
@@ -208,10 +286,12 @@ export default function ContactsPage() {
       // Bei abgelaufener Sitzung übernimmt der Sitzungswächter die Meldung – die Eingaben
       // bleiben hier stehen und liegen zusätzlich als Entwurf im Browser.
       if (e?.name === "SitzungAbgelaufenError") {
-        setMsg("Nicht gespeichert: die Anmeldung ist abgelaufen. Deine Eingaben bleiben erhalten – nach dem Anmelden erneut speichern.");
+        setDialogFehler("Nicht gespeichert: die Anmeldung ist abgelaufen. Deine Eingaben bleiben erhalten – nach dem Anmelden erneut speichern.");
         return;
       }
-      setMsg("Fehler: " + e.message);
+      setDialogFehler(e.message || "Speichern fehlgeschlagen");
+    } finally {
+      setSpeichert(false);
     }
   }
 
@@ -231,6 +311,7 @@ export default function ContactsPage() {
   function zeige(k: Kontakt | null) { setPrivatOffen(false); setAnsicht(k); }
   function bearbeite(k: Partial<Kontakt> | null) {
     setPrivatOffen(false);
+    setDialogFehler("");
     if (k) {
       // Liegt ein nicht gespeicherter Entwurf vor (z. B. nach abgelaufener Sitzung)? Anbieten.
       const e = entwurfLesen<Partial<Kontakt>>(entwurfsSchluessel(k.id));
@@ -365,360 +446,400 @@ export default function ContactsPage() {
   const firmenKontakte = (k: Kontakt) =>
     k.ownerId ? rows.filter((r) => r.ownerId === k.ownerId && r.id !== k.id) : [];
 
+  /** Schnellaktionen in Karte und Ansicht dürfen den Klick nicht an die Karte weitergeben. */
+  const halt = (e: { stopPropagation(): void }) => e.stopPropagation();
+
+  /** Erste Nummer/E-Mail/Webseite einer Art. */
+  const erster = (k: Kontakt, art: string) => wegeVon(k).find((c) => c.kind === art)?.value || "";
+
   return (
     <div>
-      <div className="rv-sticky-header" style={{ display: "grid", gap: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <h1 style={{ fontSize: 24, fontWeight: 700, display: "flex", alignItems: "center", gap: 10 }}>
-            <Icon name="id-card" size={24} /> Kontakte
+      <div className="rv-sticky-header" style={{ display: "grid", gap: 12 }}>
+        <div className="kt-kopf">
+          <h1 className="kt-titel">
+            <Icon name="id-card" size={26} /> Kontakte
+            <span className="kt-zahl">{laedt && !rows.length ? "…" : gefiltert.length}</span>
           </h1>
-          <button className="btn btn-primary" onClick={() => bearbeite(leer())}
+          <button className="btn btn-primary" style={{ marginLeft: "auto" }} onClick={() => bearbeite(leer())}
             title="Kontakt anlegen – mit oder ohne Firma (z. B. Vertreter oder Shop)">
-            <Icon name="plus" /> Neu
+            <Icon name="plus" /> Neuer Kontakt
           </button>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {[["", "alle"], ["customer", "Kunden"], ["supplier", "Lieferanten"], ["organization", "Mandanten"], ["frei", "frei"]].map(([w, l]) => (
-              <button key={w} className="btn" onClick={() => setArt(w)}
-                style={{ background: art === w ? "var(--accent)" : undefined, color: art === w ? "#fff" : undefined }}>
-                {l}
+        </div>
+        <SearchInput value={suche} onChange={setSuche} placeholder="Name, Firma, E-Mail, Telefon, Funktion…"
+          style={{ width: "100%", maxWidth: 560 }} />
+        <div className="kt-chips">
+          <div className="kt-segment" role="tablist" aria-label="Firmenart">
+            {[["", "Alle"], ["customer", "Kunden"], ["supplier", "Lieferanten"], ["organization", "Mandanten"], ["frei", "Frei"]].map(([w, l]) => (
+              <button key={w} role="tab" aria-selected={art === w} className={art === w ? "an" : ""} onClick={() => setArt(w)}>
+                {l} <small>{anzahl[w] || 0}</small>
               </button>
             ))}
           </div>
-          <span className="muted" style={{ fontSize: 12, marginLeft: "auto" }}>
-            {laedt ? "lädt…" : `${gefiltert.length} Kontakte`}
-          </span>
         </div>
         {kategorien.length > 0 && (
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <span className="muted" style={{ fontSize: 12, alignSelf: "center" }}>Art:</span>
-            <button className="btn" onClick={() => setKategorie("")}
-              style={{ background: kategorie === "" ? "var(--accent)" : undefined, color: kategorie === "" ? "#fff" : undefined }}>
-              alle
-            </button>
+          <div className="kt-chips">
+            <Icon name="tag" size={14} style={{ color: "var(--muted)" }} />
+            <button className={`kt-chip${kategorie === "" ? " an" : ""}`} onClick={() => setKategorie("")}>alle Arten</button>
             {kategorien.map((k) => (
-              <button key={k} className="btn" onClick={() => setKategorie(k)}
-                style={{ background: kategorie === k ? "var(--accent)" : undefined, color: kategorie === k ? "#fff" : undefined }}>
+              <button key={k} className={`kt-chip${kategorie === k ? " an" : ""}`} onClick={() => setKategorie(kategorie === k ? "" : k)}>
                 {k}
               </button>
             ))}
           </div>
         )}
-        <SearchInput value={suche} onChange={setSuche} placeholder="Name, Firma, E-Mail, Telefon, Funktion…"
-          style={{ width: "100%", maxWidth: 380 }} />
       </div>
 
-      {msg && <div className="card" style={{ padding: "8px 12px", marginBottom: 12, fontSize: 14 }}>{msg}</div>}
+      {msg && (
+        <div className="kt-meldung" role="status">
+          <Icon name="check" size={16} style={{ color: "var(--accent)" }} />
+          <span style={{ flex: 1 }}>{msg}</span>
+          <button className="btn btn-icon" aria-label="Meldung schließen" style={{ border: 0, background: "transparent" }}
+            onClick={() => setMsg("")}><Icon name="x" size={14} /></button>
+        </div>
+      )}
 
-      {/* ── Schnellauswahl ── */}
+      {/* ── Schnellauswahl: Favoriten als Avatar-Leiste ── */}
       {favoriten.length > 0 && (
-        <div className="card" style={{ padding: 12, marginBottom: 12 }}>
-          <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em", marginBottom: 8 }}>
-            Schnellauswahl
+        <div style={{ marginBottom: 4 }}>
+          <div className="kt-gruppe" style={{ marginTop: 4 }}>
+            <Icon name="star" size={14} style={{ color: "#f59e0b", fill: "#f59e0b" }} /> Favoriten
           </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div className="kt-favs">
             {favoriten.map((k) => (
-              <button key={k.id} className="btn" onClick={() => zeige(k)} title={k.ownerName || "ohne Firma"}>
-                <Icon name="user" size={14} /> {k.name}
-                {k.ownerName ? <span className="muted" style={{ fontSize: 12 }}> · {k.ownerName}</span> : null}
+              <button key={k.id} className="kt-fav" onClick={() => zeige(k)} title={[k.name, k.ownerName].filter(Boolean).join(" · ")}>
+                <Avatar k={k} />
+                <span>{k.firstName || k.name}</span>
               </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* ── Liste (Desktop) ── */}
-      <div className="card only-desktop" style={{ overflow: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
-          <thead>
-            <tr style={{ textAlign: "left", borderBottom: "1px solid var(--border)" }}>
-              <th style={{ padding: "10px 12px", width: 1 }}></th>
-              {([["user", "Name"], ["tag", "Funktion"], ["building", "Firma"], ["mail", "E-Mail"],
-                 ["phone", "Telefon"], ["archive", "Herkunft"]] as const).map(([icon, label]) => (
-                <th key={label} style={{ padding: "10px 12px" }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                    <Icon name={icon} size={14} /> {label}
-                  </span>
-                </th>
-              ))}
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {gefiltert.map((k) => (
-              <tr key={k.id} onClick={() => zeige(k)} style={{ borderBottom: "1px solid var(--border)", cursor: "pointer" }}>
-                <td style={{ padding: "6px 8px" }} onClick={(e) => { e.stopPropagation(); stern(k); }}>
-                  <button className="btn btn-icon" title={k.favorite ? "Aus der Schnellauswahl nehmen" : "In die Schnellauswahl"}
-                    style={{ color: k.favorite ? "var(--accent)" : undefined }}>
-                    <Icon name={k.favorite ? "check" : "plus"} size={14} />
+      {/* ── Karten, nach Nachnamen A–Z gruppiert ── */}
+      {gruppen.map(([b, liste]) => (
+        <section key={b}>
+          <div className="kt-gruppe">{b}</div>
+          <div className="kt-raster">
+            {liste.map((k) => {
+              const nummer = k.phone || k.mobile || erster(k, "phone") || erster(k, "mobile");
+              const mail = k.email || erster(k, "email");
+              const mehrNummern = weitere(k, "phone") + weitere(k, "mobile") + (k.phone && k.mobile ? 1 : 0);
+              return (
+                <article key={k.id} className="kt-karte" onClick={() => zeige(k)}>
+                  <button className={`kt-stern${k.favorite ? " an" : ""}`} onClick={(e) => { halt(e); stern(k); }}
+                    title={k.favorite ? "Aus den Favoriten nehmen" : "Zu den Favoriten"}>
+                    <Icon name="star" size={17} style={k.favorite ? { fill: "currentColor" } : undefined} />
                   </button>
-                </td>
-                <td style={{ padding: "10px 12px", fontWeight: 600 }}><Hervorheben text={k.name} suche={suche} /></td>
-                <td style={{ padding: "10px 12px" }}><Hervorheben text={k.role || "–"} suche={suche} /></td>
-                <td style={{ padding: "10px 12px" }}>
-                  <Hervorheben text={k.ownerName || "–"} suche={suche} />
-                  <span className="muted" style={{ fontSize: 11.5 }}>
-                    {" "}{k.category ? <Hervorheben text={k.category} suche={suche} /> : ART_LABEL[k.ownerKind] || ""}
-                  </span>
-                </td>
-                <td style={{ padding: "10px 12px" }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                    <Hervorheben text={k.email || "–"} suche={suche} />
-                    <KopierKnopf wert={k.email} was="E-Mail" klein />
-                    {weitere(k, "email") > 0 && (
-                      <span className="muted" style={{ fontSize: 11.5 }}>+{weitere(k, "email")}</span>
-                    )}
-                  </span>
-                </td>
-                <td style={{ padding: "10px 12px" }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                    <Hervorheben text={k.phone || k.mobile || "–"} suche={suche} />
-                    <KopierKnopf wert={k.phone || k.mobile} was="Nummer" klein />
-                    {weitere(k, "phone") + weitere(k, "mobile") > 0 && (
-                      <span className="muted" style={{ fontSize: 11.5 }}>+{weitere(k, "phone") + weitere(k, "mobile")}</span>
-                    )}
-                  </span>
-                </td>
-                <td style={{ padding: "10px 12px" }} className="muted">{HERKUNFT[k.source] || k.source}</td>
-                <td style={{ padding: "8px 12px", whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button className="btn btn-icon" title="Bearbeiten" onClick={() => bearbeite({ ...k })}><Icon name="pencil" /></button>
-                    <button className="btn btn-icon btn-danger" title="Entfernen" onClick={() => setLoeschen(k)}><Icon name="trash" /></button>
+                  <div className="kt-karte-kopf">
+                    <Avatar k={k} />
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div className="kt-name"><Hervorheben text={k.name} suche={suche} /></div>
+                      <div className="kt-unter">
+                        {k.role && <Hervorheben text={k.role} suche={suche} />}
+                        {k.role && k.ownerName ? " · " : ""}
+                        {k.ownerName ? <Hervorheben text={k.ownerName} suche={suche} /> : !k.role ? "ohne Firma" : null}
+                      </div>
+                    </div>
                   </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!laedt && gefiltert.length === 0 && (
-          <div className="muted" style={{ padding: 16, fontSize: 14 }}>Kein Kontakt passt zur Suche.</div>
-        )}
-      </div>
 
-      {/* ── Karten (Handy) ── */}
-      <div className="only-mobile" style={{ gap: 10 }}>
-        {gefiltert.map((k) => (
-          <div key={k.id} className="card" onClick={() => zeige(k)} style={{ padding: 14, display: "grid", gap: 6, cursor: "pointer" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontWeight: 600, flex: 1, minWidth: 0 }}><Hervorheben text={k.name} suche={suche} /></span>
-              <span className="muted" style={{ fontSize: 12 }}>{ART_LABEL[k.ownerKind] || ""}</span>
-            </div>
-            {k.ownerName && <div className="muted" style={{ fontSize: 13 }}><Hervorheben text={k.ownerName} suche={suche} /></div>}
-            {k.role && <div className="muted" style={{ fontSize: 13 }}>{k.role}</div>}
-            {k.email && (
-              <div style={{ fontSize: 13, wordBreak: "break-all", display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ flex: 1, minWidth: 0 }}><Hervorheben text={k.email} suche={suche} /></span>
-                <KopierKnopf wert={k.email} was="E-Mail" klein />
-              </div>
-            )}
-            {(k.phone || k.mobile) && (
-              <div style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ flex: 1, minWidth: 0 }}>{k.phone || k.mobile}</span>
-                <KopierKnopf wert={k.phone || k.mobile} was="Nummer" klein />
-              </div>
-            )}
+                  {(nummer || mail) && (
+                    <div style={{ display: "grid", gap: 3 }} onClick={halt}>
+                      {nummer && (
+                        <div className="kt-zeile">
+                          <Icon name="phone" size={14} />
+                          <a href={telLink(nummer)} title="Anrufen"><Hervorheben text={nummer} suche={suche} /></a>
+                          <KopierKnopf wert={nummer} was="Nummer" klein />
+                          {mehrNummern > 0 && <span style={{ fontSize: 11.5 }}>+{mehrNummern}</span>}
+                        </div>
+                      )}
+                      {mail && (
+                        <div className="kt-zeile">
+                          <Icon name="mail" size={14} />
+                          <a href={`mailto:${mail}`} title="E-Mail schreiben"><Hervorheben text={mail} suche={suche} /></a>
+                          <KopierKnopf wert={mail} was="E-Mail" klein />
+                          {weitere(k, "email") > 0 && <span style={{ fontSize: 11.5 }}>+{weitere(k, "email")}</span>}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {(k.category || k.ownerKind !== "frei") && (
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {k.ownerKind !== "frei" && <span className="kt-badge akzent">{ART_LABEL[k.ownerKind] || k.ownerKind}</span>}
+                      {k.category && <span className="kt-badge"><Hervorheben text={k.category} suche={suche} /></span>}
+                    </div>
+                  )}
+
+                  <div className="kt-aktionen" onClick={halt}>
+                    <a className="kt-aktion gruen" href={nummer ? telLink(nummer) : undefined} aria-disabled={!nummer}
+                      title={nummer ? `${nummer} anrufen` : "Keine Nummer hinterlegt"}>
+                      <Icon name="phone" size={14} /> Anrufen
+                    </a>
+                    <a className="kt-aktion" href={mail ? `mailto:${mail}` : undefined} aria-disabled={!mail}
+                      title={mail ? `E-Mail an ${mail}` : "Keine E-Mail hinterlegt"}>
+                      <Icon name="mail" size={14} /> E-Mail
+                    </a>
+                    <button className="kt-aktion grau" title="Bearbeiten" aria-label="Bearbeiten" onClick={() => bearbeite({ ...k })}>
+                      <Icon name="pencil" size={14} />
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
           </div>
-        ))}
-      </div>
+        </section>
+      ))}
+
+      {!laedt && gefiltert.length === 0 && (
+        <div className="kt-leer">
+          <Icon name="users" size={36} />
+          <div style={{ fontSize: 15, fontWeight: 600, color: "var(--fg)" }}>
+            {suche || art || kategorie ? "Kein Kontakt passt zur Suche" : "Noch keine Kontakte"}
+          </div>
+          {suche || art || kategorie ? (
+            <button className="btn" onClick={() => setSeite({ q: "", art: "", kategorie: "" })}><Icon name="x" /> Filter zurücksetzen</button>
+          ) : (
+            <button className="btn btn-primary" onClick={() => bearbeite(leer())}><Icon name="plus" /> Ersten Kontakt anlegen</button>
+          )}
+        </div>
+      )}
 
       {/* ── Ansicht: Kontakt + Firma ── */}
-      {ansicht && (
-        <div onClick={() => setAnsicht(null)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "grid", placeItems: "center", padding: 16, zIndex: 60 }}>
-          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster"
-            style={{ width: 560, maxWidth: "94vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <h2 style={{ fontSize: 18, fontWeight: 700 }}>{ansicht.name}</h2>
-                <div className="muted" style={{ fontSize: 12.5 }}>
-                  {ansicht.role ? `${ansicht.role} · ` : ""}
-                  {ansicht.ownerName || "ohne Firma"} {ansicht.ownerKind !== "frei" ? `(${ART_LABEL[ansicht.ownerKind]})` : ""}
-                  {ansicht.category ? ` · ${ansicht.category}` : ""}
+      {ansicht && (() => {
+        const wege = wegeVon(ansicht);
+        const schnell = ([
+          ["phone", "Anrufen", "phone", "#10b981"],
+          ["mobile", "Mobil", "smartphone", "#0ea5e9"],
+          ["email", "E-Mail", "mail", "#6366f1"],
+          ["web", "Webseite", "globe", "#f59e0b"],
+        ] as const).map(([art, label, icon, farbe]) => ({ art, label, icon, farbe, wert: erster(ansicht, art) })).filter((s) => s.wert);
+        return (
+          <div className="kt-huelle" style={{ zIndex: 60 }} onClick={() => setAnsicht(null)}>
+            <div onClick={(e) => e.stopPropagation()} className="card dm-fenster kt-fenster">
+              <div className="kt-held" style={{ ["--h" as any]: farbton(ansicht.name) }}>
+                <Avatar k={ansicht} groesse="gross" />
+                <div style={{ flex: 1, minWidth: 0, paddingRight: 70 }}>
+                  <h2>{ansicht.name}</h2>
+                  <div className="muted" style={{ fontSize: 13.5, marginTop: 2 }}>
+                    {[ansicht.role, ansicht.ownerName || "ohne Firma"].filter(Boolean).join(" · ")}
+                  </div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                    {ansicht.ownerKind !== "frei" && <span className="kt-badge akzent">{ART_LABEL[ansicht.ownerKind]}</span>}
+                    {ansicht.category && <span className="kt-badge">{ansicht.category}</span>}
+                    <span className="kt-badge">aus {HERKUNFT[ansicht.source] || ansicht.source}</span>
+                  </div>
                 </div>
-              </div>
-              <button className="btn btn-icon" title={ansicht.favorite ? "Aus der Schnellauswahl" : "In die Schnellauswahl"}
-                style={{ color: ansicht.favorite ? "var(--accent)" : undefined }}
-                onClick={() => { stern(ansicht); setAnsicht({ ...ansicht, favorite: !ansicht.favorite }); }}>
-                <Icon name={ansicht.favorite ? "check" : "plus"} />
-              </button>
-              <button className="btn btn-icon" aria-label="Schließen" onClick={() => setAnsicht(null)}><Icon name="x" /></button>
-            </div>
-
-            <div style={{ padding: 20, overflowY: "auto", display: "grid", gap: 14 }}>
-              <div style={{ display: "grid", gap: 8 }}>
-                {/* Alle hinterlegten Wege – mehrere E-Mails und Nummern inklusive */}
-                {((ansicht.channels || []).length
-                  ? (ansicht.channels || []).filter((c) => c.value)
-                  : ([
-                      ...(ansicht.email ? [{ kind: "email", value: ansicht.email, label: "" }] : []),
-                      ...(ansicht.phone ? [{ kind: "phone", value: ansicht.phone, label: "" }] : []),
-                      ...(ansicht.mobile ? [{ kind: "mobile", value: ansicht.mobile, label: "" }] : []),
-                    ] as Kanal[])
-                ).map((c, i) => (
-                  <div key={c.id || i} style={{ display: "flex", gap: 12, fontSize: 14, alignItems: "center" }}>
-                    <span className="muted" style={{ minWidth: 96, display: "inline-flex", alignItems: "center", gap: 6 }}>
-                      <Icon name={KANAL[c.kind]?.icon || "mail"} size={14} /> {KANAL[c.kind]?.label || c.kind}
-                    </span>
-                    <span style={{ flex: 1, minWidth: 0, wordBreak: "break-all" }}>
-                      <Hervorheben text={c.value} suche={suche} />
-                      {c.label && <span className="muted" style={{ fontSize: 12 }}> · {c.label}</span>}
-                    </span>
-                    <KopierKnopf wert={c.value} was={KANAL[c.kind]?.label || "Wert"} />
-                  </div>
-                ))}
-                {ansicht.notes && (
-                  <div style={{ display: "flex", gap: 12, fontSize: 14 }}>
-                    <span className="muted" style={{ minWidth: 96 }}>Notiz</span>
-                    <span style={{ flex: 1, whiteSpace: "pre-wrap" }}>{ansicht.notes}</span>
-                  </div>
-                )}
-                <div style={{ display: "flex", gap: 12, fontSize: 12.5 }}>
-                  <span className="muted" style={{ minWidth: 96 }}>Herkunft</span>
-                  <span className="muted">gepflegt in {HERKUNFT[ansicht.source] || ansicht.source} · wird mit kontor und ProjectEye abgeglichen</span>
+                <div className="kt-held-knoepfe">
+                  <button className={ansicht.favorite ? "an" : ""} title={ansicht.favorite ? "Aus den Favoriten" : "Zu den Favoriten"}
+                    onClick={() => { stern(ansicht); setAnsicht({ ...ansicht, favorite: !ansicht.favorite }); }}>
+                    <Icon name="star" size={17} style={ansicht.favorite ? { fill: "currentColor" } : undefined} />
+                  </button>
+                  <button aria-label="Schließen" title="Schließen" onClick={() => setAnsicht(null)}><Icon name="x" size={17} /></button>
                 </div>
               </div>
 
-              {/* Visitenkarte und weitere Bilder */}
-              <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, display: "grid", gap: 8 }}>
-                <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em",
-                                                display: "flex", alignItems: "center", gap: 6 }}>
-                  <Icon name="id-card" size={14} /> Visitenkarte und Bilder
-                </div>
-
-                {bilder.length > 0 && (
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {bilder.map((b) => (
-                      <div key={b.id} style={{ display: "grid", gap: 4, justifyItems: "center" }}>
-                        <button type="button" title="Groß ansehen" onClick={() => grossAnsehen(b.id, b.title)}
-                          style={{ border: 0, background: "transparent", padding: 0, cursor: "zoom-in", lineHeight: 0 }}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={b.thumb || "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="} alt={b.title}
-                            style={{ width: 120, height: 76, objectFit: "cover", borderRadius: 8,
-                                     border: "1px solid var(--border)", background: "#fff" }} />
-                        </button>
-                        <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                          <span className="muted" style={{ fontSize: 11.5, maxWidth: 74, overflow: "hidden",
-                                                           textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.title}</span>
-                          <button className="btn btn-icon" title="Speichern" onClick={() => bildSpeichern(b.id, b.title)}>
-                            <Icon name="download" size={13} />
-                          </button>
-                          <button className="btn btn-icon btn-danger" title="Entfernen" onClick={() => bildEntfernen(b.id)}>
-                            <Icon name="trash" size={13} />
-                          </button>
-                        </div>
-                      </div>
+              <div className="kt-inhalt">
+                {/* Ein Tipp genügt: anrufen, schreiben, Webseite öffnen */}
+                {schnell.length > 0 && (
+                  <div className="kt-schnell">
+                    {schnell.map((s) => (
+                      <a key={s.art} href={s.art === "web" ? webLink(s.wert) : s.art === "email" ? `mailto:${s.wert}` : telLink(s.wert)}
+                        target={s.art === "web" ? "_blank" : undefined} rel={s.art === "web" ? "noopener noreferrer" : undefined}
+                        title={s.wert}>
+                        <span className="kt-rund" style={{ background: s.farbe }}><Icon name={s.icon} size={18} /></span>
+                        {s.label}
+                      </a>
                     ))}
                   </div>
                 )}
 
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  <label className="btn" style={{ cursor: "pointer" }} title="Foto der Visitenkarte aufnehmen oder Bild wählen">
-                    <Icon name="image" /> Foto / Bild
-                    <input type="file" accept="image/*" capture="environment" style={{ display: "none" }}
-                      onChange={(e) => { const f = e.target.files?.[0]; if (f) bildHochladen(f); e.target.value = ""; }} />
-                  </label>
-                  <button className="btn" disabled={!geraete.length || scanLaeuft} onClick={visitenkarteScannen}
-                    title={geraete.length ? "Visitenkarte am Scanner einlesen" : "Kein Scanner eingerichtet"}>
-                    <Icon name="printer" /> {scanLaeuft ? "Liest ein…" : "Einscannen"}
-                  </button>
-                  {bilder.length === 0 && (
-                    <span className="muted" style={{ fontSize: 12.5, alignSelf: "center" }}>
-                      Noch kein Bild – Vorder- und Rückseite einfach nacheinander einlesen.
-                    </span>
-                  )}
+                {/* Alle Wege – mehrere E-Mails und Nummern inklusive, je mit Kopieren und Anrufen */}
+                <div className="kt-block">
+                  <div className="kt-block-titel"><Icon name="phone" size={13} /> Erreichbarkeit</div>
+                  {wege.length === 0 && <div className="kt-block-inhalt muted" style={{ fontSize: 13.5 }}>Noch nichts hinterlegt.</div>}
+                  {wege.map((c, i) => {
+                    const link = wegLink(c);
+                    return (
+                      <div key={c.id || i} className="kt-weg">
+                        <span className="kt-weg-icon"><Icon name={KANAL[c.kind]?.icon || "mail"} size={16} /></span>
+                        <div className="kt-weg-text">
+                          <small>{KANAL[c.kind]?.label || c.kind}{c.label ? ` · ${c.label}` : ""}</small>
+                          {link ? (
+                            <a href={link} target={c.kind === "web" ? "_blank" : undefined}
+                              rel={c.kind === "web" ? "noopener noreferrer" : undefined}>
+                              <Hervorheben text={c.value} suche={suche} />
+                            </a>
+                          ) : <span className="w"><Hervorheben text={c.value} suche={suche} /></span>}
+                        </div>
+                        <KopierKnopf wert={c.value} was={KANAL[c.kind]?.label || "Wert"} />
+                        {(c.kind === "phone" || c.kind === "mobile") && (
+                          <a className="kt-anruf" href={telLink(c.value)} title={`${c.value} anrufen`} aria-label={`${c.value} anrufen`}>
+                            <Icon name="phone" size={15} />
+                          </a>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-              </div>
 
-              {/* Private Angaben – zugeklappt, damit sie nicht beiläufig mitgelesen werden */}
-              <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12 }}>
-                <button className="btn" onClick={() => setPrivatOffen((v) => !v)}>
-                  <Icon name="lock" /> Private Angaben
-                  <span className="muted" style={{ fontSize: 12 }}>
-                    {hatPrivates(ansicht) ? (privatOffen ? " · ausblenden" : " · anzeigen") : " · nichts hinterlegt"}
-                  </span>
-                </button>
-                {privatOffen && (
-                  <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
-                    {([["Telefon privat", ansicht.privatePhone, "phone"],
-                       ["Mobil privat", ansicht.privateMobile, "smartphone"],
-                       ["E-Mail privat", ansicht.privateEmail, "mail"]] as const).map(([label, wert, icon]) => (
-                      <div key={label} style={{ display: "flex", gap: 12, fontSize: 14, alignItems: "center" }}>
-                        <span className="muted" style={{ minWidth: 120, display: "flex", alignItems: "center", gap: 6 }}>
-                          <Icon name={icon} size={14} /> {label}
-                        </span>
-                        <span style={{ flex: 1, minWidth: 0, wordBreak: "break-all" }}>{wert || "–"}</span>
-                        {wert && (
+                {ansicht.notes && (
+                  <div className="kt-block">
+                    <div className="kt-block-titel"><Icon name="file-text" size={13} /> Notiz</div>
+                    <div className="kt-block-inhalt" style={{ fontSize: 14, whiteSpace: "pre-wrap" }}>{ansicht.notes}</div>
+                  </div>
+                )}
+
+                {/* Visitenkarte und weitere Bilder */}
+                <div className="kt-block">
+                  <div className="kt-block-titel"><Icon name="id-card" size={13} /> Visitenkarte und Bilder</div>
+                  <div className="kt-block-inhalt">
+                    {bilder.length > 0 && (
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                        {bilder.map((b) => (
+                          <div key={b.id} style={{ display: "grid", gap: 4, justifyItems: "center" }}>
+                            <button type="button" title="Groß ansehen" onClick={() => grossAnsehen(b.id, b.title)}
+                              style={{ border: 0, background: "transparent", padding: 0, cursor: "zoom-in", lineHeight: 0 }}>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={b.thumb || "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="} alt={b.title}
+                                style={{ width: 128, height: 80, objectFit: "cover", borderRadius: 10,
+                                         border: "1px solid var(--border)", background: "#fff" }} />
+                            </button>
+                            <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
+                              <span className="muted" style={{ fontSize: 11.5, maxWidth: 70, overflow: "hidden",
+                                                               textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.title}</span>
+                              <button className="btn btn-icon" title="Speichern" style={{ border: 0 }} onClick={() => bildSpeichern(b.id, b.title)}>
+                                <Icon name="download" size={13} />
+                              </button>
+                              <button className="btn btn-icon btn-danger" title="Entfernen" style={{ border: 0 }} onClick={() => bildEntfernen(b.id)}>
+                                <Icon name="trash" size={13} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                      <label className="btn" style={{ cursor: "pointer" }} title="Foto der Visitenkarte aufnehmen oder Bild wählen">
+                        <Icon name="image" /> Foto / Bild
+                        <input type="file" accept="image/*" capture="environment" style={{ display: "none" }}
+                          onChange={(e) => { const f = e.target.files?.[0]; if (f) bildHochladen(f); e.target.value = ""; }} />
+                      </label>
+                      <button className="btn" disabled={!geraete.length || scanLaeuft} onClick={visitenkarteScannen}
+                        title={geraete.length ? "Visitenkarte am Scanner einlesen" : "Kein Scanner eingerichtet"}>
+                        {scanLaeuft ? <span className="speichern-dreh" style={{ borderColor: "rgba(0,0,0,.15)", borderTopColor: "var(--accent)" }} />
+                          : <Icon name="printer" />} {scanLaeuft ? "Liest ein…" : "Einscannen"}
+                      </button>
+                      {bilder.length === 0 && (
+                        <span className="muted" style={{ fontSize: 12.5 }}>Vorder- und Rückseite einfach nacheinander einlesen.</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Private Angaben – zugeklappt, damit sie nicht beiläufig mitgelesen werden */}
+                <div className="kt-block">
+                  <button type="button" className="kt-block-titel" onClick={() => setPrivatOffen((v) => !v)}
+                    style={{ width: "100%", border: 0, cursor: "pointer", borderBottom: privatOffen ? undefined : 0 }}>
+                    <Icon name="lock" size={13} /> Private Angaben
+                    <span style={{ marginLeft: "auto", textTransform: "none", letterSpacing: 0, fontWeight: 500 }}>
+                      {hatPrivates(ansicht) ? (privatOffen ? "ausblenden" : "anzeigen") : "nichts hinterlegt"}
+                    </span>
+                    <Icon name="chevron-down" size={14} style={{ transform: privatOffen ? "rotate(180deg)" : undefined, transition: "transform .2s" }} />
+                  </button>
+                  {privatOffen && (
+                    <>
+                      {([["Telefon privat", ansicht.privatePhone, "phone"],
+                         ["Mobil privat", ansicht.privateMobile, "smartphone"],
+                         ["E-Mail privat", ansicht.privateEmail, "mail"]] as const).filter(([, w]) => w).map(([label, wert, icon]) => (
+                        <div key={label} className="kt-weg">
+                          <span className="kt-weg-icon"><Icon name={icon} size={16} /></span>
+                          <div className="kt-weg-text">
+                            <small>{label}</small>
+                            <a href={icon === "mail" ? `mailto:${wert}` : telLink(wert)}>{wert}</a>
+                          </div>
                           <button className="btn btn-icon" title={`${label} kopieren`} onClick={() => kopieren(wert, label)}>
                             <Icon name="copy" size={14} />
                           </button>
-                        )}
+                          {icon !== "mail" && (
+                            <a className="kt-anruf" href={telLink(wert)} title={`${label} anrufen`} aria-label={`${label} anrufen`}>
+                              <Icon name="phone" size={15} />
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                      {(ansicht.privateStreet || ansicht.privateZip || ansicht.privateCity) && (
+                        <div className="kt-weg">
+                          <span className="kt-weg-icon"><Icon name="home" size={16} /></span>
+                          <div className="kt-weg-text">
+                            <small>Privatanschrift</small>
+                            <span className="w">
+                              {[ansicht.privateStreet, [ansicht.privateZip, ansicht.privateCity].filter(Boolean).join(" ")].filter(Boolean).join(", ")}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      {ansicht.birthday && (
+                        <div className="kt-weg">
+                          <span className="kt-weg-icon"><Icon name="calendar" size={16} /></span>
+                          <div className="kt-weg-text"><small>Geburtstag</small><span className="w">{datum(ansicht.birthday)}</span></div>
+                        </div>
+                      )}
+                      {ansicht.privateNotes && (
+                        <div className="kt-weg">
+                          <span className="kt-weg-icon"><Icon name="file-text" size={16} /></span>
+                          <div className="kt-weg-text"><small>Notiz privat</small><span className="w" style={{ whiteSpace: "pre-wrap" }}>{ansicht.privateNotes}</span></div>
+                        </div>
+                      )}
+                      <div className="kt-block-inhalt muted" style={{ fontSize: 12 }}>
+                        Private Angaben bleiben ausschließlich in Nexus – sie werden nicht nach kontor, clocker oder ProjectEye übertragen.
                       </div>
-                    ))}
-                    <div style={{ display: "flex", gap: 12, fontSize: 14 }}>
-                      <span className="muted" style={{ minWidth: 120, display: "flex", alignItems: "center", gap: 6 }}>
-                        <Icon name="home" size={14} /> Privatanschrift
-                      </span>
-                      <span style={{ flex: 1 }}>
-                        {[ansicht.privateStreet, [ansicht.privateZip, ansicht.privateCity].filter(Boolean).join(" ")]
-                          .filter(Boolean).join(", ") || "–"}
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", gap: 12, fontSize: 14 }}>
-                      <span className="muted" style={{ minWidth: 120, display: "flex", alignItems: "center", gap: 6 }}>
-                        <Icon name="calendar" size={14} /> Geburtstag
-                      </span>
-                      <span style={{ flex: 1 }}>{datum(ansicht.birthday) || "–"}</span>
-                    </div>
-                    {ansicht.privateNotes && (
-                      <div style={{ display: "flex", gap: 12, fontSize: 14 }}>
-                        <span className="muted" style={{ minWidth: 120 }}>Notiz privat</span>
-                        <span style={{ flex: 1, whiteSpace: "pre-wrap" }}>{ansicht.privateNotes}</span>
-                      </div>
-                    )}
-                    <div className="muted" style={{ fontSize: 12 }}>
-                      Private Angaben bleiben ausschließlich in Nexus – sie werden nicht nach kontor,
-                      clocker oder ProjectEye übertragen.
+                    </>
+                  )}
+                </div>
+
+                {/* Firmenansicht: weitere Ansprechpartner derselben Firma */}
+                {ansicht.ownerId && (
+                  <div className="kt-block">
+                    <div className="kt-block-titel"><Icon name="building" size={13} /> {ansicht.ownerName} · weitere Ansprechpartner</div>
+                    <div className="kt-block-inhalt" style={{ gap: 2, padding: 6 }}>
+                      {firmenKontakte(ansicht).length === 0 && (
+                        <div className="muted" style={{ fontSize: 13, padding: "6px 8px" }}>Kein weiterer Ansprechpartner hinterlegt.</div>
+                      )}
+                      {firmenKontakte(ansicht).map((k) => (
+                        <button key={k.id} className="kt-kollege" onClick={() => zeige(k)}>
+                          <Avatar k={k} groesse="klein" />
+                          <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            <b>{k.name}</b>{k.role ? <span className="muted"> · {k.role}</span> : null}
+                          </span>
+                          {(k.phone || k.mobile) && (
+                            <a className="kt-anruf" href={telLink(k.phone || k.mobile)} onClick={halt}
+                              title={`${k.phone || k.mobile} anrufen`} aria-label="Anrufen" style={{ width: 30, height: 30 }}>
+                              <Icon name="phone" size={13} />
+                            </a>
+                          )}
+                        </button>
+                      ))}
+                      <button className="btn" style={{ justifySelf: "start", margin: 6 }}
+                        onClick={() => bearbeite({ ...leer(), ownerKind: ansicht.ownerKind, ownerId: ansicht.ownerId })}>
+                        <Icon name="plus" /> Ansprechpartner bei dieser Firma
+                      </button>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Firmenansicht: weitere Ansprechpartner derselben Firma */}
-              {ansicht.ownerId && (
-                <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12 }}>
-                  <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em", marginBottom: 8 }}>
-                    {ansicht.ownerName} – weitere Ansprechpartner
-                  </div>
-                  {firmenKontakte(ansicht).length === 0 && (
-                    <div className="muted" style={{ fontSize: 13 }}>Kein weiterer Ansprechpartner hinterlegt.</div>
-                  )}
-                  <div style={{ display: "grid", gap: 6 }}>
-                    {firmenKontakte(ansicht).map((k) => (
-                      <button key={k.id} onClick={() => zeige(k)}
-                        style={{ textAlign: "left", padding: "7px 9px", borderRadius: 8, fontSize: 13.5, cursor: "pointer",
-                                 border: "1px solid var(--border)", background: "var(--bg)", color: "var(--fg)" }}>
-                        <b>{k.name}</b>
-                        {k.role ? <span className="muted"> · {k.role}</span> : null}
-                        {k.email ? <span className="muted"> · {k.email}</span> : null}
-                      </button>
-                    ))}
-                  </div>
-                  <button className="btn" style={{ marginTop: 8 }}
-                    onClick={() => bearbeite({ ...leer(), ownerKind: ansicht.ownerKind, ownerId: ansicht.ownerId })}>
-                    <Icon name="plus" /> Ansprechpartner bei dieser Firma
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div style={{ padding: "12px 20px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button className="btn btn-danger" onClick={() => setLoeschen(ansicht)}><Icon name="trash" /> Entfernen</button>
-              <button className="btn btn-primary" onClick={() => { bearbeite({ ...ansicht }); setAnsicht(null); }}>
-                <Icon name="pencil" /> Bearbeiten
-              </button>
+              <div className="kt-fuss">
+                <button className="btn btn-danger" style={{ marginRight: "auto" }} onClick={() => setLoeschen(ansicht)}>
+                  <Icon name="trash" /> Entfernen
+                </button>
+                <button className="btn btn-primary" onClick={() => { bearbeite({ ...ansicht }); setAnsicht(null); }}>
+                  <Icon name="pencil" /> Bearbeiten
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ── Bild groß ansehen ── */}
       {grossbild && (
@@ -744,99 +865,94 @@ export default function ContactsPage() {
       )}
 
       {/* ── Bearbeiten/Anlegen (immer im Pop-up) ── */}
-      {editor && (
-        <div onClick={editorSchliessen}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "grid", placeItems: "center", padding: 16, zIndex: 65 }}>
-          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster"
-            style={{ width: 620, maxWidth: "94vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
-              <Icon name="id-card" size={18} />
-              <h2 style={{ fontSize: 17, fontWeight: 700, flex: 1 }}>{editor.id ? "Kontakt bearbeiten" : "Neuer Kontakt"}</h2>
-              <button className="btn btn-icon" aria-label="Schließen" onClick={editorSchliessen}><Icon name="x" /></button>
-            </div>
-
-            <div style={{ padding: 20, overflowY: "auto", display: "grid", gap: 18 }}>
-              {/* ── Person ── */}
-              <section style={{ display: "grid", gap: 10 }}>
-                <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em",
-                                                display: "flex", alignItems: "center", gap: 6 }}>
-                  <Icon name="user" size={14} /> Person
+      {editor && (() => {
+        const vorschauName = [editor.firstName, editor.lastName].filter(Boolean).join(" ").trim();
+        const firmaName = editor.ownerKind && editor.ownerKind !== "frei"
+          ? firmenOptionen(editor.ownerKind).find((f: any) => f.value === editor.ownerId)?.label || ""
+          : editor.ownerName || "";
+        const artVorschlaege = Array.from(new Set([...ARTEN, ...kategorien]));
+        return (
+          <div className="kt-huelle" style={{ zIndex: 65 }} onClick={editorSchliessen}>
+            <div onClick={(e) => e.stopPropagation()} className="card dm-fenster kt-fenster" style={{ width: 660 }}>
+              <div className="kt-held" style={{ ["--h" as any]: farbton(vorschauName), padding: "16px 20px" }}>
+                <Avatar k={{ ...editor, name: vorschauName }} />
+                <div style={{ flex: 1, minWidth: 0, paddingRight: 40 }}>
+                  <div className="muted" style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".05em" }}>
+                    {editor.id ? "Kontakt bearbeiten" : "Neuer Kontakt"}
+                  </div>
+                  <h2 style={{ fontSize: 19 }}>{vorschauName || <span className="muted" style={{ fontWeight: 500 }}>Name eingeben…</span>}</h2>
+                  {(editor.role || firmaName) && (
+                    <div className="muted" style={{ fontSize: 13 }}>{[editor.role, firmaName].filter(Boolean).join(" · ")}</div>
+                  )}
                 </div>
-                <div className="feld-zeile feld-zeile-2">
-                  <Feld label="Vorname" icon="user" wert={editor.firstName || ""} autoFocus
-                    setWert={(v) => setEditor({ ...editor, firstName: v })} />
-                  <Feld label="Nachname" icon="user" wert={editor.lastName || ""}
-                    setWert={(v) => setEditor({ ...editor, lastName: v })} />
+                <div className="kt-held-knoepfe">
+                  <button aria-label="Schließen" title="Schließen" onClick={editorSchliessen}><Icon name="x" size={17} /></button>
                 </div>
-                <Feld label="Funktion" icon="tag" wert={editor.role || ""} platzhalter="z. B. Einkauf"
-                  setWert={(v) => setEditor({ ...editor, role: v })} />
-              </section>
+              </div>
 
-              {/* ── Firma ── */}
-              <section style={{ display: "grid", gap: 10, borderTop: "1px solid var(--border)", paddingTop: 14 }}>
-                <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em",
-                                                display: "flex", alignItems: "center", gap: 6 }}>
-                  <Icon name="building" size={14} /> Firma
-                </div>
-                <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                  <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                    <Icon name="tag" size={14} /> Gehört zu
-                  </span>
-                  <SuchSelect
-                    value={editor.ownerKind || "frei"}
-                    onChange={(v) => setEditor({ ...editor, ownerKind: v, ownerId: "" })}
-                    platzhalter="Art wählen"
-                    options={[
-                      { value: "frei", label: "frei (keine Firma)" },
-                      { value: "customer", label: "Kunde" },
-                      { value: "supplier", label: "Lieferant" },
-                      { value: "organization", label: "Mandant" },
-                    ]}
-                  />
-                </label>
-                {editor.ownerKind && editor.ownerKind !== "frei" ? (
-                  <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                    <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                      <Icon name="building" size={14} /> Firma
-                    </span>
-                    <SuchSelect
-                      value={editor.ownerId || ""}
-                      onChange={(v) => setEditor({ ...editor, ownerId: v })}
-                      platzhalter="— Firma wählen —"
-                      suchePlatzhalter="Firma suchen…"
-                      options={firmenOptionen(editor.ownerKind)}
-                    />
-                  </label>
-                ) : (
-                  <Feld label="Firma / Shop (frei eingetragen)" icon="building" wert={editor.ownerName || ""}
-                    platzhalter="z. B. Elektro Meier, Vertretung Nord"
-                    hinweis="Kein Kundenstammsatz nötig – der Name steht nur an diesem Kontakt."
-                    setWert={(v) => setEditor({ ...editor, ownerName: v })} />
-                )}
-                <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                  <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                    <Icon name="tag" size={14} /> Art des Kontakts
-                  </span>
-                  <input className="input" list="kontaktarten" value={editor.category || ""}
-                    placeholder="z. B. Vertreter, Shop – frei wählbar"
-                    onChange={(e) => setEditor({ ...editor, category: e.target.value })} />
-                  <datalist id="kontaktarten">
-                    {Array.from(new Set([...ARTEN, ...kategorien])).map((k) => <option key={k} value={k} />)}
-                  </datalist>
-                </label>
-              </section>
+              <div className="kt-inhalt">
+                {/* ── Person ── */}
+                <section className="kt-abschnitt">
+                  <div className="kt-abschnitt-titel"><span className="ic"><Icon name="user" size={15} /></span> Person</div>
+                  <div className="feld-zeile feld-zeile-2">
+                    <Feld label="Vorname" icon="user" wert={editor.firstName || ""} autoFocus
+                      setWert={(v) => setEditor({ ...editor, firstName: v })} />
+                    <Feld label="Nachname" icon="user" wert={editor.lastName || ""}
+                      setWert={(v) => setEditor({ ...editor, lastName: v })} />
+                  </div>
+                  <Feld label="Funktion" icon="tag" wert={editor.role || ""} platzhalter="z. B. Einkauf"
+                    setWert={(v) => setEditor({ ...editor, role: v })} />
+                </section>
 
-              {/* ── Erreichbarkeit: beliebig viele E-Mails, Nummern, Webseiten ── */}
-              <section style={{ display: "grid", gap: 10, borderTop: "1px solid var(--border)", paddingTop: 14 }}>
-                <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em",
-                                                display: "flex", alignItems: "center", gap: 6 }}>
-                  <Icon name="mail" size={14} /> Erreichbarkeit
-                </div>
+                {/* ── Firma ── */}
+                <section className="kt-abschnitt">
+                  <div className="kt-abschnitt-titel"><span className="ic"><Icon name="building" size={15} /></span> Firma</div>
+                  <div className="kt-segment" role="tablist" aria-label="Gehört zu">
+                    {[["frei", "Ohne Firma"], ["customer", "Kunde"], ["supplier", "Lieferant"], ["organization", "Mandant"]].map(([w, l]) => (
+                      <button key={w} type="button" role="tab" aria-selected={(editor.ownerKind || "frei") === w}
+                        className={(editor.ownerKind || "frei") === w ? "an" : ""}
+                        onClick={() => setEditor({ ...editor, ownerKind: w, ownerId: "" })}>{l}</button>
+                    ))}
+                  </div>
+                  {editor.ownerKind && editor.ownerKind !== "frei" ? (
+                    <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
+                      <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        <Icon name="building" size={14} /> {ART_LABEL[editor.ownerKind]}
+                      </span>
+                      <SuchSelect
+                        value={editor.ownerId || ""}
+                        onChange={(v) => setEditor({ ...editor, ownerId: v })}
+                        platzhalter="— Firma wählen —"
+                        suchePlatzhalter="Firma suchen…"
+                        options={firmenOptionen(editor.ownerKind)}
+                      />
+                    </label>
+                  ) : (
+                    <Feld label="Firma / Shop (frei eingetragen)" icon="building" wert={editor.ownerName || ""}
+                      platzhalter="z. B. Elektro Meier, Vertretung Nord"
+                      hinweis="Kein Kundenstammsatz nötig – der Name steht nur an diesem Kontakt."
+                      setWert={(v) => setEditor({ ...editor, ownerName: v })} />
+                  )}
+                  <Feld label="Art des Kontakts" icon="tag" wert={editor.category || ""} kopierbar={false}
+                    platzhalter="frei wählbar oder unten antippen"
+                    setWert={(v) => setEditor({ ...editor, category: v })} />
+                  <div className="kt-chips" style={{ marginTop: -4 }}>
+                    {artVorschlaege.map((a) => (
+                      <button key={a} type="button" className={`kt-chip${(editor.category || "") === a ? " an" : ""}`}
+                        onClick={() => setEditor({ ...editor, category: (editor.category || "") === a ? "" : a })}>{a}</button>
+                    ))}
+                  </div>
+                </section>
 
-                {(editor.channels || []).map((k, i) => (
-                  <div key={i} style={{ display: "flex", gap: 6, alignItems: "flex-end", flexWrap: "wrap" }}>
-                    <div style={{ width: 150, flexShrink: 0 }}>
-                      <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
+                {/* ── Erreichbarkeit: beliebig viele E-Mails, Nummern, Webseiten ── */}
+                <section className="kt-abschnitt">
+                  <div className="kt-abschnitt-titel">
+                    <span className="ic"><Icon name="phone" size={15} /></span> Erreichbarkeit
+                    <small>erster Eintrag je Art = Hauptwert</small>
+                  </div>
+                  {(editor.channels || []).map((k, i) => (
+                    <div key={i} className="kt-kanal">
+                      <label className="k-art" style={{ fontSize: 13, display: "grid", gap: 4 }}>
                         <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                           <Icon name={KANAL[k.kind]?.icon || "mail"} size={14} /> Art
                         </span>
@@ -847,107 +963,108 @@ export default function ContactsPage() {
                           options={Object.entries(KANAL).map(([wert, d]) => ({ value: wert, label: d.label }))}
                         />
                       </label>
+                      <div className="k-wert" style={{ minWidth: 0 }}>
+                        <Feld label={KANAL[k.kind]?.label || "Wert"} icon={KANAL[k.kind]?.icon}
+                          typ={KANAL[k.kind]?.typ || "text"} wert={k.value}
+                          setWert={(v) => kanalSetzen(i, { value: v })} />
+                      </div>
+                      <div className="k-bez" style={{ minWidth: 0 }}>
+                        <Feld label="Bezeichnung" wert={k.label || ""} kopierbar={false}
+                          platzhalter="Zentrale, privat…" setWert={(v) => kanalSetzen(i, { label: v })} />
+                      </div>
+                      <button type="button" className="btn btn-icon btn-danger k-weg" title="Zeile entfernen"
+                        aria-label="Zeile entfernen" style={{ alignSelf: "end" }} onClick={() => kanalWeg(i)}>
+                        <Icon name="trash" size={14} />
+                      </button>
                     </div>
-                    <div style={{ flex: "2 1 220px", minWidth: 0 }}>
-                      <Feld label={KANAL[k.kind]?.label || "Wert"} icon={KANAL[k.kind]?.icon}
-                        typ={KANAL[k.kind]?.typ || "text"} wert={k.value}
-                        setWert={(v) => kanalSetzen(i, { value: v })} />
-                    </div>
-                    <div style={{ flex: "1 1 130px", minWidth: 0 }}>
-                      <Feld label="Bezeichnung" wert={k.label || ""} kopierbar={false}
-                        platzhalter="Zentrale, privat…" setWert={(v) => kanalSetzen(i, { label: v })} />
-                    </div>
-                    <button type="button" className="btn btn-icon btn-danger" title="Zeile entfernen"
-                      style={{ marginBottom: 1 }} onClick={() => kanalWeg(i)}>
-                      <Icon name="trash" size={14} />
-                    </button>
-                  </div>
-                ))}
-
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {Object.entries(KANAL).map(([wert, d]) => (
-                    <button key={wert} type="button" className="btn" onClick={() => kanalHinzu(wert)}>
-                      <Icon name="plus" size={14} /> {d.label}
-                    </button>
                   ))}
-                </div>
-                <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
-                  Beliebig viele Einträge je Art möglich. Der <b>erste</b> Eintrag je Art gilt als Hauptwert –
-                  nur er geht in den Abgleich mit kontor, clocker und ProjectEye.
-                </div>
-              </section>
+                  <div className="kt-chips">
+                    {Object.entries(KANAL).map(([wert, d]) => (
+                      <button key={wert} type="button" className="kt-chip" onClick={() => kanalHinzu(wert)}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                        <Icon name="plus" size={13} /> {d.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
+                    Nur der erste Eintrag je Art geht in den Abgleich mit kontor, clocker und ProjectEye.
+                  </div>
+                </section>
 
-              {/* ── Notiz und Schnellauswahl ── */}
-              <section style={{ display: "grid", gap: 10, borderTop: "1px solid var(--border)", paddingTop: 14 }}>
-                <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                  <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                    <Icon name="file-text" size={14} /> Notiz
-                  </span>
-                  <textarea className="input" rows={3} value={editor.notes || ""}
+                {/* ── Notiz und Favorit ── */}
+                <section className="kt-abschnitt">
+                  <div className="kt-abschnitt-titel"><span className="ic"><Icon name="file-text" size={15} /></span> Notiz</div>
+                  <textarea className="input" rows={3} value={editor.notes || ""} placeholder="Was man zu diesem Kontakt wissen sollte…"
                     onChange={(e) => setEditor({ ...editor, notes: e.target.value })} />
-                </label>
-                <label style={{ fontSize: 13.5, display: "flex", alignItems: "center", gap: 8 }}>
-                  <input type="checkbox" checked={!!editor.favorite}
-                    onChange={(e) => setEditor({ ...editor, favorite: e.target.checked })} />
-                  In die Schnellauswahl aufnehmen
-                </label>
-              </section>
+                  <button type="button" className={`kt-schalter${editor.favorite ? " an" : ""}`} role="switch" aria-checked={!!editor.favorite}
+                    onClick={() => setEditor({ ...editor, favorite: !editor.favorite })}>
+                    <i /> <Icon name="star" size={15} style={{ color: "#f59e0b", fill: editor.favorite ? "#f59e0b" : "none" }} />
+                    Als Favorit oben anzeigen
+                  </button>
+                </section>
 
-              {/* ── Private Angaben – zugeklappt; bleiben ausschließlich in Nexus ── */}
-              <section style={{ borderTop: "1px solid var(--border)", paddingTop: 14, display: "grid", gap: 10 }}>
-                <button type="button" className="btn" onClick={() => setPrivatOffen((v) => !v)} style={{ justifySelf: "start" }}>
-                  <Icon name="lock" /> Private Angaben {privatOffen ? "ausblenden" : "hinterlegen"}
+                {/* ── Private Angaben – zugeklappt; bleiben ausschließlich in Nexus ── */}
+                <section className="kt-abschnitt">
+                  <button type="button" className="kt-abschnitt-titel" onClick={() => setPrivatOffen((v) => !v)}
+                    style={{ border: 0, background: "transparent", color: "var(--fg)", cursor: "pointer", padding: 0, width: "100%", textAlign: "left" }}>
+                    <span className="ic"><Icon name="lock" size={15} /></span> Private Angaben
+                    <small style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      bleiben nur in Nexus
+                      <Icon name="chevron-down" size={14} style={{ transform: privatOffen ? "rotate(180deg)" : undefined, transition: "transform .2s" }} />
+                    </small>
+                  </button>
+                  {privatOffen && (
+                    <>
+                      <div className="feld-zeile feld-zeile-2">
+                        <Feld label="Telefon privat" icon="phone" typ="tel" wert={editor.privatePhone || ""}
+                          setWert={(v) => setEditor({ ...editor, privatePhone: v })} />
+                        <Feld label="Mobil privat" icon="smartphone" typ="tel" wert={editor.privateMobile || ""}
+                          setWert={(v) => setEditor({ ...editor, privateMobile: v })} />
+                      </div>
+                      <Feld label="E-Mail privat" icon="mail" typ="email" wert={editor.privateEmail || ""}
+                        setWert={(v) => setEditor({ ...editor, privateEmail: v })} />
+                      <Feld label="Straße und Hausnummer (privat)" icon="home" wert={editor.privateStreet || ""}
+                        setWert={(v) => setEditor({ ...editor, privateStreet: v })} />
+                      <div className="feld-zeile feld-zeile-2">
+                        <Feld label="PLZ" icon="home" wert={editor.privateZip || ""}
+                          setWert={(v) => setEditor({ ...editor, privateZip: v })} />
+                        <Feld label="Ort" icon="home" wert={editor.privateCity || ""}
+                          setWert={(v) => setEditor({ ...editor, privateCity: v })} />
+                      </div>
+                      <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
+                        <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                          <Icon name="calendar" size={14} /> Geburtstag
+                        </span>
+                        <input className="input" type="date" value={editor.birthday ? String(editor.birthday).slice(0, 10) : ""}
+                          onChange={(e) => setEditor({ ...editor, birthday: e.target.value ? new Date(e.target.value).toISOString() : null })} />
+                      </label>
+                      <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
+                        <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                          <Icon name="file-text" size={14} /> Notiz privat
+                        </span>
+                        <textarea className="input" rows={3} value={editor.privateNotes || ""}
+                          onChange={(e) => setEditor({ ...editor, privateNotes: e.target.value })} />
+                      </label>
+                    </>
+                  )}
+                </section>
+
+                {dialogFehler && <div className="kt-fehler" role="alert"><Icon name="alert" size={16} /> {dialogFehler}</div>}
+              </div>
+
+              <div className="kt-fuss">
+                <span className="muted only-desktop" style={{ fontSize: 12, marginRight: "auto" }}>
+                  Eingaben werden laufend als Entwurf gesichert.
+                </span>
+                <button className="btn" onClick={editorSchliessen} disabled={speichert}>Abbrechen</button>
+                <button className="btn btn-primary" onClick={speichern} disabled={speichert}>
+                  {speichert ? <span className="speichern-dreh" /> : <Icon name="save" />} {speichert ? "Speichert…" : "Speichern"}
                 </button>
-                {privatOffen && (
-                  <>
-                    <div className="feld-zeile feld-zeile-2">
-                      <Feld label="Telefon privat" icon="phone" typ="tel" wert={editor.privatePhone || ""}
-                        setWert={(v) => setEditor({ ...editor, privatePhone: v })} />
-                      <Feld label="Mobil privat" icon="smartphone" typ="tel" wert={editor.privateMobile || ""}
-                        setWert={(v) => setEditor({ ...editor, privateMobile: v })} />
-                    </div>
-                    <Feld label="E-Mail privat" icon="mail" typ="email" wert={editor.privateEmail || ""}
-                      setWert={(v) => setEditor({ ...editor, privateEmail: v })} />
-                    <Feld label="Straße und Hausnummer (privat)" icon="home" wert={editor.privateStreet || ""}
-                      setWert={(v) => setEditor({ ...editor, privateStreet: v })} />
-                    <div className="feld-zeile feld-zeile-2">
-                      <Feld label="PLZ" icon="home" wert={editor.privateZip || ""}
-                        setWert={(v) => setEditor({ ...editor, privateZip: v })} />
-                      <Feld label="Ort" icon="home" wert={editor.privateCity || ""}
-                        setWert={(v) => setEditor({ ...editor, privateCity: v })} />
-                    </div>
-                    <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                      <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                        <Icon name="calendar" size={14} /> Geburtstag
-                      </span>
-                      <input className="input" type="date" value={editor.birthday ? String(editor.birthday).slice(0, 10) : ""}
-                        onChange={(e) => setEditor({ ...editor, birthday: e.target.value ? new Date(e.target.value).toISOString() : null })} />
-                    </label>
-                    <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                      <span className="muted">Notiz privat</span>
-                      <textarea className="input" rows={3} value={editor.privateNotes || ""}
-                        onChange={(e) => setEditor({ ...editor, privateNotes: e.target.value })} />
-                    </label>
-                    <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
-                      Diese Angaben bleiben <b>ausschließlich in Nexus</b> – der Abgleich überträgt nur die
-                      geschäftlichen Felder.
-                    </div>
-                  </>
-                )}
-              </section>
-            </div>
-
-            <div style={{ padding: "12px 20px", borderTop: "1px solid var(--border)", display: "flex", gap: 8,
-                          justifyContent: "flex-end", alignItems: "center", flexWrap: "wrap" }}>
-              <span className="muted" style={{ fontSize: 12, marginRight: "auto" }}>
-                Eingaben werden laufend als Entwurf gesichert.
-              </span>
-              <button className="btn" onClick={editorSchliessen}>Abbrechen</button>
-              <button className="btn btn-primary" onClick={speichern}><Icon name="save" /> Speichern</button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ── Gefundener Entwurf: weitermachen oder verwerfen ── */}
       {entwurfFrage && (

@@ -1156,3 +1156,9 @@
 - Zahlenabgleich: PC zeigt Zahl, Pop-up (`components/AnmeldeAnfragen.tsx` im (app)-Layout, fragt `/api/auth/qr/offen` alle 3 s) bietet 3 Zahlen + „Nein“. Falsche Zahl = abgelehnt. Freigabe nur durch die angefragte Identität.
 - Anmeldeseite: Knopf „Ohne Passwort – auf anderem Gerät bestätigen“ (`components/BestaetigungWarten.tsx`).
 - xDRAW: Server `auth/anfrage` + `NX.anfrage` (8a0f655); Oberfläche übernimmt die xDRAW-Session (baut NexusAnmeldung.jsx gerade um). Alle App-Sessions informiert (nachrichten.md).
+
+## 2026-10-28 – Kontakte modern überarbeitet
+- `contacts/page.tsx`: Karten mit Initialen-Avatar (Farbe je Name), A–Z-Gruppen nach Nachname, Favoriten als Avatar-Leiste, Filter als Segment mit Anzahl, Arten als Chips, leerer Zustand.
+- Anrufen: Nummern sind `tel:`-Links (Karte: „Anrufen“, Ansicht: Schnellkacheln Anrufen/Mobil/E-Mail/Webseite + grüner Anrufknopf je Nummer, auch bei Kollegen der Firma und privaten Nummern).
+- Bearbeiten: Kopf mit Live-Vorschau, Abschnitte als Karten, „Gehört zu“ als Segment, Art per Chips, Favorit als Schalter, Speichern mit Kreisel und Fehler im Dialog.
+- `Icon.tsx`: neue Symbole `star`, `globe`; CSS `kt-*` in globals.css.
