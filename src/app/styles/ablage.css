@@ -1,1 +1,175 @@
 /* Moderne Gestaltung – Bereich ablage (Präfix .abl-). Nur Klassen mit diesem Präfix. */
+/* Gilt für: Dokumente (Vorlagen + Mitarbeiter-Akten), MitarbeiterAkte, Betriebsakte. */
+
+/* ---- Seitenkopf ---- */
+.abl-kopf { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.abl-kopf-text { flex: 1 1 260px; min-width: 0; }
+.abl-kopf-aktionen { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+
+/* ---- Bedienfeld (Auswahl + Ablage-Knöpfe) ---- */
+.abl-panel { padding: 16px; display: grid; gap: 14px; }
+.abl-panel-titel { display: flex; align-items: center; gap: 10px; font-size: 14.5px; font-weight: 700; }
+.abl-panel-titel .abl-ic { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; flex-shrink: 0;
+  background: var(--accent-weich); color: var(--accent); }
+.abl-panel-titel small { font-weight: 500; font-size: 12px; color: var(--muted); }
+.abl-label { font-size: 13px; display: grid; gap: 5px; min-width: 0; }
+.abl-label > span:first-child { color: var(--muted); display: inline-flex; align-items: center; gap: 6px; font-weight: 550; }
+.abl-werkzeuge { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.abl-werkzeuge .abl-trenner { width: 1px; align-self: stretch; background: var(--border); margin: 2px 2px; }
+.abl-hinweis { font-size: 12.5px; line-height: 1.55; color: var(--muted); display: flex; gap: 8px; align-items: flex-start;
+  padding: 10px 12px; border-radius: 10px; background: var(--flaeche); }
+.abl-hinweis > :first-child { flex-shrink: 0; margin-top: 1px; }
+.abl-hinweis.warn { background: color-mix(in srgb, var(--gelb) 12%, transparent); color: var(--fg); }
+.abl-status { font-size: 12.5px; display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.abl-status.warn { color: #b45309; } .dark .abl-status.warn { color: #fbbf24; }
+.abl-status.ok { color: var(--accent); }
+
+/* ---- Akte: Kopf mit Name und Aktionen ---- */
+.abl-akte { display: grid; gap: 12px; }
+.abl-akte-kopf { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 16px; }
+.abl-akte-kopf h2 { font-size: 16px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
+.abl-akte-kopf .abl-akte-ic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; flex-shrink: 0;
+  background: var(--accent-weich); color: var(--accent); }
+.abl-akte-kopf .abl-kopf-aktionen { margin-left: auto; }
+.abl-neu-rubrik { display: flex; gap: 8px; flex-wrap: wrap; padding: 0 16px 14px; }
+
+/* ---- Rubrik: Karte mit Kopf ---- */
+.abl-rubrik { border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: var(--card); box-shadow: var(--schatten-1); }
+.abl-rubrik-kopf { display: flex; align-items: center; gap: 10px; padding: 10px 12px; flex-wrap: wrap;
+  background: color-mix(in srgb, var(--fg) 2.5%, var(--card)); }
+.abl-rubrik.offen .abl-rubrik-kopf { border-bottom: 1px solid var(--border); }
+.abl-rubrik-schalter { display: flex; align-items: center; gap: 10px; flex: 1 1 200px; min-width: 0; border: 0; background: transparent;
+  color: var(--fg); cursor: pointer; padding: 4px 2px; text-align: left; font: inherit; min-height: 40px; border-radius: 10px; }
+.abl-rubrik-schalter:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+.abl-rubrik-schalter .abl-pfeil { display: inline-flex; color: var(--muted); transition: transform .15s; flex-shrink: 0; }
+.abl-rubrik:not(.offen) .abl-pfeil { transform: rotate(-90deg); }
+.abl-rubrik-ic { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; flex-shrink: 0;
+  background: color-mix(in srgb, var(--gelb) 18%, transparent); color: #b45309; }
+.dark .abl-rubrik-ic { color: #fbbf24; }
+.abl-rubrik.ohne .abl-rubrik-ic { background: var(--flaeche); color: var(--muted); }
+.abl-rubrik-name { font-weight: 650; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.abl-rubrik-zahl { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.abl-rubrik-werkzeuge { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+.abl-rubrik-werkzeuge .btn { border-color: transparent; background: transparent; box-shadow: none; min-width: 36px; min-height: 36px;
+  justify-content: center; }
+.abl-rubrik-werkzeuge .btn:hover { background: var(--flaeche); border-color: transparent; }
+.abl-rubrik-leer { padding: 18px 16px; font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+
+/* ---- Dokumentzeile (Dateiverwaltung) ---- */
+.abl-liste { display: grid; }
+.abl-zeile { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto auto; gap: 4px 14px; align-items: center;
+  padding: 10px 14px; border-top: 1px solid var(--border); transition: background .12s; }
+.abl-liste > .abl-zeile:first-child { border-top: 0; }
+.abl-zeile:hover { background: color-mix(in srgb, var(--accent) 4%, transparent); }
+.abl-zeile.einzeln { border: 1px solid var(--border); border-radius: 12px; background: var(--card); }
+.abl-zeile.einzeln:hover { background: color-mix(in srgb, var(--accent) 4%, var(--card)); }
+.abl-datei { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; position: relative; flex-shrink: 0;
+  background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
+.abl-datei.pdf { background: color-mix(in srgb, var(--rot) 12%, transparent); color: #dc2626; }
+.abl-datei.bild { background: color-mix(in srgb, var(--gruen) 14%, transparent); color: #059669; }
+.dark .abl-datei.pdf { color: #f87171; } .dark .abl-datei.bild { color: #34d399; }
+.abl-datei-typ { position: absolute; bottom: -4px; right: -6px; font-size: 8.5px; font-weight: 800; letter-spacing: .03em;
+  padding: 1px 4px; border-radius: 5px; background: var(--card); border: 1px solid var(--border); color: inherit; line-height: 1.2; }
+.abl-haupt { min-width: 0; display: grid; gap: 3px; }
+.abl-titel { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; min-width: 0; }
+.abl-titel b { font-weight: 650; font-size: 14px; overflow-wrap: anywhere; }
+.abl-meta { font-size: 12px; color: var(--muted); display: flex; gap: 4px 10px; flex-wrap: wrap; align-items: center; min-width: 0; }
+.abl-meta span { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
+.abl-meta .abl-dateiname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; display: block; }
+.abl-notiz-text { font-size: 12.5px; color: var(--muted); white-space: pre-wrap; border-left: 2px solid var(--border);
+  padding-left: 8px; margin-top: 2px; overflow-wrap: anywhere; }
+.abl-verschieben { width: 200px; min-width: 0; }
+
+/* Aktionen gebündelt als Knopfgruppe */
+.abl-aktionen { display: inline-flex; align-items: stretch; border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+  background: var(--card); flex-shrink: 0; }
+.abl-aktionen > button, .abl-aktionen > label { border: 0; border-left: 1px solid var(--border); background: transparent; color: var(--fg);
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 10px; min-height: 36px;
+  min-width: 38px; font-size: 13px; font-weight: 550; font-family: inherit; transition: background .12s, color .12s; }
+.abl-aktionen > :first-child { border-left: 0; }
+.abl-aktionen > button:hover, .abl-aktionen > label:hover { background: var(--flaeche); }
+.abl-aktionen > button:focus-visible { outline: none; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent); }
+.abl-aktionen > button:disabled { opacity: .45; cursor: default; }
+.abl-aktionen > .abl-haupt-aktion { color: var(--accent); font-weight: 650; }
+.abl-aktionen > .abl-weg:hover { color: var(--rot); background: color-mix(in srgb, var(--rot) 8%, transparent); }
+
+/* ---- Notizkarte in der Akte ---- */
+.abl-notiz { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 4px 14px; align-items: start; padding: 12px 14px;
+  border-top: 1px solid var(--border); background: color-mix(in srgb, var(--gelb) 5%, transparent); }
+.abl-liste > .abl-notiz:first-child { border-top: 0; }
+.abl-notiz .abl-datei { background: color-mix(in srgb, var(--gelb) 18%, transparent); color: #b45309; }
+.dark .abl-notiz .abl-datei { color: #fbbf24; }
+.abl-notiz-inhalt { font-size: 13.5px; white-space: pre-wrap; line-height: 1.5; overflow-wrap: anywhere; }
+
+/* ---- Vorlagen-Liste im Fenster ---- */
+.abl-vorlage { border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: grid; gap: 10px;
+  background: var(--card); transition: border-color .15s, background .15s; cursor: pointer; }
+.abl-vorlage:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
+.abl-vorlage.an { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 5%, var(--card));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent); }
+.abl-vorlage-kopf { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; align-items: center; }
+.abl-auswahl { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); display: grid; place-items: center;
+  color: #fff; flex-shrink: 0; }
+.abl-vorlage.an .abl-auswahl { background: var(--accent); border-color: var(--accent); }
+.abl-vorlage .abl-aktionen { justify-self: start; flex-wrap: wrap; max-width: 100%; }
+.abl-fenster-liste { display: grid; gap: 10px; }
+
+/* ---- Zeitstrahl ---- */
+.abl-zeit { display: grid; gap: 22px; padding: 16px; }
+.abl-zeit-monat { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.abl-zeit-monat b { font-size: 14.5px; font-weight: 700; }
+.abl-zeit-spur { position: relative; padding-left: 26px; display: grid; gap: 8px; }
+.abl-zeit-spur::before { content: ""; position: absolute; left: 8px; top: 6px; bottom: 6px; width: 2px; border-radius: 2px;
+  background: color-mix(in srgb, var(--accent) 25%, var(--border)); }
+.abl-zeit-punkt { position: relative; }
+.abl-zeit-punkt::before { content: ""; position: absolute; left: -23px; top: 24px; width: 12px; height: 12px; border-radius: 50%;
+  background: var(--accent); border: 3px solid var(--card); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent); }
+
+/* ---- Fenster (Pop-ups) ---- */
+.abl-fenster-kopf { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+.abl-fenster-kopf h2 { font-size: 17px; font-weight: 700; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.abl-fenster-kopf .abl-ic { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0;
+  background: var(--accent-weich); color: var(--accent); }
+.abl-fenster-kopf small { display: block; font-size: 12px; color: var(--muted); font-weight: 500; }
+
+/* ---- Handy ---- */
+@media (max-width: 768px) {
+  .abl-kopf { gap: 10px; }
+  .abl-kopf-text { flex-basis: 100%; }
+  .abl-kopf-aktionen { width: 100%; justify-content: flex-end; }
+  .abl-panel { padding: 14px; }
+  .abl-werkzeuge .btn { flex: 1 1 calc(50% - 8px); justify-content: center; min-height: 42px; }
+  .abl-werkzeuge .abl-trenner { display: none; }
+  .abl-werkzeuge .abl-status { flex-basis: 100%; }
+  .abl-akte-kopf { padding: 12px 14px; }
+  .abl-akte-kopf .abl-kopf-aktionen { width: auto; }
+  .abl-neu-rubrik { padding: 0 14px 12px; }
+  .abl-neu-rubrik .btn { min-height: 42px; }
+
+  .abl-rubrik-kopf { padding: 8px 10px; }
+  .abl-rubrik-schalter { flex-basis: 100%; }
+  .abl-rubrik-werkzeuge { margin-left: 0; width: 100%; justify-content: flex-end; border-top: 1px dashed var(--border); padding-top: 6px; }
+  .abl-rubrik-werkzeuge .btn { min-width: 42px; min-height: 42px; }
+
+  /* Zeilen werden Karten: Symbol + Titel oben, Aktionen über die ganze Breite */
+  .abl-liste { gap: 10px; padding: 10px; }
+  .abl-zeile, .abl-notiz { grid-template-columns: 40px minmax(0, 1fr); border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px; background: var(--card); }
+  .abl-liste > .abl-zeile:first-child, .abl-liste > .abl-notiz:first-child { border-top: 1px solid var(--border); }
+  .abl-notiz { background: color-mix(in srgb, var(--gelb) 6%, var(--card)); }
+  .abl-zeile > .abl-verschieben, .abl-zeile > .abl-aktionen, .abl-notiz > .abl-aktionen { grid-column: 1 / -1; }
+  .abl-verschieben { width: 100%; }
+  .abl-aktionen { display: flex; width: 100%; }
+  .abl-aktionen > button, .abl-aktionen > label { flex: 1; min-height: 44px; }
+  .abl-vorlage-kopf { grid-template-columns: 40px minmax(0, 1fr) auto; }
+  .abl-zeit { padding: 12px; }
+  .abl-zeit-spur { padding-left: 20px; }
+  .abl-zeit-spur::before { left: 5px; }
+  .abl-zeit-punkt::before { left: -20px; top: 22px; }
+  .abl-fenster-kopf { padding: calc(12px + env(safe-area-inset-top)) 16px 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .abl-rubrik-schalter .abl-pfeil, .abl-zeile, .abl-vorlage { transition: none; } }
+
+/* Zeile ohne Rubrik-Auswahl (Betriebsakte): nur Symbol, Inhalt, Aktionen */
+.abl-zeile.drei { grid-template-columns: 40px minmax(0, 1fr) auto; }
+@media (max-width: 768px) { .abl-zeile.drei { grid-template-columns: 40px minmax(0, 1fr); } }
