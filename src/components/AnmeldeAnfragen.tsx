@@ -62,30 +62,28 @@ export default function AnmeldeAnfragen() {
   return (
     <>
       {a && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 9000, background: "rgba(0,0,0,.45)", display: "grid", placeItems: "center", padding: 16 }}>
-          <div className="card" role="alertdialog" aria-label="Anmelde-Anfrage" style={{ width: 400, maxWidth: "100%", boxSizing: "border-box", borderRadius: 18, padding: "22px 20px 18px", display: "grid", gap: 14, textAlign: "center" }}>
-            <div style={{ justifySelf: "center", width: 52, height: 52, borderRadius: 16, display: "grid", placeItems: "center", color: "#fff", background: "linear-gradient(135deg,#3b82f6,#6366f1)" }}><Icon name="lock" size={26} /></div>
-            <div style={{ fontSize: 18, fontWeight: 800 }}>Ein Gerät möchte sich anmelden</div>
-            <div style={{ display: "grid", gap: 4, fontSize: 14, padding: "10px 12px", borderRadius: 12, background: "color-mix(in srgb, var(--fg) 5%, transparent)" }}>
+        <div className="aa-huelle">
+          <div className="card aa-karte" role="alertdialog" aria-label="Anmelde-Anfrage">
+            <div className="aa-symbol"><Icon name="lock" size={26} /></div>
+            <div style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.25 }}>Ein Gerät möchte sich anmelden</div>
+            <div className="aa-geraet">
               <div><b>{a.appName}</b> · {a.geraet}</div>
               <div className="muted">IP {a.ip}</div>
             </div>
-            <div style={{ fontSize: 14 }}>Warst du das? Dann tippe die Zahl, die <b>auf dem Gerät</b> angezeigt wird:</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+            <div style={{ fontSize: 14, lineHeight: 1.45 }}>Warst du das? Dann tippe die Zahl, die <b>auf dem Gerät</b> angezeigt wird:</div>
+            <div className="aa-zahlen">
               {a.auswahl.map((z) => (
-                <button key={z} disabled={laeuft} onClick={() => antworten(z)} className="btn"
-                  style={{ height: 64, fontSize: 26, fontWeight: 800, justifyContent: "center", borderRadius: 14 }}>{z}</button>
+                <button key={z} disabled={laeuft} onClick={() => antworten(z)} className="btn">{z}</button>
               ))}
             </div>
-            <button disabled={laeuft} onClick={() => antworten(null)} className="btn" style={{ justifyContent: "center", color: "#ef4444" }}>
+            <button disabled={laeuft} onClick={() => antworten(null)} className="btn aa-nein">
               <Icon name="x" size={16} /> Nein, das war ich nicht
             </button>
           </div>
         </div>
       )}
       {meldung && (
-        <div role="status" style={{ position: "fixed", left: "50%", bottom: 24, transform: "translateX(-50%)", zIndex: 9001, padding: "10px 16px", borderRadius: 12, color: "#fff", fontSize: 14, fontWeight: 600,
-          background: meldung.ok ? "#16a34a" : "#ef4444", boxShadow: "0 10px 30px rgba(0,0,0,.3)", maxWidth: "calc(100% - 32px)" }}>{meldung.text}</div>
+        <div role="status" className="aa-meldung" style={{ background: meldung.ok ? "#16a34a" : "#ef4444" }}>{meldung.text}</div>
       )}
     </>
   );

@@ -625,3 +625,27 @@ mark.treffer {
   .kt-held-knoepfe { top: calc(12px + env(safe-area-inset-top)); }
 }
 @media (prefers-reduced-motion: reduce) { .kt-karte, .kt-fenster, .kt-huelle, .kt-meldung { animation: none; transition: none; } }
+
+/* ---- Anmelde-Anfrage „Ein Gerät möchte sich anmelden" (src/components/AnmeldeAnfragen.tsx) ---- */
+.aa-huelle { position: fixed; inset: 0; z-index: 9000; background: rgba(0,0,0,.45); display: flex; align-items: center;
+  justify-content: center; padding: 16px; box-sizing: border-box; }
+.aa-karte { width: 100%; max-width: 400px; box-sizing: border-box; border-radius: 18px !important; padding: 22px 20px 18px;
+  display: grid; gap: 14px; text-align: center; box-shadow: 0 24px 60px rgba(0,0,0,.35); animation: aa-auf .22s cubic-bezier(.2,.8,.2,1); }
+.aa-karte > * { min-width: 0; }
+.aa-symbol { justify-self: center; width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; color: #fff;
+  background: linear-gradient(135deg, #3b82f6, #6366f1); }
+.aa-geraet { display: grid; gap: 4px; font-size: 14px; padding: 10px 12px; border-radius: 12px; overflow-wrap: anywhere;
+  background: color-mix(in srgb, var(--fg) 5%, transparent); }
+.aa-zahlen { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.aa-zahlen .btn { height: 64px; font-size: 26px; font-weight: 800; justify-content: center; border-radius: 14px; padding: 0; }
+.aa-nein { justify-content: center; color: #ef4444; white-space: normal; min-height: 46px; }
+.aa-meldung { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 9001;
+  padding: 10px 16px; border-radius: 12px; color: #fff; font-size: 14px; font-weight: 600; text-align: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,.3); width: max-content; max-width: calc(100% - 32px); box-sizing: border-box; }
+@keyframes aa-auf { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@media (max-width: 768px) {
+  /* Handy: Karte unten mit Abstand zum Rand – in Daumenreichweite, nichts läuft über */
+  .aa-huelle { align-items: flex-end; padding: 12px 12px calc(12px + env(safe-area-inset-bottom)); }
+  .aa-karte { max-width: none; border-radius: 22px !important; padding: 20px 16px 16px; }
+  .aa-zahlen .btn { height: 70px; }
+}
