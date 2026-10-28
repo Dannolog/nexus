@@ -10,25 +10,45 @@ import SitzungsWaechter from "@/components/SitzungsWaechter";
 import NavLoader from "@/components/NavLoader";
 import AnmeldeAnfragen from "@/components/AnmeldeAnfragen";
 
-const NAV = [
-  { href: "/", label: "Übersicht", icon: "home" },
-  { href: "/customers", label: "Kunden", icon: "users" },
-  { href: "/contacts", label: "Kontakte", icon: "id-card" },
-  { href: "/projects", label: "Projekte", icon: "folder" },
-  { href: "/products", label: "Artikel", icon: "package" },
-  { href: "/tasks", label: "Aufgaben", icon: "tasks" },
-  { href: "/employees", label: "Mitarbeiter", icon: "user" },
-  { href: "/visitenkarten", label: "Visitenkarten", icon: "id-card" },
-  { href: "/suppliers", label: "Lieferanten", icon: "truck" },
-  { href: "/contracts", label: "Arbeitsverträge", icon: "file-text" },
-  { href: "/documents", label: "Dokumente", icon: "archive" },
-  { href: "/scan", label: "Scannen", icon: "printer" },
-  { href: "/organizations", label: "Mandanten", icon: "building" },
-  { href: "/betriebsakte", label: "Betriebsakte", icon: "folder" },
-  { href: "/identities", label: "Userverwaltung", icon: "shield" },
-  { href: "/backups", label: "Datensicherung", icon: "archive" },
-  { href: "/history", label: "Verlauf (Undo/Redo)", icon: "history" },
+/** Menü in Gruppen – so findet man Stammdaten, Personal, Ablage und System auf einen Blick. */
+const GRUPPEN: { titel: string; eintraege: { href: string; label: string; icon: string }[] }[] = [
+  { titel: "", eintraege: [{ href: "/", label: "Übersicht", icon: "home" }] },
+  { titel: "Stammdaten", eintraege: [
+    { href: "/customers", label: "Kunden", icon: "users" },
+    { href: "/contacts", label: "Kontakte", icon: "id-card" },
+    { href: "/suppliers", label: "Lieferanten", icon: "truck" },
+    { href: "/products", label: "Artikel", icon: "package" },
+    { href: "/projects", label: "Projekte", icon: "folder" },
+    { href: "/tasks", label: "Aufgaben", icon: "tasks" },
+  ] },
+  { titel: "Personal", eintraege: [
+    { href: "/employees", label: "Mitarbeiter", icon: "user" },
+    { href: "/contracts", label: "Arbeitsverträge", icon: "file-text" },
+    { href: "/visitenkarten", label: "Visitenkarten", icon: "id-card" },
+  ] },
+  { titel: "Ablage", eintraege: [
+    { href: "/documents", label: "Dokumente", icon: "archive" },
+    { href: "/scan", label: "Scannen", icon: "printer" },
+    { href: "/betriebsakte", label: "Betriebsakte", icon: "folder" },
+    { href: "/organizations", label: "Mandanten", icon: "building" },
+  ] },
+  { titel: "System", eintraege: [
+    { href: "/identities", label: "Userverwaltung", icon: "shield" },
+    { href: "/backups", label: "Datensicherung", icon: "save" },
+    { href: "/history", label: "Verlauf", icon: "history" },
+  ] },
 ];
+const NAV = GRUPPEN.flatMap((g) => g.eintraege);
+
+/** Untere Leiste auf dem Handy: die meistgenutzten Bereiche plus „Mehr“ für das ganze Menü. */
+const TABS = [
+  { href: "/", label: "Start", icon: "home" },
+  { href: "/contacts", label: "Kontakte", icon: "id-card" },
+  { href: "/customers", label: "Kunden", icon: "users" },
+  { href: "/employees", label: "Personal", icon: "user" },
+];
+
+const istAktiv = (href: string, pfad: string) => (href === "/" ? pfad === "/" : pfad.startsWith(href));
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null);
@@ -130,54 +150,61 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      {/* Mobile Topbar mit Logo + Hamburger */}
+      {/* Handy: Kopfleiste mit Seitentitel und Suche */}
       <header className="topbar">
-        <button onClick={() => setMenuOpen(true)} aria-label="Menü öffnen"
-          style={{ display: "inline-flex", border: 0, background: "transparent", color: "var(--fg)", cursor: "pointer", padding: 4 }}>
-          <Icon name="menu" size={24} />
-        </button>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, fontSize: 18 }}>
-          <AppLogo size={24} /> Nexus
+        <button className="topbar-knopf" onClick={() => setMenuOpen(true)} aria-label="Menü öffnen"><Icon name="menu" size={22} /></button>
+        <div className="topbar-titel">
+          <AppLogo size={22} />
+          <span>{NAV.find((n) => istAktiv(n.href, pathname))?.label || "Nexus"}</span>
         </div>
+        <button className="topbar-knopf" aria-label="Suchen" onClick={() => window.dispatchEvent(new Event("open-command-palette"))}>
+          <Icon name="search" size={20} />
+        </button>
       </header>
 
       {/* Overlay (mobil, schließt das Menü) */}
       <div className={"sidebar-overlay" + (menuOpen ? " open" : "")} onClick={() => setMenuOpen(false)} />
 
-      <aside className={"sidebar" + (menuOpen ? " open" : "")} style={{ background: "var(--card)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 700, fontSize: 20, padding: "4px 8px 12px" }}>
-          <AppLogo size={28} /> Nexus
+      <aside className={"sidebar" + (menuOpen ? " open" : "")}>
+        <div className="sidebar-marke">
+          <AppLogo size={30} /> <span>Nexus</span>
           <button className="sidebar-close" onClick={() => setMenuOpen(false)} aria-label="Menü schließen"
             style={{ marginLeft: "auto", border: 0, background: "transparent", color: "var(--fg)", cursor: "pointer", padding: 4 }}>
             <Icon name="x" size={20} />
           </button>
         </div>
-        <button
-          onClick={() => window.dispatchEvent(new Event("open-command-palette"))}
-          style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", marginBottom: 8, borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--muted)", cursor: "pointer", fontSize: 13 }}
-        >
+        <button className="sidebar-suche" onClick={() => window.dispatchEvent(new Event("open-command-palette"))}>
           <Icon name="search" size={15} />
           <span style={{ flex: 1, textAlign: "left" }}>Suchen…</span>
-          <kbd style={{ fontSize: 11, padding: "1px 5px", borderRadius: 5, border: "1px solid var(--border)" }}>⌘K</kbd>
+          <kbd>⌘K</kbd>
         </button>
-        {NAV.map((n) => {
-          const active = n.href === "/" ? pathname === "/" : pathname.startsWith(n.href);
-          return (
-            <Link key={n.href} href={n.href}
-              style={{ padding: "8px 10px", borderRadius: 8, fontSize: 14,
-                background: active ? "var(--accent)" : "transparent",
-                color: active ? "#fff" : "var(--fg)", textDecoration: "none",
-                display: "flex", alignItems: "center", gap: 8 }}>
-              <Icon name={n.icon} size={18} />{n.label}
-            </Link>
-          );
-        })}
-        <div className="sidebar-fuss" style={{ marginTop: "auto", display: "grid", gap: 8, paddingTop: 12 }}>
-          <button className="btn" onClick={toggleTheme}><Icon name="moon" /> Theme</button>
-          <div className="muted" style={{ fontSize: 12, padding: "0 4px", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {user?.name} ({user?.globalRole})
+        <nav className="sidebar-nav">
+          {GRUPPEN.map((g) => (
+            <div key={g.titel || "start"} className="nav-gruppe">
+              {g.titel && <div className="nav-gruppe-titel">{g.titel}</div>}
+              {g.eintraege.map((n) => (
+                <Link key={n.href} href={n.href} className={"nav-eintrag" + (istAktiv(n.href, pathname) ? " aktiv" : "")}
+                  aria-current={istAktiv(n.href, pathname) ? "page" : undefined}>
+                  <Icon name={n.icon} size={17} /><span>{n.label}</span>
+                </Link>
+              ))}
+            </div>
+          ))}
+        </nav>
+        <div className="sidebar-fuss">
+          <div className="nutzer-karte">
+            <span className="nutzer-avatar">{String(user?.name || "?").trim().split(/\s+/).map((t: string) => t[0]).slice(0, 2).join("").toUpperCase()}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="nutzer-name">{user?.name}</div>
+              <div className="nutzer-rolle">{user?.globalRole === "admin" ? "Administrator" : "Benutzer"}</div>
+            </div>
+            <button className="btn btn-icon btn-flach" onClick={toggleTheme} title="Hell / Dunkel umschalten" aria-label="Hell / Dunkel umschalten">
+              <Icon name="moon" size={16} />
+            </button>
+            <button className="btn btn-icon btn-flach" onClick={() => setAbmeldenFrage(true)} title="Abmelden" aria-label="Abmelden">
+              <Icon name="logout" size={16} />
+            </button>
           </div>
-          <button className="btn" onClick={() => setAbmeldenFrage(true)}><Icon name="logout" /> Abmelden</button>
         </div>
         {/* Ziehgriff nur am Rechner – verbreitert oder verschmälert das Menü */}
         <div className={"sidebar-griff" + (zieht ? " aktiv" : "")} onPointerDown={griffStart}
@@ -209,6 +236,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       )}
       <main className="main">{children}</main>
+
+      {/* Handy: untere Leiste – Daumen erreicht die wichtigsten Bereiche sofort */}
+      <nav className="tab-leiste" aria-label="Schnellnavigation">
+        {TABS.map((t) => (
+          <Link key={t.href} href={t.href} className={istAktiv(t.href, pathname) ? "aktiv" : ""}>
+            <Icon name={t.icon} size={21} /><span>{t.label}</span>
+          </Link>
+        ))}
+        <button onClick={() => setMenuOpen(true)} className={menuOpen || !TABS.some((t) => istAktiv(t.href, pathname)) ? "aktiv" : ""}>
+          <Icon name="menu" size={21} /><span>Mehr</span>
+        </button>
+      </nav>
       <CommandPalette />
       <SitzungsWaechter />
       <NavLoader />

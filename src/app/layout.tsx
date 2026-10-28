@@ -1,4 +1,8 @@
 import "./globals.css";
+import "./styles/verwaltung.css";
+import "./styles/ablage.css";
+import "./styles/scannen.css";
+import "./styles/personal.css";
 // Formular-Ebene von pdf.js (Eingabefelder im Dokument) – wie im normalen PDF-Betrachter
 import "pdfjs-dist/web/pdf_viewer.css";
 import type { Metadata, Viewport } from "next";
