@@ -32,7 +32,7 @@ export default function TextField({
 }: {
   value: string | number | null | undefined;
   onChange: (v: string) => void;
-  type?: "text" | "email" | "password" | "number";
+  type?: "text" | "email" | "password" | "number" | "tel";
   placeholder?: string;
   disabled?: boolean;
   autoComplete?: string;

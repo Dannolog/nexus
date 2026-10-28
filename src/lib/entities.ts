@@ -50,7 +50,7 @@ export const ENTITIES: Record<EntityName, EntityDef> = {
   },
   Employee: {
     delegate: "employee",
-    searchable: ["name", "email", "employeeNumber", "firstName", "lastName"],
+    searchable: ["name", "email", "privateEmail", "phone", "employeeNumber", "firstName", "lastName"],
     // Mitarbeiter stehen immer alphabetisch – nach Nachname, dann Vorname.
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }, { name: "asc" }],
     protectedFields: PROTECTED,

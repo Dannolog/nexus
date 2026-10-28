@@ -16,6 +16,7 @@ import { useSeitenZustand } from "@/lib/seitenzustand";
 import SuchSelect from "@/components/SuchSelect";
 import TextField from "@/components/TextField";
 import { KopierKnopf } from "@/components/KontaktFeld";
+import TelefonListe, { TelefonAnzeige } from "@/components/TelefonListe";
 
 const LOGO_RESOURCES = ["customers", "organizations"];
 
@@ -465,7 +466,9 @@ function EditModal({ resourceKey, hasLogo, initial, onClose, onSave }: {
           </div>
         ) : null}
       </div>
-    ) : f.type === "checkbox" ? (
+    ) : f.type === "phones" ? (
+      <TelefonListe wert={Array.isArray(form[f.key]) ? form[f.key] : []} setWert={(v) => set(f.key, v)} />
+  ) : f.type === "checkbox" ? (
       <div style={{ marginTop: 6 }}><Toggle checked={!!form[f.key]} onChange={(v) => set(f.key, v)} /></div>
     ) : f.type === "select" ? (
       // Kein natives Auswahlfeld: SuchSelect öffnet auf dem Handy im Vollbild und am
@@ -542,12 +545,14 @@ function EditModal({ resourceKey, hasLogo, initial, onClose, onSave }: {
                     </div>
                   );
                 }
-                const span = f.type === "textarea" ? 12 : Math.min(12, Math.max(2, f.span || 6));
+                const span = f.type === "textarea" || f.type === "phones" ? 12 : Math.min(12, Math.max(2, f.span || 6));
+                // Listen (mehrere Eingaben) nicht in ein <label> packen – sonst löst ein Klick die erste aus
+                const Huelle: any = f.type === "phones" ? "div" : "label";
                 out.push(
-                  <label key={f.key} style={{ fontSize: 13, gridColumn: `span ${span}`, display: "grid", gap: 4, minWidth: 0 }}>
+                  <Huelle key={f.key} style={{ fontSize: 13, gridColumn: `span ${span}`, display: "grid", gap: 4, minWidth: 0 }}>
                     <FeldLabel feld={f} />
                     {fieldControl(f)}
-                  </label>
+                  </Huelle>
                 );
               });
               return out;
@@ -555,12 +560,15 @@ function EditModal({ resourceKey, hasLogo, initial, onClose, onSave }: {
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12 }}>
-            {R.fields.map((f: Field) => (
-              <label key={f.key} style={{ fontSize: 13, gridColumn: f.type === "textarea" ? "1 / -1" : "auto", display: "grid", gap: 4, minWidth: 0 }}>
-                <FeldLabel feld={f} />
-                {fieldControl(f)}
-              </label>
-            ))}
+            {R.fields.map((f: Field) => {
+              const Huelle: any = f.type === "phones" ? "div" : "label";
+              return (
+                <Huelle key={f.key} style={{ fontSize: 13, gridColumn: f.type === "textarea" || f.type === "phones" ? "1 / -1" : "auto", display: "grid", gap: 4, minWidth: 0 }}>
+                  <FeldLabel feld={f} />
+                  {fieldControl(f)}
+                </Huelle>
+              );
+            })}
           </div>
         )}
         </div>
@@ -589,6 +597,7 @@ function DetailModal({ resourceKey, row, suche, onClose, onEdit, onDelete }: {
     const v = row[f.key];
     if (f.key === "price") return (Number(v) || 0).toLocaleString("de-DE", { style: "currency", currency: "EUR" });
     if (f.type === "checkbox") return v ? "ja" : "nein";
+    if (f.type === "phones") return <TelefonAnzeige wert={v} />;
     if (f.type === "textarea") return <span style={{ whiteSpace: "pre-wrap" }}><Hervorheben text={v || "–"} suche={suche} /></span>;
     return <Hervorheben text={cell(v)} suche={suche} />;
   };

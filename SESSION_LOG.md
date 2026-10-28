@@ -1162,3 +1162,9 @@
 - Anrufen: Nummern sind `tel:`-Links (Karte: „Anrufen“, Ansicht: Schnellkacheln Anrufen/Mobil/E-Mail/Webseite + grüner Anrufknopf je Nummer, auch bei Kollegen der Firma und privaten Nummern).
 - Bearbeiten: Kopf mit Live-Vorschau, Abschnitte als Karten, „Gehört zu“ als Segment, Art per Chips, Favorit als Schalter, Speichern mit Kreisel und Fehler im Dialog.
 - `Icon.tsx`: neue Symbole `star`, `globe`; CSS `kt-*` in globals.css.
+
+## 2026-10-28 – Mitarbeiter: private E-Mail + mehrere Telefonnummern
+- Schema Employee: `privateEmail`, `phones Json` ([{art, value}]); db push erfolgt. Altbestand `phone` → Liste übernommen (0 betroffen).
+- `revision.ts` `ordneTelefone`: säubert die Liste, leitet `phone` (Hauptnummer für Personalunterlagen) ab – zuerst eine private, sonst die erste Nummer.
+- `src/components/TelefonListe.tsx` (Eingabe mit Art Firma/Privat/Mobil …, eigene Arten eintippbar, Kopieren, Anrufen) + `TelefonAnzeige`; ResourceView-Feldtyp `phones`.
+- uiSchema employees: „E-Mail (Firma)“, „E-Mail privat“, „Telefonnummern“. Platzhalter `email_privat` für Dokumente. Suche um privateEmail/phone erweitert.
