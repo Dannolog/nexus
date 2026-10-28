@@ -11,6 +11,8 @@ export type Resource = {
   key: string; // URL-Segment + API
   entity: string; // Revision-Entity-Name
   title: string;
+  einzahl?: string; // Bezeichnung eines einzelnen Eintrags („Kunde"), für Fenstertitel und Knöpfe
+  beschreibung?: string; // ein Satz unter dem Seitentitel – was man hier tut
   icon: string; // Icon-Name (siehe components/Icon)
   prefix: string; // Kürzel für Index-Spalte (z.B. KU-1)
   titleField: string;
@@ -24,6 +26,8 @@ export type Resource = {
 export const RESOURCES: Record<string, Resource> = {
   customers: {
     key: "customers",
+    einzahl: "Kunde",
+    beschreibung: "Firmenkunden mit Anschrift, Ansprechpartnern und Logo – abgeglichen mit kontor.",
     entity: "Customer",
     title: "Kunden",
     icon: "users",
@@ -59,6 +63,8 @@ export const RESOURCES: Record<string, Resource> = {
   },
   projects: {
     key: "projects",
+    einzahl: "Projekt",
+    beschreibung: "Projekte mit Status und Stundensatz – Grundlage für Zeiterfassung und Abrechnung.",
     entity: "Project",
     title: "Projekte",
     icon: "folder",
@@ -82,6 +88,8 @@ export const RESOURCES: Record<string, Resource> = {
   },
   tasks: {
     key: "tasks",
+    einzahl: "Aufgabe",
+    beschreibung: "Offene und erledigte Aufgaben mit Fälligkeit und Priorität.",
     entity: "Task",
     title: "Aufgaben",
     icon: "tasks",
@@ -107,6 +115,8 @@ export const RESOURCES: Record<string, Resource> = {
   },
   suppliers: {
     key: "suppliers",
+    einzahl: "Lieferant",
+    beschreibung: "Lieferanten mit Kundennummer, Bestell-E-Mail und allen Ansprechpartnern.",
     entity: "Supplier",
     title: "Lieferanten",
     icon: "truck",
@@ -143,6 +153,8 @@ export const RESOURCES: Record<string, Resource> = {
   },
   employees: {
     key: "employees",
+    einzahl: "Mitarbeiter",
+    beschreibung: "Alle Mitarbeiter mit Stammdaten für Personalunterlagen – Zugang, Akte und Verlauf je Person.",
     entity: "Employee",
     title: "Mitarbeiter",
     icon: "user",
@@ -176,6 +188,8 @@ export const RESOURCES: Record<string, Resource> = {
   },
   organizations: {
     key: "organizations",
+    einzahl: "Mandant",
+    beschreibung: "Eigene Firmen (Mandanten) mit Anschrift und Steuerdaten – erscheinen auf Verträgen und Dokumenten.",
     entity: "Organization",
     title: "Mandanten",
     icon: "building",
@@ -201,6 +215,8 @@ export const RESOURCES: Record<string, Resource> = {
   },
   products: {
     key: "products",
+    einzahl: "Artikel",
+    beschreibung: "Zentraler Artikelstamm mit Preisen, Bildern und Links – für alle Apps.",
     entity: "Product",
     title: "Artikel",
     icon: "package",

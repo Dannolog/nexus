@@ -771,3 +771,43 @@ mark.treffer {
   .seiten-titel { font-size: 22px; }
   .seiten-titel .titel-icon { width: 34px; height: 34px; }
 }
+
+/* ==== Übersicht (src/app/(app)/page.tsx) ==== */
+.ds-held { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 26px;
+  padding: 26px 28px; border-radius: 22px; border: 1px solid var(--border); box-shadow: var(--schatten-1);
+  background: radial-gradient(700px 260px at 0% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
+              radial-gradient(500px 240px at 100% 100%, color-mix(in srgb, #8b5cf6 12%, transparent), transparent 70%), var(--card); }
+.ds-datum { font-size: 12.5px; font-weight: 650; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); margin-bottom: 6px; }
+.ds-suche { display: flex; align-items: center; gap: 10px; min-width: 300px; padding: 12px 14px; border-radius: 14px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: 14px; box-shadow: var(--schatten-1); transition: border-color .15s, box-shadow .15s; }
+.ds-suche:hover { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent); }
+.ds-suche span { flex: 1; text-align: left; }
+.ds-suche kbd { font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid var(--border); background: var(--flaeche); font-family: inherit; }
+.ds-kacheln { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+.ds-kachel { --f: var(--accent); position: relative; overflow: hidden; display: grid; gap: 4px; padding: 18px; border-radius: 18px; text-decoration: none;
+  color: var(--fg); background: var(--card); border: 1px solid var(--border); box-shadow: var(--schatten-1); transition: transform .15s, box-shadow .15s, border-color .15s; }
+.ds-kachel::after { content: ""; position: absolute; right: -30px; top: -30px; width: 110px; height: 110px; border-radius: 50%;
+  background: color-mix(in srgb, var(--f) 10%, transparent); transition: transform .3s; }
+.ds-kachel:hover { transform: translateY(-2px); box-shadow: var(--schatten-2); border-color: color-mix(in srgb, var(--f) 40%, var(--border)); }
+.ds-kachel:hover::after { transform: scale(1.25); }
+.ds-kachel-icon { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; margin-bottom: 8px; position: relative; z-index: 1;
+  background: color-mix(in srgb, var(--f) 14%, transparent); color: var(--f); }
+.ds-zahl { font-family: var(--font-display), var(--font-sans), sans-serif; font-size: 30px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.ds-label { font-size: 13.5px; color: var(--muted); font-weight: 550; }
+.ds-bereiche { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; }
+.ds-bereich { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; text-decoration: none; color: var(--fg);
+  background: var(--card); border: 1px solid var(--border); box-shadow: var(--schatten-1); transition: border-color .15s, transform .15s; }
+.ds-bereich:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); transform: translateY(-1px); }
+.ds-bereich b { display: block; font-size: 14.5px; }
+.ds-bereich small { display: block; font-size: 12.5px; color: var(--muted); margin-top: 1px; }
+.ds-bereich-icon { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; flex-shrink: 0; background: var(--accent-weich); color: var(--accent); }
+@media (max-width: 768px) {
+  .ds-held { padding: 20px 18px; border-radius: 18px; margin-bottom: 18px; }
+  .ds-held .seiten-titel { font-size: 24px !important; }
+  .ds-suche { min-width: 0; width: 100%; }
+  .ds-suche kbd { display: none; }
+  .ds-kacheln { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .ds-kachel { padding: 14px; border-radius: 16px; }
+  .ds-zahl { font-size: 26px; }
+  .ds-bereiche { grid-template-columns: 1fr; }
+}
