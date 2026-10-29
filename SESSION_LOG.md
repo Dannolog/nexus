@@ -1168,3 +1168,11 @@
 - `revision.ts` `ordneTelefone`: säubert die Liste, leitet `phone` (Hauptnummer für Personalunterlagen) ab – zuerst eine private, sonst die erste Nummer.
 - `src/components/TelefonListe.tsx` (Eingabe mit Art Firma/Privat/Mobil …, eigene Arten eintippbar, Kopieren, Anrufen) + `TelefonAnzeige`; ResourceView-Feldtyp `phones`.
 - uiSchema employees: „E-Mail (Firma)“, „E-Mail privat“, „Telefonnummern“. Platzhalter `email_privat` für Dokumente. Suche um privateEmail/phone erweitert.
+
+## 2026-10-29 – Ganze App modern überarbeitet
+- Grundlage globals.css: neue Tokens (--accent #4f6cf5, --accent-weich, --flaeche, --schatten-1/2/3, --radius), Knöpfe/Eingaben/Karten/Tabellen neu, Bausteine `.seiten-titel/.titel-icon/.anzahl/.abzeichen/.hinweis-leiste/.leer-zustand/.sektion-titel/.lade-zeile/.zeilen-aktionen/.btn-flach`.
+- Rahmen: Menü in Gruppen (Stammdaten/Personal/Ablage/System), Nutzerkarte, Handy-Kopf mit Seitentitel + Suche, untere Tab-Leiste (Start/Kontakte/Kunden/Personal/Mehr).
+- Übersicht neu (Begrüßung, Kennzahl-Kacheln, Bereiche mit Erklärung). ResourceView: Initialen/Logo je Zeile, Abzeichen, Klick = ansehen/bearbeiten, Karten am Handy, Fenster mit Abschnitten, Fehler im Dialog. uiSchema: einzahl/beschreibung, Feldgruppen.
+- Schnellsuche, Bestätigen- und Abmelden-Fenster neu. Anmelde-Anfrage-Pop-up am Handy als Karte unten (AnmeldeAnfragen.tsx, `.aa-*`).
+- Sonderseiten über 4 Helfer: Userverwaltung/Datensicherung/Verlauf (styles/verwaltung.css), Dokumente/Akte/Betriebsakte (ablage.css), Scannen/Visitenkarten (scannen.css), Arbeitsverträge/Unterschrift/PDF-Ausgabe (personal.css).
+- FUND: GET-Listen-API (`makeList`, crudRoute.ts) braucht nur App-Key (Standard „nexus") → Daten ohne Anmeldung lesbar. Nicht geändert – an Daniel gemeldet.

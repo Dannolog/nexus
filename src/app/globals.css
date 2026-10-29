@@ -865,3 +865,11 @@ mark.treffer {
   .cp-eintrag { padding: 12px 10px; font-size: 15px; }
   .cd-fenster { border-radius: 22px 22px 0 0 !important; padding-bottom: calc(20px + env(safe-area-inset-bottom)) !important; }
 }
+@media (max-width: 768px) {
+  /* Karten-Listen dürfen nie breiter als der Bildschirm werden (lange Namen umbrechen statt schieben) */
+  .only-mobile { grid-template-columns: minmax(0, 1fr); }
+  .only-mobile > * { min-width: 0; }
+  /* Schatten der Menü-Schublade nur, wenn sie offen ist – sonst grauer Rand links */
+  .sidebar { box-shadow: none; }
+  .sidebar.open { box-shadow: 0 0 40px rgba(0,0,0,.3); }
+}
