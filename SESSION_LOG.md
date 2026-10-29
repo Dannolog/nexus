@@ -1176,3 +1176,8 @@
 - Schnellsuche, Bestätigen- und Abmelden-Fenster neu. Anmelde-Anfrage-Pop-up am Handy als Karte unten (AnmeldeAnfragen.tsx, `.aa-*`).
 - Sonderseiten über 4 Helfer: Userverwaltung/Datensicherung/Verlauf (styles/verwaltung.css), Dokumente/Akte/Betriebsakte (ablage.css), Scannen/Visitenkarten (scannen.css), Arbeitsverträge/Unterschrift/PDF-Ausgabe (personal.css).
 - FUND: GET-Listen-API (`makeList`, crudRoute.ts) braucht nur App-Key (Standard „nexus") → Daten ohne Anmeldung lesbar. Nicht geändert – an Daniel gemeldet.
+
+## 2026-10-29 – Handy: doppeltes Scrollen + Namen aus Karten
+- Doppeltes Scrollen: `.app-shell` scrollte am Handy selbst (100vh, overflow auto) zusätzlich zur Seite → am Handy `height:auto; overflow:visible`, `html, body { overflow-x: clip }` (clip statt hidden, sonst wird body eigener Scrollbereich).
+- Karten (`.rv-karte`): Grid-Spalte `minmax(0,1fr)` + `> * { min-width:0 }`, Titel `.rv-karte-titel` max. 2 Zeilen, Knopfreihe umbrechend – vorher drückten die vielen Mitarbeiter-Knöpfe die Karte breiter.
+- Test nur mit erfundenen Testdaten: `scripts/ui-test-testdaten.mjs` (API komplett gesperrt, Fantasie-Datensätze). 9 Seiten ok, 0 Überlauf, 0 Seitenfehler, nur ein Scrollbereich.

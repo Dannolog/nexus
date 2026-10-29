@@ -191,7 +191,7 @@ body.sidebar-zieht { cursor: col-resize; user-select: none; }
 @media (max-width: 768px) {
   /* Nur die Seite selbst scrollt – kein zweiter Scrollbereich im Rahmen (doppeltes Scrollen) */
   .app-shell { display: block; height: auto; min-height: 100dvh; overflow: visible; }
-  html, body { overflow-x: hidden; }
+  html, body { overflow-x: clip; }
   .topbar {
     display: flex; align-items: center; gap: 12px;
     position: fixed; top: 0; left: 0; right: 0; z-index: 40;
@@ -745,7 +745,7 @@ mark.treffer {
   color: #fff; background: linear-gradient(135deg, var(--accent), #8b5cf6); }
 .nutzer-name { font-size: 13px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nutzer-rolle { font-size: 11.5px; color: var(--muted); }
-.main { padding: 28px 32px; }
+@media (min-width: 769px) { .main { padding: 28px 32px; } }
 .main > * { max-width: 1480px; margin-left: auto; margin-right: auto; }
 .tab-leiste { display: none; }
 .topbar-knopf { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; border: 0; background: transparent;
