@@ -811,3 +811,31 @@ mark.treffer {
   .ds-zahl { font-size: 26px; }
   .ds-bereiche { grid-template-columns: 1fr; }
 }
+
+/* ==== Listen-Komponente (src/components/ResourceView.tsx) ==== */
+.rv-tabelle { padding: 0; }
+.rv-link { color: inherit; text-decoration: none; overflow: hidden; text-overflow: ellipsis; }
+.rv-link:hover { color: var(--accent); text-decoration: underline; }
+.rv-initialen { border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; color: #fff; font-weight: 700; letter-spacing: .02em; user-select: none; }
+.rv-karte { padding: 14px; display: grid; gap: 12px; cursor: pointer; border-radius: 16px; }
+.rv-karte:active { background: color-mix(in srgb, var(--accent) 4%, var(--card)); }
+.rv-karte-werte { display: grid; gap: 6px; font-size: 13px; padding: 10px 12px; border-radius: 12px; background: var(--flaeche); }
+.rv-karte-werte > div { display: flex; gap: 10px; align-items: center; min-width: 0; }
+.rv-karte-werte > div > span:first-child { min-width: 104px; flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px; }
+.rv-karte-werte > div > span:last-child { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.rv-karte-aktionen { display: flex; gap: 2px; justify-content: flex-end; margin: -4px -6px -6px; }
+.rv-karte-aktionen .btn { min-width: 40px; min-height: 40px; justify-content: center; }
+.rv-raster { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 12px; row-gap: 14px; }
+.rv-feld { font-size: 13px; display: grid; gap: 5px; min-width: 0; align-content: start; }
+.rv-werte { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.rv-werte > div { display: grid; gap: 2px; padding: 10px 14px; border-bottom: 1px solid var(--border); min-width: 0; font-size: 14px; overflow-wrap: anywhere; }
+.rv-werte > div:nth-child(odd):not(.breit) { border-right: 1px solid var(--border); }
+.rv-werte > div.breit { grid-column: 1 / -1; }
+.rv-werte > div > span:first-child { font-size: 11.5px; display: inline-flex; align-items: center; gap: 5px; }
+@media (max-width: 768px) {
+  .rv-raster { grid-template-columns: 1fr; }
+  .rv-raster > * { grid-column: 1 / -1 !important; }
+  .rv-werte { grid-template-columns: 1fr; }
+  .rv-werte > div:nth-child(odd):not(.breit) { border-right: 0; }
+  .rv-sticky-header .btn-primary span { display: none; }
+}

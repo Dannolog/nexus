@@ -98,18 +98,13 @@ export default function ScanZuordnenDialog({
     finally { setBusy(false); }
   }
 
+
   const restKarte = (wert: Rest, ueberschrift: string, text: string, icon: string) => (
-    <button key={wert} type="button" onClick={() => setRest(wert)}
-      style={{
-        all: "unset", cursor: "pointer", display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 12px", borderRadius: 10,
-        border: `2px solid ${rest === wert ? (wert === "loeschen" ? "var(--danger, #dc2626)" : "var(--accent, #3b82f6)") : "var(--border)"}`,
-        background: rest === wert ? (wert === "loeschen" ? "rgba(220,38,38,.07)" : "rgba(59,130,246,.07)") : "transparent",
-      }}>
-      <span style={{ width: 18, height: 18, borderRadius: "50%", flexShrink: 0, marginTop: 1, display: "grid", placeItems: "center",
-                     border: `2px solid ${rest === wert ? "currentColor" : "var(--border)"}` }}>
-        {rest === wert && <span style={{ width: 8, height: 8, borderRadius: "50%", background: "currentColor" }} />}
-      </span>
-      <span style={{ display: "grid", gap: 2 }}>
+    <button key={wert} type="button" onClick={() => setRest(wert)} aria-pressed={rest === wert}
+      className={"sca-wahl" + (rest === wert ? " an" : "") + (wert === "loeschen" ? " gefahr" : "")}
+      style={{ color: rest === wert ? (wert === "loeschen" ? "var(--rot)" : "var(--accent)") : undefined }}>
+      <span className="sca-punkt" />
+      <span style={{ display: "grid", gap: 2, color: "var(--fg)" }}>
         <span style={{ fontWeight: 600, fontSize: 14, display: "inline-flex", alignItems: "center", gap: 6 }}>
           <Icon name={icon} size={14} /> {ueberschrift}
         </span>
@@ -124,96 +119,126 @@ export default function ScanZuordnenDialog({
     : "In die Akte legen";
 
   return (
-    <div onClick={() => !busy && onClose()}
-      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "grid", placeItems: "center", padding: 16, zIndex: 60 }}>
-      <div onClick={(e) => e.stopPropagation()} className="card dm-fenster"
-        style={{ width: 640, maxWidth: "94vw", maxHeight: "92vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
-          <Icon name="folder" size={18} />
-          <h2 style={{ fontSize: 17, fontWeight: 700, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            „{scan.title}" zuordnen
-          </h2>
-          <button className="btn btn-icon" aria-label="Schließen" disabled={busy} onClick={onClose}><Icon name="x" /></button>
+    <div className="kt-huelle" style={{ zIndex: 60 }} onClick={() => !busy && onClose()}>
+      <div onClick={(e) => e.stopPropagation()} className="card kt-fenster dm-fenster" style={{ width: 660, maxHeight: "92vh" }}>
+        <div className="sca-fenster-kopf">
+          <span className="sca-ic"><Icon name="folder" size={16} /></span>
+          <div>
+            <h2>„{scan.title}" zuordnen</h2>
+            <div className="sca-unter">
+              {scan.pages} Seite{scan.pages === 1 ? "" : "n"} · in die Mitarbeiter- oder Betriebsakte legen
+            </div>
+          </div>
+          <button className="btn btn-icon btn-flach" aria-label="Schließen" disabled={busy} onClick={onClose}><Icon name="x" /></button>
         </div>
 
-        <div style={{ padding: 18, display: "grid", gap: 14, overflowY: "auto", flex: 1, minHeight: 0 }}>
-          {/* Ziel: Mitarbeiter- oder Betriebsakte */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-            {([["mitarbeiter", "Mitarbeiterakte", "user"], ["betriebsakte", "Betriebsakte", "building"]] as const).map(([wert, text, icon]) => (
-              <button key={wert} type="button" className="btn" onClick={() => { setZiel(wert); setFehler(""); }}
-                style={{ justifyContent: "center", background: ziel === wert ? "var(--accent)" : undefined, color: ziel === wert ? "#fff" : undefined }}>
-                <Icon name={icon} size={15} /> {text}
-              </button>
-            ))}
+        <div className="kt-inhalt" style={{ flex: 1, minHeight: 0 }}>
+          {/* Wohin: Mitarbeiter- oder Betriebsakte */}
+          <div className="kt-abschnitt">
+            <div className="kt-abschnitt-titel">
+              <span className="ic"><Icon name="archive" size={15} /></span> Wohin?
+            </div>
+            <div className="sca-segment" role="group" aria-label="Ziel">
+              {([["mitarbeiter", "Mitarbeiterakte", "user"], ["betriebsakte", "Betriebsakte", "building"]] as const).map(([wert, text, icon]) => (
+                <button key={wert} type="button" aria-pressed={ziel === wert} onClick={() => { setZiel(wert); setFehler(""); }}>
+                  <Icon name={icon} size={15} /> {text}
+                </button>
+              ))}
+            </div>
+
+            {ziel === "mitarbeiter" ? (
+              <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
+                <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="user" size={14} /> Mitarbeiter</span>
+                <SuchSelect
+                  value={employeeId}
+                  onChange={setEmployeeId}
+                  platzhalter="— Mitarbeiter wählen —"
+                  suchePlatzhalter="Name oder Personalnummer…"
+                  options={mitarbeiter.map((m) => ({ value: m.id, label: m.name, hint: m.employeeNumber || m.email || "" }))}
+                />
+              </label>
+            ) : (
+              <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
+                <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="building" size={14} /> Mandant oder Akte</span>
+                <SuchSelect
+                  value={orgId}
+                  onChange={setOrgId}
+                  platzhalter="— Mandant oder Akte wählen —"
+                  suchePlatzhalter="Suchen oder neue Akte eintippen…"
+                  options={ablageOptionen}
+                  erlaubeNeu
+                  neuText="als neue Akte anlegen"
+                  onNeu={onAkteNeu}
+                />
+                <span className="muted" style={{ fontSize: 12 }}>Nicht dabei? Einfach den Namen eintippen – die Akte wird neu angelegt.</span>
+              </label>
+            )}
           </div>
 
-          {ziel === "mitarbeiter" ? (
-            <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-              <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="user" size={14} /> Mitarbeiter</span>
-              <SuchSelect
-                value={employeeId}
-                onChange={setEmployeeId}
-                platzhalter="— Mitarbeiter wählen —"
-                suchePlatzhalter="Name oder Personalnummer…"
-                options={mitarbeiter.map((m) => ({ value: m.id, label: m.name, hint: m.employeeNumber || m.email || "" }))}
-              />
-            </label>
-          ) : (
-            <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-              <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="building" size={14} /> Mandant oder Akte</span>
-              <SuchSelect
-                value={orgId}
-                onChange={setOrgId}
-                platzhalter="— Mandant oder Akte wählen —"
-                suchePlatzhalter="Suchen oder neue Akte eintippen…"
-                options={ablageOptionen}
-                erlaubeNeu
-                neuText="als neue Akte anlegen"
-                onNeu={onAkteNeu}
-              />
-            </label>
-          )}
-
-          <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-            <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="tag" size={14} /> Rubrik</span>
-            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <SuchSelect
-                  value={groupId}
-                  onChange={setGroupId}
-                  platzhalter="— ohne Zuordnung —"
-                  suchePlatzhalter="Rubrik suchen oder neue eintippen…"
-                  options={gruppen.map((g) => ({ value: g.id, label: g.name }))}
-                  erlaubeNeu
-                  neuText="als neue Rubrik anlegen"
-                  onNeu={onRubrikNeu}
-                />
-              </div>
-              {groupId && (
-                <button type="button" className="btn btn-icon" title="Rubrik umbenennen" onClick={() => onRubrikUmbenennen(groupId)}>
-                  <Icon name="pencil" size={14} />
-                </button>
-              )}
+          {/* Ablage: Rubrik und Titel */}
+          <div className="kt-abschnitt">
+            <div className="kt-abschnitt-titel">
+              <span className="ic"><Icon name="tag" size={15} /></span> Ablage
+              <small>Rubrik ist freiwillig</small>
             </div>
-          </label>
+            <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
+              <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="tag" size={14} /> Rubrik</span>
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <SuchSelect
+                    value={groupId}
+                    onChange={setGroupId}
+                    platzhalter="— ohne Zuordnung —"
+                    suchePlatzhalter="Rubrik suchen oder neue eintippen…"
+                    options={gruppen.map((g) => ({ value: g.id, label: g.name }))}
+                    erlaubeNeu
+                    neuText="als neue Rubrik anlegen"
+                    onNeu={onRubrikNeu}
+                  />
+                </div>
+                {groupId && (
+                  <button type="button" className="btn btn-icon" title="Rubrik umbenennen" aria-label="Rubrik umbenennen" onClick={() => onRubrikUmbenennen(groupId)}>
+                    <Icon name="pencil" size={14} />
+                  </button>
+                )}
+              </div>
+            </label>
 
-          <Feld label="Titel des Dokuments" icon="file-text" wert={titel} setWert={setTitel} platzhalter={scan.title} kopierbar={false} />
+            <Feld label="Titel des Dokuments" icon="file-text" wert={titel} setWert={setTitel} platzhalter={scan.title} kopierbar={false} />
+          </div>
 
           {/* Seiten */}
-          {original ? (
-            <div className="muted" style={{ fontSize: 13 }}>Diese Datei wird vollständig abgelegt.</div>
-          ) : !bytes || !anzahl ? (
-            <div className="muted" style={{ fontSize: 13 }}>{ladeFehler || "Seiten werden geladen …"}</div>
-          ) : teilbar ? (
-            <SeitenWahl anzahl={anzahl} vorschau={vorschau} auswahl={auswahl} onChange={setAuswahl} onFehler={setSeitenFehler} />
-          ) : null}
+          <div className="kt-abschnitt">
+            <div className="kt-abschnitt-titel">
+              <span className="ic"><Icon name="copy" size={15} /></span> Seiten
+              {teilbar && <small>{auswahl.length} von {anzahl} gewählt</small>}
+            </div>
+            {original ? (
+              <div className="muted" style={{ fontSize: 13 }}>Diese Datei wird vollständig abgelegt.</div>
+            ) : !bytes || !anzahl ? (
+              <div className="muted" style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
+                {ladeFehler ? <><Icon name="alert" size={14} /> {ladeFehler}</> : <><span className="speichern-dreh" /> Seiten werden geladen …</>}
+              </div>
+            ) : teilbar ? (
+              <SeitenWahl anzahl={anzahl} vorschau={vorschau} auswahl={auswahl} onChange={setAuswahl} onFehler={setSeitenFehler} />
+            ) : (
+              <div className="muted" style={{ fontSize: 13 }}>Eine Seite – wird vollständig abgelegt.</div>
+            )}
+
+            {!teil && (
+              <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
+                Der Scan wird als Dokument in die Akte gelegt und bleibt hier als erledigt vermerkt.
+              </div>
+            )}
+          </div>
 
           {/* Was passiert mit den übrigen Seiten? */}
           {teil && (
-            <div style={{ display: "grid", gap: 8 }}>
-              <span className="muted" style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
-                <Icon name="archive" size={14} /> Restliche Seiten ({seitenText(restSeiten)})
-              </span>
+            <div className="kt-abschnitt">
+              <div className="kt-abschnitt-titel">
+                <span className="ic"><Icon name="archive" size={15} /></span> Restliche Seiten
+                <small>{seitenText(restSeiten)}</small>
+              </div>
               {restKarte("behalten", "Rest im Posteingang behalten",
                 `Seite${restSeiten.length === 1 ? "" : "n"} ${seitenText(restSeiten)} bleiben als offener Scan liegen – für weitere Zuordnungen.`, "archive")}
               {restKarte("alles", "Ganzen Scan im Posteingang behalten",
@@ -223,23 +248,17 @@ export default function ScanZuordnenDialog({
             </div>
           )}
 
-          {!teil && (
-            <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
-              Der Scan wird als Dokument in die Akte gelegt und bleibt hier als erledigt vermerkt.
-            </div>
-          )}
-
           {fehler && (
-            <div style={{ color: "var(--danger, #dc2626)", fontSize: 13, display: "flex", gap: 6, alignItems: "center" }}>
+            <div className="kt-fehler">
               <Icon name="alert" size={14} /> {fehler}
             </div>
           )}
         </div>
 
-        <div style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          <button className="btn" disabled={busy} onClick={onClose}><Icon name="x" /> Abbrechen</button>
+        <div className="kt-fuss">
+          <button className="btn sca-fuss-links" disabled={busy} onClick={onClose}><Icon name="x" /> Abbrechen</button>
           <button className={teil && rest === "loeschen" ? "btn btn-danger" : "btn btn-primary"} disabled={!bereit} onClick={ablegen}>
-            <Icon name="save" /> {knopfText}
+            {busy ? <span className="speichern-dreh" /> : <Icon name="save" />} {knopfText}
           </button>
         </div>
       </div>

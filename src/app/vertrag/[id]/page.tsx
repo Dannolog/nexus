@@ -77,77 +77,70 @@ export default function VertragPdfSeite() {
   const nr = contract ? vertragsNr(contract.number) : "";
 
   return (
-    <div className="pdf-seite">
-      <style>{`
-        .pdf-seite { display: flex; flex-direction: column; height: 100vh; background: #4b5563; }
-        .pdf-leiste {
-          display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
-          padding: 10px 14px; background: #1f2430; color: #fff; box-shadow: 0 1px 8px rgba(0,0,0,.3);
-        }
-        .pdf-leiste .pb {
-          display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 8px;
-          border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: #fff;
-          font-size: 14px; font-weight: 600; cursor: pointer;
-        }
-        .pdf-leiste .pb:hover { background: rgba(255,255,255,.16); }
-        .pdf-leiste .pb:disabled { opacity: .5; cursor: default; }
-        .pdf-leiste .pb.primary { background: #2563eb; border-color: #2563eb; }
-        .pdf-leiste .pb.primary:hover { background: #1d4ed8; }
-        .pdf-nr { font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .03em; }
-        .pdf-info { margin-left: auto; font-size: 12.5px; opacity: .8; }
-        .pdf-rahmen { flex: 1; width: 100%; border: 0; background: #4b5563; }
-        .pdf-meldung { margin: 40px auto; text-align: center; color: #fff; font-size: 15px; }
-        .pdf-mobil { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 22px 14px; }
-        .pdf-karte {
-          width: 100%; max-width: 420px; background: var(--card, #fff); color: var(--fg, #111);
-          border-radius: 14px; padding: 18px; box-shadow: 0 6px 24px rgba(0,0,0,.25);
-        }
-        .pdf-karte .pb { border-color: rgba(0,0,0,.15); background: rgba(0,0,0,.06); color: inherit; padding: 12px 14px; font-size: 15px; }
-        .pdf-karte .pb.primary { background: #2563eb; border-color: #2563eb; color: #fff; }
-        @media (max-width: 768px) {
-          .pdf-leiste { padding: calc(10px + env(safe-area-inset-top)) 12px 10px; }
-          .pdf-leiste .pb { padding: 9px 12px; font-size: 13.5px; }
-          .pdf-info { display: none; }
-        }
-      `}</style>
-
-      <div className="pdf-leiste">
-        <button type="button" className="pb" onClick={() => router.push("/contracts")}>
-          <Icon name="undo" /> Zurück
+    // Gestaltung in src/app/styles/personal.css (Präfix .per-pdf-)
+    <div className="per-pdf-seite">
+      <div className="per-pdf-leiste">
+        <button type="button" className="per-pdf-knopf" onClick={() => router.push("/contracts")} aria-label="Zurück zu den Arbeitsverträgen">
+          <Icon name="undo" /> <span className="per-pdf-text-weg">Zurück</span>
         </button>
-        <button type="button" className="pb primary" onClick={speichern} disabled={!blob}>
-          <Icon name="save" /> Als PDF speichern
-        </button>
-        <button type="button" className="pb" onClick={drucken} disabled={!url}>
-          <Icon name="file-text" /> Drucken
-        </button>
-        {nr && <span className="pdf-nr">{nr}</span>}
-        {contract?.employeeName && <span style={{ opacity: .85, fontSize: 13.5 }}>{contract.employeeName}</span>}
-        <span className="pdf-info">{laedt ? "PDF wird erzeugt…" : blob ? "PDF fertig" : ""}</span>
+        <div className="per-pdf-titel">
+          <span className="per-pdf-ic"><Icon name="file-text" size={16} /></span>
+          <div style={{ minWidth: 0 }}>
+            <div className="per-pdf-nr">{nr || "Arbeitsvertrag"}</div>
+            {contract?.employeeName && <div className="per-pdf-name">{contract.employeeName}</div>}
+          </div>
+        </div>
+        <span className={`per-pdf-status${blob ? " fertig" : ""}`}>
+          {laedt ? <><span className="per-pdf-dreh" /> PDF wird erzeugt…</> : blob ? <><Icon name="check" size={13} /> PDF fertig</> : ""}
+        </span>
+        <div className="per-pdf-knoepfe">
+          <button type="button" className="per-pdf-knopf" onClick={drucken} disabled={!url}>
+            <Icon name="printer" /> Drucken
+          </button>
+          <button type="button" className="per-pdf-knopf primaer" onClick={speichern} disabled={!blob}>
+            <Icon name="download" /> Als PDF speichern
+          </button>
+        </div>
       </div>
 
-      {fehler && <div className="pdf-meldung" style={{ color: "#fecaca" }}>{fehler}</div>}
-      {!fehler && laedt && <div className="pdf-meldung">Vertrag wird geladen und als PDF aufbereitet…</div>}
+      {fehler && (
+        <div className="per-pdf-meldung fehler">
+          <span className="per-pdf-meldung-ic"><Icon name="alert" size={24} /></span>
+          <div style={{ fontWeight: 650 }}>Vertrag konnte nicht angezeigt werden</div>
+          <div style={{ opacity: .85, fontSize: 13.5 }}>{fehler}</div>
+          <button type="button" className="per-pdf-knopf" onClick={() => router.push("/contracts")}><Icon name="undo" /> Zu den Arbeitsverträgen</button>
+        </div>
+      )}
+      {!fehler && laedt && (
+        <div className="per-pdf-meldung">
+          <span className="per-pdf-meldung-ic"><span className="per-pdf-dreh gross" /></span>
+          Vertrag wird geladen und als PDF aufbereitet…
+        </div>
+      )}
 
       {url && !mobil && (
-        <iframe ref={rahmen} className="pdf-rahmen" src={url} title="Arbeitsvertrag als PDF" />
+        <iframe ref={rahmen} className="per-pdf-rahmen" src={url} title="Arbeitsvertrag als PDF" />
       )}
 
       {url && mobil && (
-        <div className="pdf-mobil">
-          <div className="pdf-karte">
-            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>
-              Arbeitsvertrag {nr}
+        <div className="per-pdf-mobil">
+          <div className="per-pdf-karte">
+            <div className="per-pdf-karte-kopf">
+              <span className="per-pdf-ic gross"><Icon name="file-text" size={26} /></span>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 17 }}>Arbeitsvertrag {nr}</div>
+                {contract?.employeeName && <div className="muted" style={{ fontSize: 14 }}>{contract.employeeName}</div>}
+                <span className="abzeichen gruen" style={{ marginTop: 6 }}><Icon name="check" size={11} /> PDF bereit</span>
+              </div>
             </div>
-            {contract?.employeeName && <div className="muted" style={{ marginBottom: 14 }}>{contract.employeeName}</div>}
-            <button type="button" className="pb primary" style={{ width: "100%", justifyContent: "center", marginBottom: 10 }} onClick={speichern}>
-              <Icon name="save" /> PDF speichern
+            <button type="button" className="per-pdf-gross primaer" onClick={speichern}>
+              <Icon name="download" size={18} /> PDF speichern
             </button>
-            <button type="button" className="pb" style={{ width: "100%", justifyContent: "center" }}
+            <button type="button" className="per-pdf-gross"
               onClick={() => window.open(url, "_blank", "noopener")}>
-              <Icon name="file-text" /> PDF öffnen
+              <Icon name="eye" size={18} /> PDF öffnen
             </button>
-            <p className="muted" style={{ fontSize: 12.5, lineHeight: 1.5, marginTop: 14 }}>
+            <p className="muted per-pdf-hinweis">
               Handy-Browser können PDFs nicht zuverlässig direkt in der Seite anzeigen.
               „PDF öffnen" zeigt den Vertrag im PDF-Betrachter des Geräts – von dort lässt er sich
               auch teilen oder drucken.

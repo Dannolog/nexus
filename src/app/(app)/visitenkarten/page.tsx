@@ -570,124 +570,162 @@ export default function Page() {
 
   return (
     <div className="vk-wurzel" ref={wurzelRef} style={variablen}>
-      <h1 style={{ fontSize: "1.4rem", fontWeight: 600, marginBottom: 16 }}>Visitenkarten</h1>
-
-      {/* ── Bedienfeld ── */}
-      <div className="card" style={{ padding: 16, display: "grid", gap: 12 }}>
-        <div className="feld-zeile feld-zeile-2">
-          <label style={{ display: "grid", gap: 4 }}>
-            <span className="muted" style={{ fontSize: 12 }}>Person</span>
-            <SuchSelect
-              value={String(aktiv)}
-              onChange={(v) => setAktiv(Number(v))}
-              platzhalter="Person wählen"
-              suchePlatzhalter="Name suchen…"
-              options={personen.map((p, i) => ({ value: String(i), label: p.name, hint: p.rolle || "" }))}
-            />
-          </label>
-          <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
-            <button className="btn" onClick={neuAnlegen}>
-              <Icon name="plus" size={16} /> Neue Person
-            </button>
-            <button className="btn btn-danger" onClick={() => setLoeschFrage(true)}
-                    disabled={personen.length < 2}>
-              <Icon name="trash" size={16} /> Löschen
-            </button>
-          </div>
+      {/* ── Seitenkopf ── */}
+      <div className="rv-sticky-header sca-kopf">
+        <div className="sca-kopf-text">
+          <h1 className="seiten-titel">
+            <span className="titel-icon"><Icon name="id-card" size={20} /></span>
+            Visitenkarten
+            <span className="anzahl" title="Gespeicherte Personen">{personen.length}</span>
+          </h1>
+          <div className="seiten-untertitel">Person wählen, Angaben eintragen – die Karte aktualisiert sich sofort. Danach drucken oder als Bild sichern.</div>
         </div>
-
-        <div className="feld-zeile feld-zeile-2">
-          <label style={{ display: "grid", gap: 4 }}>
-            <span className="muted" style={{ fontSize: 12 }}>Name</span>
-            <input className="input" value={person.name} onChange={e => aendern("name", e.target.value)} />
-          </label>
-          <label style={{ display: "grid", gap: 4 }}>
-            <span className="muted" style={{ fontSize: 12 }}>Funktion</span>
-            <input className="input" value={person.rolle} onChange={e => aendern("rolle", e.target.value)} />
-          </label>
-        </div>
-
-        <div className="feld-zeile feld-zeile-2">
-          <label style={{ display: "grid", gap: 4 }}>
-            <span className="muted" style={{ fontSize: 12 }}>Telefon</span>
-            <input className="input" value={person.tel} onChange={e => aendern("tel", e.target.value)} />
-          </label>
-          <label style={{ display: "grid", gap: 4 }}>
-            <span className="muted" style={{ fontSize: 12 }}>E-Mail</span>
-            <input className="input" value={person.mail} placeholder={FIRMEN[person.firma].mail}
-                   onChange={e => aendern("mail", e.target.value)} />
-          </label>
-        </div>
-
-        <div className="feld-zeile feld-zeile-2">
-          <label style={{ display: "grid", gap: 4 }}>
-            <span className="muted" style={{ fontSize: 12 }}>Firma auf der Vorderseite</span>
-            <SuchSelect
-              value={person.firma}
-              onChange={(v) => aendern("firma", v)}
-              platzhalter="Firma wählen"
-              options={[
-                { value: "handel", label: firmen.handel.name },
-                { value: "ing", label: firmen.ing.name },
-                { value: "masch", label: firmen.masch.name },
-                { value: "group", label: firmen.group.name },
-              ]}
-            />
-          </label>
-          <label style={{ display: "grid", gap: 4 }}>
-            <span className="muted" style={{ fontSize: 12 }}>Ort</span>
-            <input className="input" value={person.ort} onChange={e => aendern("ort", e.target.value)} />
-          </label>
-        </div>
-
-        <div className="feld-zeile feld-zeile-2">
-          <label style={{ display: "grid", gap: 4 }}>
-            <span className="muted" style={{ fontSize: 12 }}>Webadresse auf dieser Karte</span>
-            <input className="input" value={person.web || ""} placeholder={FIRMEN[person.firma].web}
-                   onChange={e => aendern("web", e.target.value)} />
-            <span className="muted" style={{ fontSize: 11.5 }}>
-              Leer lassen = Adresse der gewählten Firma. Die Adressen aller Firmen ändert
-              der Knopf „Firmenangaben".
-            </span>
-          </label>
-        </div>
-
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <div className="sca-kopf-knoepfe">
           <button className="btn" onClick={() => setFirmenOffen((v) => !v)}
             title="Webadressen, Firmenbezeichnungen und Anschrift der Rückseite ändern">
-            <Icon name="building" size={16} /> Firmenangaben
+            <Icon name="building" size={16} /> <span className="btn-label">Firmenangaben</span>
           </button>
-          <button className="btn" onClick={() => setDuplexDialog(true)}>
-            <Icon name="printer" size={16} /> Beidseitig drucken
+          <button className="btn btn-primary" onClick={neuAnlegen} title="Neue Person anlegen">
+            <Icon name="plus" size={16} /> <span className="btn-label">Neue Person</span>
           </button>
-          <button className="btn" onClick={drucken}>
-            <Icon name="printer" size={16} /> Karten drucken
-          </button>
-          <button className="btn" onClick={() => bildSichern("vorn")}>
-            <Icon name="download" size={16} /> Vorderseite
-          </button>
-          <button className="btn" onClick={() => bildSichern("hinten")}>
-            <Icon name="download" size={16} /> Rückseite
-          </button>
-          <button className="btn" onClick={() => bildSichern("beide")}>
-            <Icon name="download" size={16} /> Beide
-          </button>
-          <span className="muted" style={{ fontSize: 13 }}>
-            {stand || `${personen.length} Person${personen.length === 1 ? "" : "en"} gespeichert · Änderungen werden sofort übernommen`}
-          </span>
         </div>
       </div>
 
-      {/* ── Vorschau: beide Seiten, Klick öffnet die Großansicht ── */}
-      <div className="karten-paar">
-        <figure onClick={() => setGross("vorn")}>
-          <Karte person={person} seite="vorn" karteRef={vornRef} firmen={firmen} anschrift={anschrift} />
-          <figcaption>Vorderseite</figcaption>
-        </figure>
-        <figure onClick={() => setGross("hinten")}>
-          <Karte person={person} seite="hinten" karteRef={hintenRef} firmen={firmen} anschrift={anschrift} />
-          <figcaption>Rückseite</figcaption>
-        </figure>
+      <div className="sca-vk">
+        {/* ── Vorschau: beide Seiten, Klick öffnet die Großansicht ── */}
+        <div className="card sca-vk-buehne">
+          <div className="sca-vk-buehne-kopf">
+            <div className="sektion-titel"><Icon name="eye" size={13} /> Vorschau – antippen für die Großansicht</div>
+            <span className="sca-vk-stand" aria-live="polite">
+              <Icon name={stand ? "check" : "save"} size={13} />
+              {stand || `${personen.length} Person${personen.length === 1 ? "" : "en"} gespeichert · Änderungen werden sofort übernommen`}
+            </span>
+          </div>
+          <div className="karten-paar">
+            <figure onClick={() => setGross("vorn")}>
+              <Karte person={person} seite="vorn" karteRef={vornRef} firmen={firmen} anschrift={anschrift} />
+              <figcaption>Vorderseite</figcaption>
+            </figure>
+            <figure onClick={() => setGross("hinten")}>
+              <Karte person={person} seite="hinten" karteRef={hintenRef} firmen={firmen} anschrift={anschrift} />
+              <figcaption>Rückseite</figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <div className="sca-vk-raster">
+          {/* ── Angaben der Person ── */}
+          <div className="sca-vk-spalte">
+            <div className="card kt-abschnitt" style={{ padding: 16 }}>
+              <div className="kt-abschnitt-titel">
+                <span className="ic"><Icon name="users" size={15} /></span> Person
+                <small>{personen.length} gespeichert</small>
+              </div>
+              <div className="sca-vk-person">
+                <label style={{ display: "grid", gap: 4, fontSize: 13 }}>
+                  <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="user" size={14} /> Karte von</span>
+                  <SuchSelect
+                    value={String(aktiv)}
+                    onChange={(v) => setAktiv(Number(v))}
+                    platzhalter="Person wählen"
+                    suchePlatzhalter="Name suchen…"
+                    options={personen.map((p, i) => ({ value: String(i), label: p.name, hint: p.rolle || "" }))}
+                  />
+                </label>
+                <button className="btn btn-icon btn-danger" onClick={() => setLoeschFrage(true)}
+                        disabled={personen.length < 2} title={personen.length < 2 ? "Die letzte Person bleibt erhalten" : "Diese Person löschen"}
+                        aria-label="Person löschen">
+                  <Icon name="trash" size={16} />
+                </button>
+              </div>
+            </div>
+
+            <div className="card kt-abschnitt" style={{ padding: 16 }}>
+              <div className="kt-abschnitt-titel">
+                <span className="ic"><Icon name="id-card" size={15} /></span> Angaben auf der Vorderseite
+              </div>
+              <div className="feld-zeile feld-zeile-2">
+                <Feld label="Name" icon="user" wert={person.name} setWert={(v) => aendern("name", v)} />
+                <Feld label="Funktion" icon="tag" wert={person.rolle} setWert={(v) => aendern("rolle", v)} />
+              </div>
+              <div className="feld-zeile feld-zeile-2">
+                <Feld label="Telefon" icon="phone" wert={person.tel} setWert={(v) => aendern("tel", v)} />
+                <Feld label="E-Mail" icon="mail" wert={person.mail} platzhalter={FIRMEN[person.firma].mail}
+                  setWert={(v) => aendern("mail", v)} />
+              </div>
+              <div className="feld-zeile feld-zeile-2">
+                <label style={{ display: "grid", gap: 4, fontSize: 13 }}>
+                  <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="building" size={14} /> Firma auf der Vorderseite</span>
+                  <SuchSelect
+                    value={person.firma}
+                    onChange={(v) => aendern("firma", v)}
+                    platzhalter="Firma wählen"
+                    options={[
+                      { value: "handel", label: firmen.handel.name },
+                      { value: "ing", label: firmen.ing.name },
+                      { value: "masch", label: firmen.masch.name },
+                      { value: "group", label: firmen.group.name },
+                    ]}
+                  />
+                </label>
+                <Feld label="Ort" icon="home" wert={person.ort} setWert={(v) => aendern("ort", v)} />
+              </div>
+              <Feld label="Webadresse auf dieser Karte" icon="globe" wert={person.web || ""} platzhalter={FIRMEN[person.firma].web}
+                setWert={(v) => aendern("web", v)}
+                hinweis="Leer lassen = Adresse der gewählten Firma. Die Adressen aller Firmen ändert der Knopf „Firmenangaben“." />
+            </div>
+          </div>
+
+          {/* ── Ausgabe: Drucken und Bildexport ── */}
+          <div className="sca-vk-spalte">
+            <div className="card kt-abschnitt" style={{ padding: 16 }}>
+              <div className="kt-abschnitt-titel">
+                <span className="ic"><Icon name="printer" size={15} /></span> Drucken
+              </div>
+              <div className="sca-kacheln">
+                <button className="sca-kachel" onClick={drucken}>
+                  <span className="sca-ic"><Icon name="printer" size={18} /></span>
+                  Karten drucken<small>Vorder- und Rückseite</small>
+                </button>
+                <button className="sca-kachel" onClick={() => setDuplexDialog(true)}>
+                  <span className="sca-ic"><Icon name="copy" size={18} /></span>
+                  Beidseitig drucken<small>Bogen mit Wendekante</small>
+                </button>
+              </div>
+            </div>
+
+            <div className="card kt-abschnitt" style={{ padding: 16 }}>
+              <div className="kt-abschnitt-titel">
+                <span className="ic"><Icon name="image" size={15} /></span> Als Bild sichern
+                <small>PNG, sonst SVG</small>
+              </div>
+              <div className="sca-kacheln">
+                <button className="sca-kachel" onClick={() => bildSichern("vorn")}>
+                  <span className="sca-ic"><Icon name="download" size={18} /></span> Vorderseite
+                </button>
+                <button className="sca-kachel" onClick={() => bildSichern("hinten")}>
+                  <span className="sca-ic"><Icon name="download" size={18} /></span> Rückseite
+                </button>
+                <button className="sca-kachel" onClick={() => bildSichern("beide")}>
+                  <span className="sca-ic"><Icon name="download" size={18} /></span> Beide
+                </button>
+              </div>
+            </div>
+
+            <div className="card kt-abschnitt" style={{ padding: 16 }}>
+              <div className="kt-abschnitt-titel">
+                <span className="ic"><Icon name="building" size={15} /></span> Firmen und Rückseite
+              </div>
+              <div className="sca-hinweis">
+                Bezeichnungen, Webadressen, Standard-E-Mails, Kartenfarben und die Anschrift der Rückseite
+                gelten für alle Karten.
+              </div>
+              <button className="btn" style={{ justifyContent: "center", minHeight: 40 }} onClick={() => setFirmenOffen(true)}>
+                <Icon name="settings" size={16} /> Firmenangaben bearbeiten
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ── Großansicht: nur die Karte wird gezoomt, die Seite bleibt ruhig ── */}

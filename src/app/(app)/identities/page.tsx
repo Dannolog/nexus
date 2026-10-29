@@ -8,12 +8,36 @@ import SearchInput from "@/components/SearchInput";
 import Hervorheben, { sucheBegriffe } from "@/components/Hervorheben";
 import TextField from "@/components/TextField";
 import SuchSelect from "@/components/SuchSelect";
+import { Feld } from "@/components/KontaktFeld";
 import { useLive } from "@/lib/live";
 
 const APPS = ["kontor", "clocker", "cnc", "schaltplan", "xcat", "projecteye", "vision"];
 /** Anzeigenamen (appKey bleibt technisch gleich: „cnc“ = xCAM, „schaltplan“ = xDRAW, „xcat“ = xCAT/BlattWerk). */
 const APP_NAME: Record<string, string> = { cnc: "xCAM", schaltplan: "xDRAW", xcat: "xCAT", projecteye: "ProjectEye" };
 const appName = (k: string) => APP_NAME[k] ?? k;
+
+/** Gleichbleibender Farbton je Name – damit jeder Zugang „seine" Avatarfarbe hat (wie bei den Kontakten). */
+function farbton(s: string) {
+  let h = 0;
+  for (const c of String(s || "")) h = (h * 31 + c.charCodeAt(0)) % 360;
+  return h;
+}
+
+/** Initialen aus dem Anzeigenamen (sonst aus der E-Mail). */
+function initialen(name: string) {
+  const t = String(name || "").replace(/@.*$/, "").trim().split(/[\s._-]+/).filter(Boolean);
+  if (t.length === 0) return "";
+  return ((t[0][0] || "") + (t.length > 1 ? t[t.length - 1][0] : "")).toUpperCase();
+}
+
+function Avatar({ name, groesse }: { name: string; groesse?: "gross" | "klein" }) {
+  const ini = initialen(name);
+  return (
+    <span className={`kt-avatar${groesse ? " " + groesse : ""}`} style={{ ["--h" as any]: farbton(name) }} aria-hidden>
+      {ini || <Icon name="user" size={groesse === "gross" ? 30 : groesse === "klein" ? 14 : 18} />}
+    </span>
+  );
+}
 
 type Access = { appKey: string; allowed: boolean; role: string };
 
@@ -242,112 +266,179 @@ export default function IdentitiesPage() {
 
   // Konten ohne weitergebbares Passwort (nur der Zähler – nie die Werte)
   const ohnePasswort = rows.filter((r: any) => !r.hatPasswort).length;
+  // Freigegebene Apps eines Zugangs (für Liste und Karten)
+  const freigaben = (r: any) => (r.appAccess || []).filter((a: any) => a.allowed);
+  // Zähler für den Kopf des Einstellfensters
+  const freigegebenImFenster = editing ? APPS.filter((a) => editing.access[a]?.allowed).length : 0;
 
   return (
     <div>
-      <div className="vertrag-kopf" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, display: "flex", alignItems: "center", gap: 10 }}>
-          <Icon name="shield" size={24} /> Userverwaltung
-        </h1>
-        <button className="btn btn-primary" onClick={openNew}><Icon name="plus" /> Neuer User</button>
-        <button className="btn" disabled={laeuft} onClick={() => setFrage(true)}
-          title="Sichere Passwörter für die Zugänge erzeugen">
-          <Icon name="shield" /> Passwörter erzeugen{ohnePasswort > 0 ? ` (${ohnePasswort} offen)` : ""}
-        </button>
-      </div>
-      {/* Suchfeld linksbündig direkt über der Liste */}
-      <div style={{ marginBottom: 12 }}>
-        <SearchInput value={suche} onChange={setSuche} placeholder="Name, E-Mail, Rolle, App…"
-          style={{ width: "100%", maxWidth: 340 }} />
-      </div>
-      <p className="muted" style={{ marginBottom: 16 }}>Ein Login für alle berechtigten Apps. Pro App: Zulassung + Rolle.</p>
-      {msg && <div className="card" style={{ padding: "8px 12px", marginBottom: 12, fontSize: 14 }}>{msg}</div>}
-
-      <div className="card only-desktop" style={{ overflow: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
-          <thead><tr style={{ textAlign: "left", borderBottom: "1px solid var(--border)" }}>
-            {/* Symbol je Spalte – macht den Kopf auf einen Blick lesbar */}
-            {([["tag", "Nr."], ["user", "Name"], ["mail", "E-Mail"], ["shield", "Globale Rolle"],
-               ["command", "App-Zugriff"], ["lock", "Passwort"], ["archive", "Herkunft"]] as const).map(([icon, label], i) => (
-              <th key={label} style={{ padding: "10px 12px", ...(i === 0 ? { width: 1, whiteSpace: "nowrap" as const } : {}) }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                  <Icon name={icon} size={14} /> {label}
-                </span>
-              </th>
-            ))}
-            <th></th>
-          </tr></thead>
-          <tbody>
-            {treffer.map((r: any, i: number) => (
-              <tr key={r.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                <td style={{ padding: "10px 12px", whiteSpace: "nowrap", color: "var(--muted)", fontVariantNumeric: "tabular-nums", fontSize: 13 }}>US-{i + 1}</td>
-                <td style={{ padding: "10px 12px" }}><Hervorheben text={r.name} suche={suche} /></td>
-                <td style={{ padding: "10px 12px" }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                    <Hervorheben text={r.email} suche={suche} />
-                    <button className="btn btn-icon" title="E-Mail kopieren" aria-label="E-Mail kopieren"
-                      onClick={() => inZwischenablage(r.email, "E-Mail", "m" + r.id)}>
-                      <Icon name={kopiert === "m" + r.id ? "check" : "copy"} size={14} />
-                    </button>
-                  </span>
-                </td>
-                <td style={{ padding: "10px 12px" }}><Hervorheben text={r.globalRole} suche={suche} /></td>
-                <td style={{ padding: "10px 12px", fontSize: 12 }}>
-                  {(r.appAccess || []).filter((a: any) => a.allowed).map((a: any) => `${appName(a.appKey)}:${a.role}`).join(", ") || "–"}
-                </td>
-                <td style={{ padding: "10px 12px", fontSize: 12.5, whiteSpace: "nowrap" }}>
-                  {r.hatPasswort
-                    ? <span style={{ color: "var(--muted)" }}>hinterlegt</span>
-                    : <span style={{ color: "var(--warn, #c47f17)", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                        <Icon name="alert" size={13} /> fehlt
-                      </span>}
-                </td>
-                <td style={{ padding: "10px 12px" }}>{r.origin}</td>
-                <td style={{ padding: "8px 12px", whiteSpace: "nowrap", display: "flex", gap: 6 }}>
-                  <button className="btn btn-icon" title="Hinterlegtes Passwort anzeigen" aria-label="Passwort anzeigen"
-                    onClick={() => passwortAnzeigen(r)}>
-                    <Icon name="shield" />
-                  </button>
-                  <button className="btn btn-icon" title="Bearbeiten" aria-label="Bearbeiten" onClick={() => openEdit(r)}><Icon name="pencil" /></button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* ── Seitenkopf: Titel, Anzahl, Erklärung, Hauptaktionen rechts ── */}
+      <div className="rv-sticky-header">
+        <div className="ver-kopf">
+          <div className="ver-kopf-text">
+            <h1 className="seiten-titel">
+              <span className="titel-icon"><Icon name="shield" size={20} /></span>
+              Userverwaltung
+              <span className="anzahl">{rows.length}</span>
+            </h1>
+            <p className="seiten-untertitel">Ein Login für alle berechtigten Apps – je App Zulassung und Rolle festlegen.</p>
+          </div>
+          <div className="ver-kopf-aktionen">
+            <button className="btn" disabled={laeuft} onClick={() => setFrage(true)}
+              title="Sichere Passwörter für die Zugänge erzeugen">
+              {laeuft ? <span className="speichern-dreh" style={{ borderColor: "var(--border)", borderTopColor: "var(--accent)" }} /> : <Icon name="lock" />}
+              Passwörter erzeugen{ohnePasswort > 0 ? ` (${ohnePasswort} offen)` : ""}
+            </button>
+            <button className="btn btn-primary" onClick={openNew}><Icon name="plus" /> Neuer User</button>
+          </div>
+        </div>
+        {/* Suchfeld linksbündig direkt über der Liste */}
+        <div className="ver-werkzeuge">
+          <SearchInput value={suche} onChange={setSuche} placeholder="Name, E-Mail, Rolle, App…"
+            style={{ width: "100%", maxWidth: 340 }} />
+          <span className="ver-info">
+            {suche.trim() && <span className="abzeichen blau"><Icon name="search" size={12} /> {treffer.length} Treffer</span>}
+            {ohnePasswort > 0
+              ? <span className="abzeichen gelb"><Icon name="alert" size={12} /> {ohnePasswort} ohne Passwort</span>
+              : rows.length > 0 && <span className="abzeichen gruen"><Icon name="check" size={12} /> alle mit Passwort</span>}
+          </span>
+        </div>
       </div>
 
-      {rows.length > 0 && treffer.length === 0 && (
-        <div className="card" style={{ padding: 14, fontSize: 14 }}>Kein Benutzer passt zur Suche.</div>
+      {msg && (
+        <div className="hinweis-leiste ver-meldung" role="status">
+          <Icon name="alert" size={16} />
+          <span>{msg}</span>
+          <button className="btn btn-icon" title="Meldung schließen" aria-label="Meldung schließen" onClick={() => setMsg("")}>
+            <Icon name="x" size={14} />
+          </button>
+        </div>
       )}
 
-      {/* Handy: Karten statt Tabelle */}
-      <div className="only-mobile" style={{ gap: 10 }}>
+      {/* ── Rechner: Tabelle ── */}
+      {treffer.length > 0 && (
+        <div className="card only-desktop" style={{ overflow: "auto" }}>
+          <table className="ver-tab" style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+            <thead><tr style={{ textAlign: "left" }}>
+              {/* Symbol je Spalte – macht den Kopf auf einen Blick lesbar */}
+              {([["tag", "Nr."], ["user", "Name"], ["mail", "E-Mail"], ["shield", "Globale Rolle"],
+                 ["command", "App-Zugriff"], ["lock", "Passwort"], ["archive", "Herkunft"]] as const).map(([icon, label], i) => (
+                <th key={label} style={i === 0 ? { width: 1, whiteSpace: "nowrap" } : undefined}>
+                  <span className="ver-th"><Icon name={icon} size={14} /> {label}</span>
+                </th>
+              ))}
+              <th><span className="ver-th" style={{ justifyContent: "flex-end", width: "100%" }}><Icon name="settings" size={14} /> Aktionen</span></th>
+            </tr></thead>
+            <tbody>
+              {treffer.map((r: any, i: number) => (
+                <tr key={r.id}>
+                  <td className="ver-nr">US-{i + 1}</td>
+                  <td>
+                    <div className="ver-person">
+                      <Avatar name={r.name || r.email} groesse="klein" />
+                      <span className="ver-person-name"><Hervorheben text={r.name} suche={suche} /></span>
+                    </div>
+                  </td>
+                  <td>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      <Hervorheben text={r.email} suche={suche} />
+                      <button className="btn btn-icon btn-flach" title="E-Mail kopieren" aria-label="E-Mail kopieren"
+                        onClick={() => inZwischenablage(r.email, "E-Mail", "m" + r.id)}>
+                        <Icon name={kopiert === "m" + r.id ? "check" : "copy"} size={14} />
+                      </button>
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`abzeichen${r.globalRole === "admin" ? " blau" : ""}`}>
+                      <Icon name={r.globalRole === "admin" ? "shield" : "user"} size={12} />
+                      <Hervorheben text={r.globalRole} suche={suche} />
+                    </span>
+                  </td>
+                  <td>
+                    {freigaben(r).length > 0 ? (
+                      <div className="ver-chips">
+                        {freigaben(r).map((a: any) => (
+                          <span key={a.appKey} className="abzeichen" title={`Rolle: ${a.role}`}>
+                            {appName(a.appKey)}{a.role && a.role !== "user" ? ` · ${a.role}` : ""}
+                          </span>
+                        ))}
+                      </div>
+                    ) : <span className="muted">–</span>}
+                  </td>
+                  <td>
+                    {r.hatPasswort
+                      ? <span className="abzeichen gruen"><Icon name="check" size={12} /> hinterlegt</span>
+                      : <span className="abzeichen gelb"><Icon name="alert" size={12} /> fehlt</span>}
+                  </td>
+                  <td className="muted" style={{ fontSize: 13 }}>{r.origin}</td>
+                  <td>
+                    <div className="ver-aktionen zeilen-aktionen">
+                      <button className="btn btn-icon" title="Hinterlegtes Passwort anzeigen" aria-label="Passwort anzeigen"
+                        onClick={() => passwortAnzeigen(r)}>
+                        <Icon name="lock" />
+                      </button>
+                      <button className="btn btn-icon" title="Bearbeiten" aria-label="Bearbeiten" onClick={() => openEdit(r)}><Icon name="pencil" /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {rows.length > 0 && treffer.length === 0 && (
+        <div className="card leer-zustand">
+          <span className="leer-icon"><Icon name="search" size={28} /></span>
+          <b style={{ color: "var(--fg)" }}>Kein Benutzer passt zur Suche.</b>
+          <span style={{ fontSize: 13 }}>Mehrere Begriffe werden UND-verknüpft – weniger Begriffe finden mehr.</span>
+          <button className="btn" onClick={() => setSuche("")}><Icon name="x" /> Suche leeren</button>
+        </div>
+      )}
+
+      {/* ── Handy: Karten statt Tabelle ── */}
+      <div className="only-mobile ver-karten">
         {treffer.map((r: any, i: number) => (
-          <div key={r.id} className="card" style={{ padding: 14, display: "grid", gap: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontWeight: 600, fontSize: 15, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}><Hervorheben text={r.name} suche={suche} /></span>
-              <span className="muted" style={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}>US-{i + 1}</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, wordBreak: "break-all" }}><Hervorheben text={r.email} suche={suche} /></span>
+          <div key={r.id} className="card ver-karte">
+            <div className="ver-karte-kopf">
+              <Avatar name={r.name || r.email} />
+              <div style={{ flex: 1, minWidth: 0, display: "grid" }}>
+                <span className="kt-name"><Hervorheben text={r.name} suche={suche} /></span>
+                <span className="kt-unter" style={{ whiteSpace: "normal", wordBreak: "break-all" }}><Hervorheben text={r.email} suche={suche} /></span>
+              </div>
               <button className="btn btn-icon" title="E-Mail kopieren" aria-label="E-Mail kopieren"
                 onClick={() => inZwischenablage(r.email, "E-Mail", "k" + r.id)}>
                 <Icon name={kopiert === "k" + r.id ? "check" : "copy"} />
               </button>
             </div>
-            <div className="muted" style={{ fontSize: 12.5, display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <span>Rolle: <b>{r.globalRole}</b></span>
-              <span>Herkunft: {r.origin}</span>
-              <span>Passwort: <b>{r.hatPasswort ? "hinterlegt" : "fehlt"}</b></span>
+            <div className="ver-karte-zeile">
+              <span className="ver-nr">US-{i + 1}</span>
+              <span className={`abzeichen${r.globalRole === "admin" ? " blau" : ""}`}>
+                <Icon name={r.globalRole === "admin" ? "shield" : "user"} size={12} /> {r.globalRole}
+              </span>
+              {r.hatPasswort
+                ? <span className="abzeichen gruen"><Icon name="lock" size={12} /> Passwort hinterlegt</span>
+                : <span className="abzeichen gelb"><Icon name="alert" size={12} /> Passwort fehlt</span>}
+              {r.origin && <span className="abzeichen"><Icon name="archive" size={12} /> {r.origin}</span>}
             </div>
-            <div className="muted" style={{ fontSize: 12 }}>
-              Apps: {(r.appAccess || []).filter((a: any) => a.allowed).map((a: any) => `${appName(a.appKey)}:${a.role}`).join(", ") || "–"}
+            <div className="ver-karte-zeile">
+              <Icon name="command" size={14} />
+              {freigaben(r).length > 0 ? (
+                <div className="ver-chips" style={{ flex: 1, minWidth: 0 }}>
+                  {freigaben(r).map((a: any) => (
+                    <span key={a.appKey} className="abzeichen">
+                      {appName(a.appKey)}{a.role && a.role !== "user" ? ` · ${a.role}` : ""}
+                    </span>
+                  ))}
+                </div>
+              ) : <span>keine App freigegeben</span>}
             </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={() => passwortAnzeigen(r)}>
-                <Icon name="shield" /> Passwort
+            <div className="ver-karte-knoepfe">
+              <button className="btn" onClick={() => passwortAnzeigen(r)}>
+                <Icon name="lock" /> Passwort
               </button>
-              <button className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={() => openEdit(r)}>
+              <button className="btn" onClick={() => openEdit(r)}>
                 <Icon name="pencil" /> Bearbeiten
               </button>
             </div>
@@ -355,92 +446,122 @@ export default function IdentitiesPage() {
         ))}
       </div>
 
-      {/* Auswahl: welche Konten sollen ein neues Passwort bekommen? */}
+      {/* ── Auswahl: welche Konten sollen ein neues Passwort bekommen? ── */}
       {frage && (
-        <div onClick={() => setFrage(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "grid", placeItems: "center", padding: 16, zIndex: 60 }}>
-          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: 520, maxWidth: "92vw", padding: 22, display: "grid", gap: 14 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
-              <Icon name="shield" /> Sichere Passwörter erzeugen
-            </h2>
-            <p className="muted" style={{ fontSize: 13, lineHeight: 1.5 }}>
-              Es werden zufällige Passwörter mit Groß-/Kleinbuchstaben, Ziffern und Zusatzzeichen
-              vergeben (19 Zeichen, z.&nbsp;B. <code>hRt7#pQ4m-3Xvb@n8Ka</code>). Sie gelten sofort für
-              <b> alle Apps</b>, weil die Anmeldung zentral über Nexus läuft. Die neuen Werte werden
-              danach <b>einmalig</b> angezeigt – bitte sofort sichern und weitergeben.
-            </p>
-            <button className="btn btn-primary" style={{ justifyContent: "center" }} disabled={laeuft || ohnePasswort === 0}
-              onClick={() => passwoerterErzeugen("fehlende")}>
-              <Icon name="shield" /> Nur fehlende ({ohnePasswort})
-            </button>
-            <button className="btn" style={{ justifyContent: "center" }} disabled={laeuft}
-              onClick={() => passwoerterErzeugen("alle")}>
-              <Icon name="redo" /> Alle {rows.length} Benutzer neu setzen
-            </button>
-            <span className="muted" style={{ fontSize: 12 }}>
-              „Alle neu setzen" macht die bisherigen Passwörter sofort ungültig – jeder Mitarbeiter
-              braucht dann das neue.
-            </span>
-            <button className="btn" style={{ justifyContent: "center" }} onClick={() => setFrage(false)}>
-              <Icon name="x" /> Abbrechen
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Einzelnes hinterlegtes Passwort ansehen */}
-      {pwAnzeige && (
-        <div onClick={() => setPwAnzeige(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "grid", placeItems: "center", padding: 16, zIndex: 60 }}>
-          <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: 460, maxWidth: "92vw", padding: 22, display: "grid", gap: 12 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
-              <Icon name="shield" /> Passwort von {pwAnzeige.name}
-            </h2>
-            <div className="muted" style={{ fontSize: 13, wordBreak: "break-all" }}>{pwAnzeige.email}</div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <code style={{ flex: 1, minWidth: 0, fontSize: 17, padding: "10px 12px", borderRadius: 8, border: "1px solid var(--border)", wordBreak: "break-all", fontFamily: "ui-monospace, monospace" }}>
-                {pwAnzeige.passwort}
-              </code>
-              <button className="btn btn-icon" title="Passwort kopieren"
-                onClick={() => inZwischenablage(pwAnzeige.passwort, "Passwort", "einzel")}>
-                <Icon name={kopiert === "einzel" ? "check" : "copy"} />
+        <div className="kt-huelle" style={{ zIndex: 60 }} onClick={() => setFrage(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster kt-fenster" style={{ width: 540 }}>
+            <div className="ver-fenster-kopf">
+              <span className="ver-fenster-icon"><Icon name="lock" size={18} /></span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h2>Sichere Passwörter erzeugen</h2>
+                <div className="muted" style={{ fontSize: 12.5 }}>{rows.length} Zugänge · {ohnePasswort} ohne Passwort</div>
+              </div>
+            </div>
+            <div className="kt-inhalt">
+              <p className="ver-hinweis" style={{ fontSize: 13 }}>
+                Es werden zufällige Passwörter mit Groß-/Kleinbuchstaben, Ziffern und Zusatzzeichen
+                vergeben (19 Zeichen, z.&nbsp;B. <code>hRt7#pQ4m-3Xvb@n8Ka</code>). Sie gelten sofort für
+                <b> alle Apps</b>, weil die Anmeldung zentral über Nexus läuft. Die neuen Werte werden
+                danach <b>einmalig</b> angezeigt – bitte sofort sichern und weitergeben.
+              </p>
+              <button type="button" className="ver-wahl" disabled={laeuft || ohnePasswort === 0}
+                onClick={() => passwoerterErzeugen("fehlende")}>
+                <span className="ver-fenster-icon"><Icon name="lock" size={17} /></span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <b>Nur fehlende ({ohnePasswort})</b>
+                  <small>Nur Zugänge ohne hinterlegtes Passwort bekommen eines – alle anderen bleiben unverändert.</small>
+                </span>
+              </button>
+              <button type="button" className="ver-wahl warn" disabled={laeuft}
+                onClick={() => passwoerterErzeugen("alle")}>
+                <span className="ver-fenster-icon rot"><Icon name="redo" size={17} /></span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <b>Alle {rows.length} Benutzer neu setzen</b>
+                  <small>Macht die bisherigen Passwörter sofort ungültig – jeder Mitarbeiter braucht dann das neue.</small>
+                </span>
               </button>
             </div>
-            <span className="muted" style={{ fontSize: 12, lineHeight: 1.45 }}>
-              Nur für globale Admins – der Abruf wird im Verlauf vermerkt. Bitte über einen sicheren
-              Weg weitergeben und das Fenster danach schließen.
-            </span>
-            <button className="btn" style={{ justifyContent: "center" }} onClick={() => setPwAnzeige(null)}>
-              <Icon name="x" /> Schließen
-            </button>
+            <div className="kt-fuss">
+              <button className="btn" onClick={() => setFrage(false)}>
+                <Icon name="x" /> Abbrechen
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Ergebnis der Sammelvergabe — einmalige Anzeige */}
-      {sammel && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", display: "grid", placeItems: "center", padding: 16, zIndex: 60 }}>
-          <div className="card" style={{ width: 640, maxWidth: "94vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "18px 22px", borderBottom: "1px solid var(--border)" }}>
-              <h2 style={{ fontSize: 18, fontWeight: 700 }}>{sammel.length} neue Passwörter</h2>
-              <p className="muted" style={{ fontSize: 12.5, marginTop: 4 }}>
-                Jetzt sichern – danach sind sie nur noch einzeln über das Schild-Symbol abrufbar.
-              </p>
+      {/* ── Einzelnes hinterlegtes Passwort ansehen ── */}
+      {pwAnzeige && (
+        <div className="kt-huelle" style={{ zIndex: 60 }} onClick={() => setPwAnzeige(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster kt-fenster" style={{ width: 480 }}>
+            <div className="kt-held" style={{ ["--h" as any]: farbton(pwAnzeige.name || pwAnzeige.email), padding: "16px 20px" }}>
+              <Avatar name={pwAnzeige.name || pwAnzeige.email} />
+              <div style={{ flex: 1, minWidth: 0, paddingRight: 40 }}>
+                <div className="muted" style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".05em" }}>
+                  Hinterlegtes Passwort
+                </div>
+                <h2 style={{ fontSize: 19 }}>{pwAnzeige.name}</h2>
+                <div className="muted" style={{ fontSize: 13, wordBreak: "break-all" }}>{pwAnzeige.email}</div>
+              </div>
+              <div className="kt-held-knoepfe">
+                <button aria-label="Schließen" title="Schließen" onClick={() => setPwAnzeige(null)}><Icon name="x" size={17} /></button>
+              </div>
             </div>
-            <div style={{ padding: 16, overflowY: "auto", flex: 1, display: "grid", gap: 8 }}>
+            <div className="kt-inhalt">
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <code className="ver-pw">{pwAnzeige.passwort}</code>
+                <button className="btn btn-icon" title="Passwort kopieren" aria-label="Passwort kopieren"
+                  onClick={() => inZwischenablage(pwAnzeige.passwort, "Passwort", "einzel")}>
+                  <Icon name={kopiert === "einzel" ? "check" : "copy"} />
+                </button>
+              </div>
+              <div className="ver-schalter-zeile">
+                <Icon name="shield" size={16} />
+                <span className="ver-hinweis">
+                  Nur für globale Admins – der Abruf wird im Verlauf vermerkt. Bitte über einen sicheren
+                  Weg weitergeben und das Fenster danach schließen.
+                </span>
+              </div>
+            </div>
+            <div className="kt-fuss">
+              <button className="btn" onClick={() => setPwAnzeige(null)}>
+                <Icon name="x" /> Schließen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Ergebnis der Sammelvergabe — einmalige Anzeige ── */}
+      {sammel && (
+        <div className="kt-huelle" style={{ zIndex: 60 }}>
+          <div className="card dm-fenster kt-fenster" style={{ width: 660 }}>
+            <div className="ver-fenster-kopf">
+              <span className="ver-fenster-icon"><Icon name="lock" size={18} /></span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h2>{sammel.length} neue Passwörter</h2>
+                <div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>
+                  Jetzt sichern – danach sind sie nur noch einzeln über das Schloss-Symbol abrufbar.
+                </div>
+              </div>
+            </div>
+            <div className="kt-inhalt" style={{ gap: 0, flex: 1 }}>
               {sammel.map((b) => (
-                <div key={b.id} style={{ display: "flex", gap: 8, alignItems: "center", borderBottom: "1px solid var(--border)", paddingBottom: 8 }}>
+                <div key={b.id} className="ver-pw-zeile">
+                  <Avatar name={b.name || b.email} groesse="klein" />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: 14 }}>{b.name}</div>
                     <div className="muted" style={{ fontSize: 12, wordBreak: "break-all" }}>{b.email}</div>
                   </div>
-                  <code style={{ fontFamily: "ui-monospace, monospace", fontSize: 14, wordBreak: "break-all" }}>{b.passwort}</code>
-                  <button className="btn btn-icon" title="Passwort kopieren"
+                  <code>{b.passwort}</code>
+                  <button className="btn btn-icon" title="Passwort kopieren" aria-label="Passwort kopieren"
                     onClick={() => inZwischenablage(b.passwort, "Passwort", "s" + b.id)}>
                     <Icon name={kopiert === "s" + b.id ? "check" : "copy"} />
                   </button>
                 </div>
               ))}
             </div>
-            <div style={{ padding: "14px 22px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
+            <div className="kt-fuss">
               <button className="btn"
                 onClick={() => inZwischenablage(sammel.map((b) => `${b.name}\t${b.email}\t${b.passwort}`).join("\n"), "Liste", "liste")}>
                 <Icon name={kopiert === "liste" ? "check" : "copy"} /> Ganze Liste kopieren
@@ -451,127 +572,49 @@ export default function IdentitiesPage() {
         </div>
       )}
 
+      {/* ── Einstellfenster eines Zugangs ── */}
       {editing && (
-        <div onClick={() => setEditing(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "grid", placeItems: "center", padding: 16, zIndex: 50 }}>
-          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster" style={{ width: 560, maxWidth: "92vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "18px 24px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
-              <h2 style={{ fontSize: 18, fontWeight: 700 }}>{editing.id ? "User bearbeiten" : "Neuer User"}</h2>
-              {editing.id && (
-                <button type="button" onClick={() => inZwischenablage(editing.id!, "System-ID", "sid")} title="System-ID kopieren"
-                  style={{ marginTop: 4, padding: 0, border: "none", background: "none", cursor: "pointer", fontSize: 12, color: "var(--muted)", fontFamily: "ui-monospace, monospace" }}>
-                  System-ID {editing.id} {kopiert === "sid" ? "✓" : ""}
-                </button>
-              )}
-            </div>
-            <div style={{ padding: 24, overflowY: "auto", flex: 1 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12 }}>
-              <label style={{ fontSize: 13 }}>E-Mail (Hauptadresse)
-                <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4 }}>
-                  <input className="input" style={{ flex: 1, minWidth: 0 }} type="email" value={editing.email}
-                    onChange={(e) => setEditing({ ...editing, email: e.target.value })} />
-                  <button type="button" className="btn btn-icon" title="E-Mail kopieren" disabled={!editing.email}
-                    onClick={() => inZwischenablage(editing.email, "E-Mail", "dm")}>
-                    <Icon name={kopiert === "dm" ? "check" : "copy"} />
-                  </button>
+        <div className="kt-huelle" style={{ zIndex: 50 }} onClick={() => setEditing(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster kt-fenster" style={{ width: 640 }}>
+            {/* Kopf: Avatar, Name, E-Mail, Rolle, System-ID */}
+            <div className="kt-held" style={{ ["--h" as any]: farbton(editing.name || editing.email), padding: "16px 20px" }}>
+              <Avatar name={editing.name || editing.email} groesse="gross" />
+              <div style={{ flex: 1, minWidth: 0, paddingRight: 40 }}>
+                <div className="muted" style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: ".05em" }}>
+                  {editing.id ? "User bearbeiten" : "Neuer User"}
                 </div>
-              </label>
-              <label style={{ fontSize: 13 }}>Name
-                <TextField value={editing.name} onChange={(v) => setEditing({ ...editing, name: v })} />
-              </label>
-
-              {/* Weitere Anmelde-Adressen: Firmen-, Privat- und beliebige weitere Adressen.
-                  Mit jeder davon ist die Anmeldung möglich – das Passwort bleibt dasselbe. */}
-              {editing.id && (
-                <div style={{ gridColumn: "1 / -1", border: "1px solid var(--border)", borderRadius: 10, padding: 12, display: "grid", gap: 8 }}>
-                  <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em", display: "flex", alignItems: "center", gap: 6 }}>
-                    <Icon name="mail" size={14} /> Weitere Anmelde-Adressen
-                  </div>
-                  <div style={{ fontSize: 12.5, color: "var(--muted)" }}>
-                    Anmeldung ist mit der Hauptadresse <b>und</b> jeder hier hinterlegten Adresse möglich –
-                    mit demselben Passwort. Nur die Hauptadresse wandert in den Mitarbeiterstammsatz
-                    und in kontor, clocker und ProjectEye.
-                  </div>
-
-                  {mails.length === 0 && (
-                    <div className="muted" style={{ fontSize: 13 }}>Noch keine weitere Adresse hinterlegt.</div>
-                  )}
-                  {mails.map((m: any) => (
-                    <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
-                                             border: "1px solid var(--border)", borderRadius: 8, padding: "6px 8px" }}>
-                      <span style={{ fontSize: 13.5, flex: "1 1 180px", minWidth: 0, wordBreak: "break-all" }}>{m.email}</span>
-                      {m.label && <span className="muted" style={{ fontSize: 12 }}>{m.label}</span>}
-                      <button type="button" className="btn btn-icon" title="E-Mail kopieren"
-                        onClick={() => inZwischenablage(m.email, "E-Mail", "w" + m.id)}>
-                        <Icon name={kopiert === "w" + m.id ? "check" : "copy"} size={14} />
-                      </button>
-                      <button type="button" className="btn" title="Diese Adresse zur Hauptadresse machen"
-                        onClick={() => mailZurHaupt(m.id)}>
-                        <Icon name="check" /> <span className="btn-label">Haupt</span>
-                      </button>
-                      <button type="button" className="btn btn-icon btn-danger" title="Adresse entfernen"
-                        onClick={() => mailEntfernen(m.id)}>
-                        <Icon name="trash" size={14} />
-                      </button>
-                    </div>
-                  ))}
-
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    <input className="input" style={{ flex: "2 1 200px", minWidth: 0 }} type="email"
-                      placeholder="weitere Adresse, z. B. privat@web.de"
-                      value={neueMail}
-                      onChange={(e) => setNeueMail(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); mailHinzufuegen(); } }} />
-                    <input className="input" style={{ flex: "1 1 120px", minWidth: 0 }}
-                      placeholder="Bezeichnung (privat …)"
-                      value={neuesLabel}
-                      onChange={(e) => setNeuesLabel(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); mailHinzufuegen(); } }} />
-                    <button type="button" className="btn" disabled={!neueMail.trim()} onClick={mailHinzufuegen}>
-                      <Icon name="plus" /> Hinzufügen
-                    </button>
-                  </div>
-                </div>
-              )}
-              <label style={{ fontSize: 13, gridColumn: "1 / -1" }}>
-                Passwort {editing.id && <span className="muted">(leer = unverändert)</span>}
-                <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4, flexWrap: "wrap" }}>
-                  <input
-                    className="input"
-                    style={{ flex: "1 1 180px", minWidth: 0, fontFamily: pwSichtbar ? "ui-monospace, monospace" : undefined }}
-                    type={pwSichtbar ? "text" : "password"}
-                    value={editing.password}
-                    autoComplete="new-password"
-                    placeholder={editing.id ? "leer lassen = unverändert" : "Passwort vergeben oder erzeugen"}
-                    onChange={(e) => setEditing({ ...editing, password: e.target.value })}
-                  />
-                  <button type="button" className="btn btn-icon" title={pwSichtbar ? "Passwort verbergen" : "Passwort anzeigen"}
-                    onClick={() => setPwSichtbar((v) => !v)}>
-                    <Icon name={pwSichtbar ? "eye-off" : "eye"} />
-                  </button>
-                  <button type="button" className="btn btn-icon" title="Passwort in die Zwischenablage kopieren"
-                    disabled={!editing.password}
-                    onClick={() => inZwischenablage(editing.password, "Passwort", "pw")}>
-                    <Icon name={kopiert === "pw" ? "check" : "copy"} />
-                  </button>
+                <h2 style={{ fontSize: 19 }}>{editing.name || <span className="muted" style={{ fontWeight: 500 }}>Name eingeben…</span>}</h2>
+                {editing.email && <div className="muted" style={{ fontSize: 13, wordBreak: "break-all" }}>{editing.email}</div>}
+                <div className="ver-held-zeile">
+                  <span className={`abzeichen${editing.globalRole === "admin" ? " blau" : ""}`}>
+                    <Icon name={editing.globalRole === "admin" ? "shield" : "user"} size={12} /> {editing.globalRole || "user"}
+                  </span>
                   {editing.id && (
-                    <button type="button" className="btn" title="Hinterlegtes Passwort anzeigen"
-                      onClick={() => passwortAnzeigen({ id: editing.id!, name: editing.name, email: editing.email })}>
-                      <Icon name="shield" /> Hinterlegtes anzeigen
+                    <button type="button" className="ver-sid" onClick={() => inZwischenablage(editing.id!, "System-ID", "sid")} title="System-ID kopieren">
+                      <Icon name={kopiert === "sid" ? "check" : "id-card"} size={12} /> System-ID {editing.id}
                     </button>
                   )}
-                  <button type="button" className="btn" title="Sicheres Passwort erzeugen"
-                    onClick={() => { const neu = erzeugePasswort(); setEditing({ ...editing, password: neu }); setPwSichtbar(true); }}>
-                    <Icon name="redo" /> Erzeugen
-                  </button>
                 </div>
-                <span className="muted" style={{ fontSize: 11.5, display: "block", marginTop: 4, lineHeight: 1.45 }}>
-                  „Hinterlegtes anzeigen" zeigt das zuletzt über Nexus vergebene Passwort (verschlüsselt gespeichert,
-                  nur für globale Admins, jeder Abruf wird im Verlauf vermerkt). Bei älteren Konten existiert es noch nicht –
-                  dann einfach ein neues erzeugen, kopieren und speichern.
-                </span>
-              </label>
-              <label style={{ fontSize: 13 }}>Globale Rolle
-                <div style={{ marginTop: 4 }}>
+              </div>
+              <div className="kt-held-knoepfe">
+                <button aria-label="Schließen" title="Schließen" onClick={() => setEditing(null)}><Icon name="x" size={17} /></button>
+              </div>
+            </div>
+
+            <div className="kt-inhalt">
+              {/* ── Zugang: Name, Hauptadresse, weitere Adressen, globale Rolle ── */}
+              <section className="kt-abschnitt">
+                <div className="kt-abschnitt-titel"><span className="ic"><Icon name="user" size={15} /></span> Zugang</div>
+                <div className="feld-zeile feld-zeile-2">
+                  <Feld label="Name" icon="user" wert={editing.name}
+                    setWert={(v) => setEditing({ ...editing, name: v })} />
+                  <Feld label="E-Mail (Hauptadresse)" icon="mail" typ="email" wert={editing.email}
+                    setWert={(v) => setEditing({ ...editing, email: v })} />
+                </div>
+                <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
+                  <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <Icon name="shield" size={14} /> Globale Rolle
+                  </span>
                   <SuchSelect
                     value={editing.globalRole || "user"}
                     onChange={(v) => setEditing({ ...editing, globalRole: v })}
@@ -581,74 +624,187 @@ export default function IdentitiesPage() {
                       { value: "admin", label: "admin", hint: "Zugriff auf alle Apps" },
                     ]}
                   />
-                </div>
-              </label>
-            </div>
-            {/* Anmeldung ohne Passwort: Bestätigung auf einem angemeldeten Gerät (Register auth.qr-login) */}
-            <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 10, border: "1px solid var(--border)" }}>
-              <Toggle checked={editing.globalRole === "admin" || !!editing.anmeldungBestaetigen}
-                label="Anmeldung ohne Passwort (Bestätigung auf angemeldetem Gerät)"
-                onChange={(v: boolean) => editing.globalRole !== "admin" && setEditing({ ...editing, anmeldungBestaetigen: v })} />
-              <span className="muted" style={{ fontSize: 11.5, display: "block", marginTop: 4, lineHeight: 1.45 }}>
-                {editing.globalRole === "admin"
-                  ? "Für Admins immer erlaubt."
-                  : "Beim Anmelden nur die E-Mail eingeben – auf einem Gerät, auf dem der User schon angemeldet ist, erscheint eine Anfrage zum Bestätigen."}
-              </span>
-            </div>
-            <h3 style={{ fontSize: 14, fontWeight: 600, margin: "18px 0 8px" }}>App-Zulassung</h3>
-            {editing.globalRole === "admin" && (
-              <p className="muted" style={{ fontSize: 12, margin: "0 0 8px" }}>
-                Globaler Admin — hat automatisch Zugriff auf <b>alle</b> Apps. Die folgenden
-                App-Freigaben werden dann ignoriert.
-              </p>
-            )}
-            <div style={{ display: "grid", gap: 8, opacity: editing.globalRole === "admin" ? 0.45 : 1, pointerEvents: editing.globalRole === "admin" ? "none" : "auto" }}>
-              {APPS.map((a) => {
-                const ac = editing.access[a];
-                return (
-                  <div key={a} className="app-freigabe" style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <div style={{ width: 140 }}>
-                      <Toggle checked={ac.allowed} label={appName(a)}
-                        onChange={(v) => setEditing({ ...editing, access: { ...editing.access, [a]: { ...ac, allowed: v } } })} />
-                    </div>
-                    <div style={{ maxWidth: 180, flex: 1 }}>
-                      <SuchSelect
-                        value={ac.role || "user"}
-                        disabled={!ac.allowed}
-                        onChange={(v) => setEditing({ ...editing, access: { ...editing.access, [a]: { ...ac, role: v } } })}
-                        platzhalter="Rolle"
-                        options={[
-                          { value: "user", label: "user" },
-                          { value: "admin", label: "admin" },
-                          // App-eigene Rollen (z. B. clocker: Buchhaltung)
-                          ...(APP_ROLLEN[a] ?? []),
-                          // In der App vergebene Sonderrolle beibehalten, falls vorhanden
-                          ...(ac.role && !["user", "admin", ...(APP_ROLLEN[a] ?? []).map(r => r.value)].includes(ac.role) ? [{ value: ac.role, label: ac.role }] : []),
-                        ]}
-                      />
+                  <span className="ver-hinweis">„admin" hat automatisch Zugriff auf alle Apps, „user" nur auf die unten freigegebenen.</span>
+                </label>
+
+                {/* Weitere Anmelde-Adressen: Firmen-, Privat- und beliebige weitere Adressen.
+                    Mit jeder davon ist die Anmeldung möglich – das Passwort bleibt dasselbe. */}
+                {editing.id && (
+                  <div className="kt-block">
+                    <div className="kt-block-titel"><Icon name="mail" size={14} /> Weitere Anmelde-Adressen</div>
+                    <div className="kt-block-inhalt">
+                      <div className="ver-hinweis">
+                        Anmeldung ist mit der Hauptadresse <b>und</b> jeder hier hinterlegten Adresse möglich –
+                        mit demselben Passwort. Nur die Hauptadresse wandert in den Mitarbeiterstammsatz
+                        und in kontor, clocker und ProjectEye.
+                      </div>
+
+                      {mails.length === 0 && (
+                        <div className="muted" style={{ fontSize: 13 }}>Noch keine weitere Adresse hinterlegt.</div>
+                      )}
+                      {mails.map((m: any) => (
+                        <div key={m.id} className="ver-mail">
+                          <div className="ver-mail-text">
+                            <span>{m.email}</span>
+                            {m.label && <small className="muted" style={{ fontSize: 12 }}>{m.label}</small>}
+                          </div>
+                          <button type="button" className="btn btn-icon" title="E-Mail kopieren" aria-label="E-Mail kopieren"
+                            onClick={() => inZwischenablage(m.email, "E-Mail", "w" + m.id)}>
+                            <Icon name={kopiert === "w" + m.id ? "check" : "copy"} size={14} />
+                          </button>
+                          <button type="button" className="btn" title="Diese Adresse zur Hauptadresse machen"
+                            onClick={() => mailZurHaupt(m.id)}>
+                            <Icon name="star" /> <span className="btn-label">Zur Hauptadresse</span>
+                          </button>
+                          <button type="button" className="btn btn-icon btn-danger" title="Adresse entfernen" aria-label="Adresse entfernen"
+                            onClick={() => mailEntfernen(m.id)}>
+                            <Icon name="trash" size={14} />
+                          </button>
+                        </div>
+                      ))}
+
+                      <div className="ver-mail-neu">
+                        <TextField type="email" placeholder="weitere Adresse, z. B. privat@web.de"
+                          value={neueMail} onChange={setNeueMail}
+                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); mailHinzufuegen(); } }} />
+                        <TextField placeholder="Bezeichnung (privat …)"
+                          value={neuesLabel} onChange={setNeuesLabel}
+                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); mailHinzufuegen(); } }} />
+                        <button type="button" className="btn" disabled={!neueMail.trim()} onClick={mailHinzufuegen}>
+                          <Icon name="plus" /> Hinzufügen
+                        </button>
+                      </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-            </div>
-            <div style={{ padding: "14px 24px", borderTop: "1px solid var(--border)", flexShrink: 0, display: "grid", gap: 10 }}>
-              {dialogFehler && (
-                <div role="alert" style={{
-                  color: "#ef4444", fontSize: 13.5, background: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.30)",
-                  borderRadius: 10, padding: "8px 12px", display: "flex", gap: 8, alignItems: "center",
-                }}>
-                  <Icon name="alert" size={16} /> <span style={{ flex: 1 }}>{dialogFehler}</span>
+                )}
+              </section>
+
+              {/* ── Anmeldung: Passwort und Anmeldung ohne Passwort ── */}
+              <section className="kt-abschnitt">
+                <div className="kt-abschnitt-titel">
+                  <span className="ic"><Icon name="lock" size={15} /></span> Anmeldung
+                  {editing.id && <small>Passwort leer = unverändert</small>}
                 </div>
+                <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
+                  <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <Icon name="lock" size={14} /> Passwort
+                  </span>
+                  <div className="ver-pw-feld">
+                    <input
+                      className="input"
+                      style={{ fontFamily: pwSichtbar ? "ui-monospace, monospace" : undefined }}
+                      type={pwSichtbar ? "text" : "password"}
+                      value={editing.password}
+                      autoComplete="new-password"
+                      placeholder={editing.id ? "leer lassen = unverändert" : "Passwort vergeben oder erzeugen"}
+                      onChange={(e) => setEditing({ ...editing, password: e.target.value })}
+                    />
+                    <button type="button" className="btn btn-icon" title={pwSichtbar ? "Passwort verbergen" : "Passwort anzeigen"}
+                      aria-label={pwSichtbar ? "Passwort verbergen" : "Passwort anzeigen"}
+                      onClick={() => setPwSichtbar((v) => !v)}>
+                      <Icon name={pwSichtbar ? "eye-off" : "eye"} />
+                    </button>
+                    <button type="button" className="btn btn-icon" title="Passwort in die Zwischenablage kopieren"
+                      aria-label="Passwort kopieren"
+                      disabled={!editing.password}
+                      onClick={() => inZwischenablage(editing.password, "Passwort", "pw")}>
+                      <Icon name={kopiert === "pw" ? "check" : "copy"} />
+                    </button>
+                    <button type="button" className="btn" title="Sicheres Passwort erzeugen"
+                      onClick={() => { const neu = erzeugePasswort(); setEditing({ ...editing, password: neu }); setPwSichtbar(true); }}>
+                      <Icon name="redo" /> Erzeugen
+                    </button>
+                    {editing.id && (
+                      <button type="button" className="btn" title="Hinterlegtes Passwort anzeigen"
+                        onClick={() => passwortAnzeigen({ id: editing.id!, name: editing.name, email: editing.email })}>
+                        <Icon name="eye" /> Hinterlegtes anzeigen
+                      </button>
+                    )}
+                  </div>
+                  <span className="ver-hinweis">
+                    „Hinterlegtes anzeigen" zeigt das zuletzt über Nexus vergebene Passwort (verschlüsselt gespeichert,
+                    nur für globale Admins, jeder Abruf wird im Verlauf vermerkt). Bei älteren Konten existiert es noch nicht –
+                    dann einfach ein neues erzeugen, kopieren und speichern.
+                  </span>
+                </label>
+
+                {/* Anmeldung ohne Passwort: Bestätigung auf einem angemeldeten Gerät (Register auth.qr-login) */}
+                <div className="ver-schalter-zeile">
+                  <Icon name="smartphone" size={18} style={{ marginTop: 2, color: "var(--accent)" }} />
+                  <div>
+                    <Toggle checked={editing.globalRole === "admin" || !!editing.anmeldungBestaetigen}
+                      label="Anmeldung ohne Passwort"
+                      onChange={(v: boolean) => editing.globalRole !== "admin" && setEditing({ ...editing, anmeldungBestaetigen: v })} />
+                    <div className="ver-hinweis" style={{ marginTop: 4 }}>
+                      {editing.globalRole === "admin"
+                        ? "Für Admins immer erlaubt."
+                        : "Beim Anmelden nur die E-Mail eingeben – auf einem Gerät, auf dem der User schon angemeldet ist, erscheint eine Anfrage zum Bestätigen."}
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* ── App-Zulassung: je App Schiebeschalter + Rolle ── */}
+              <section className="kt-abschnitt">
+                <div className="kt-abschnitt-titel">
+                  <span className="ic"><Icon name="command" size={15} /></span> App-Zulassung
+                  <small>{editing.globalRole === "admin" ? "alle Apps" : `${freigegebenImFenster} von ${APPS.length} freigegeben`}</small>
+                </div>
+                {editing.globalRole === "admin" && (
+                  <div className="ver-schalter-zeile">
+                    <Icon name="shield" size={16} style={{ marginTop: 1, color: "var(--accent)" }} />
+                    <span className="ver-hinweis">
+                      Globaler Admin — hat automatisch Zugriff auf <b>alle</b> Apps. Die folgenden
+                      App-Freigaben werden dann ignoriert.
+                    </span>
+                  </div>
+                )}
+                <div className={`ver-apps${editing.globalRole === "admin" ? " gesperrt" : ""}`}>
+                  {APPS.map((a) => {
+                    const ac = editing.access[a];
+                    return (
+                      <div key={a} className={`ver-app${ac.allowed ? " an" : ""}`}>
+                        <span className="ver-app-logo" aria-hidden>{appName(a).slice(0, 2).toUpperCase()}</span>
+                        <div className="ver-app-text">
+                          <b>{appName(a)}</b>
+                          <small>{ac.allowed ? `zugelassen als ${ac.role || "user"}` : "kein Zugriff"}</small>
+                        </div>
+                        <div className="ver-app-rolle">
+                          <SuchSelect
+                            value={ac.role || "user"}
+                            disabled={!ac.allowed}
+                            onChange={(v) => setEditing({ ...editing, access: { ...editing.access, [a]: { ...ac, role: v } } })}
+                            platzhalter="Rolle"
+                            options={[
+                              { value: "user", label: "user" },
+                              { value: "admin", label: "admin" },
+                              // App-eigene Rollen (z. B. clocker: Buchhaltung)
+                              ...(APP_ROLLEN[a] ?? []),
+                              // In der App vergebene Sonderrolle beibehalten, falls vorhanden
+                              ...(ac.role && !["user", "admin", ...(APP_ROLLEN[a] ?? []).map(r => r.value)].includes(ac.role) ? [{ value: ac.role, label: ac.role }] : []),
+                            ]}
+                          />
+                        </div>
+                        <Toggle checked={ac.allowed}
+                          onChange={(v) => setEditing({ ...editing, access: { ...editing.access, [a]: { ...ac, allowed: v } } })} />
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+
+              {dialogFehler && (
+                <div className="kt-fehler" role="alert"><Icon name="alert" size={16} /> <span style={{ flex: 1 }}>{dialogFehler}</span></div>
               )}
-              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                <button className="btn" onClick={() => setEditing(null)} disabled={speichert}><Icon name="x" /> Abbrechen</button>
-                <button className="btn btn-primary" onClick={save} disabled={speichert} aria-busy={speichert}>
-                  {speichert
-                    ? <><span className="speichern-dreh" /> Speichert…</>
-                    : <><Icon name="save" /> Speichern</>}
-                </button>
-              </div>
+            </div>
+
+            <div className="kt-fuss">
+              <button className="btn" onClick={() => setEditing(null)} disabled={speichert}><Icon name="x" /> Abbrechen</button>
+              <button className="btn btn-primary" onClick={save} disabled={speichert} aria-busy={speichert}>
+                {speichert
+                  ? <><span className="speichern-dreh" /> Speichert…</>
+                  : <><Icon name="save" /> Speichern</>}
+              </button>
             </div>
           </div>
         </div>

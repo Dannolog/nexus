@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback, useRef, Fragment } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { api, ConflictError } from "@/lib/clientApi";
 import { RESOURCES, Field } from "@/lib/uiSchema";
@@ -474,8 +474,17 @@ function LogoThumb({ src, color, onClick, groesse = 32 }: { src?: string; color?
 }
 
 function EditModal({ resourceKey, hasLogo, initial, onClose, onSave }: {
-  resourceKey: string; hasLogo: boolean; initial: any; onClose: () => void; onSave: (f: any) => void;
+  resourceKey: string; hasLogo: boolean; initial: any; onClose: () => void; onSave: (f: any) => Promise<string | null>;
 }) {
+  const [speichert, setSpeichert] = useState(false);
+  const [fehler, setFehler] = useState("");
+  async function speichern() {
+    if (speichert) return;
+    setSpeichert(true); setFehler("");
+    const f = await onSave(form);
+    setSpeichert(false);
+    if (f) setFehler(f);
+  }
   const R = RESOURCES[resourceKey];
   const [form, setForm] = useState<any>(initial);
   const [currentLogo, setCurrentLogo] = useState<string>("");
@@ -558,103 +567,129 @@ function EditModal({ resourceKey, hasLogo, initial, onClose, onSave }: {
       />
     );
 
-  const grouped = R.fields.some((f) => f.group);
+  // Felder in Abschnitte: nach `group`, ohne Gruppe alles in „Angaben"
+  const abschnitte: { titel: string; felder: Field[] }[] = [];
+  for (const f of R.fields) {
+    const t = f.group || "Angaben";
+    // Gleiche Gruppe = ein Abschnitt, auch wenn die Felder im Schema verstreut stehen
+    const vorhanden = abschnitte.find((x) => x.titel === t);
+    if (vorhanden) vorhanden.felder.push(f); else abschnitte.push({ titel: t, felder: [f] });
+  }
+  const titel = String(form[R.titleField] || [form.firstName, form.lastName].filter(Boolean).join(" ") || "").trim();
+  const einzahl = R.einzahl || R.title;
 
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "grid", placeItems: "center", padding: 16, zIndex: 50 }}>
-      <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: 620, maxWidth: "92vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <div style={{ padding: "18px 24px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700 }}>
-            {form.id ? `${R.title.replace(/e?n$/, "")} bearbeiten` : `Neu: ${R.title}`}
-          </h2>
-        </div>
-
-        <div style={{ padding: 24, overflowY: "auto", flex: 1 }}>
-        {hasLogo && (
-          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 18 }}>
-            <LogoThumb src={currentLogo} color={form.color} />
-            <div style={{ display: "flex", gap: 8 }}>
-              <label className="btn" style={{ cursor: "pointer" }}>
-                <Icon name="image" /> Symbol wählen
-                <input type="file" accept="image/*" onChange={onLogoFile} style={{ display: "none" }} />
-              </label>
-              {currentLogo && (
-                <>
-                  <button type="button" className="btn" onClick={() => window.open(currentLogo, "_blank")}>
-                    <Icon name="eye" /> Ansehen
-                  </button>
-                  <button type="button" className="btn"
-                    onClick={() => bildSpeichern(currentLogo, `${form[R.titleField] || "Logo"}-Logo`)}>
-                    <Icon name="download" /> Herunterladen
-                  </button>
-                  <button type="button" className="btn btn-danger" onClick={removeLogo}><Icon name="x" /> Entfernen</button>
-                </>
-              )}
+    <div className="kt-huelle" style={{ zIndex: 50 }} onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="card dm-fenster kt-fenster" style={{ width: 680 }}>
+        <div className="kt-held" style={{ padding: "16px 20px" }}>
+          {hasLogo && currentLogo
+            ? <LogoThumb src={currentLogo} groesse={52} />
+            : <Initialen text={titel || einzahl} farbe={form.color} groesse={52} />}
+          <div style={{ flex: 1, minWidth: 0, paddingRight: 40 }}>
+            <div className="muted" style={{ fontSize: 12, fontWeight: 650, textTransform: "uppercase", letterSpacing: ".05em" }}>
+              {form.id ? `${einzahl} bearbeiten` : `Neu: ${einzahl}`}
             </div>
+            <h2 style={{ fontSize: 19 }}>{titel || <span className="muted" style={{ fontWeight: 500 }}>Noch ohne Namen</span>}</h2>
           </div>
-        )}
-
-        {grouped ? (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: 12, rowGap: 14 }}>
-            {(() => {
-              let last: string | undefined;
-              const out: React.ReactNode[] = [];
-              R.fields.forEach((f: Field) => {
-                if (f.group && f.group !== last) {
-                  last = f.group;
-                  out.push(
-                    <div key={"grp-" + f.group} style={{ gridColumn: "1 / -1", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", color: "var(--muted)", borderBottom: "1px solid var(--border)", paddingBottom: 4, marginTop: out.length ? 8 : 0 }}>
-                      {f.group}
-                    </div>
-                  );
-                }
-                const span = f.type === "textarea" || f.type === "phones" ? 12 : Math.min(12, Math.max(2, f.span || 6));
-                // Listen (mehrere Eingaben) nicht in ein <label> packen – sonst löst ein Klick die erste aus
-                const Huelle: any = f.type === "phones" ? "div" : "label";
-                out.push(
-                  <Huelle key={f.key} style={{ fontSize: 13, gridColumn: `span ${span}`, display: "grid", gap: 4, minWidth: 0 }}>
-                    <FeldLabel feld={f} />
-                    {fieldControl(f)}
-                  </Huelle>
-                );
-              });
-              return out;
-            })()}
+          <div className="kt-held-knoepfe">
+            <button aria-label="Schließen" title="Schließen" onClick={onClose}><Icon name="x" size={17} /></button>
           </div>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12 }}>
-            {R.fields.map((f: Field) => {
-              const Huelle: any = f.type === "phones" ? "div" : "label";
-              return (
-                <Huelle key={f.key} style={{ fontSize: 13, gridColumn: f.type === "textarea" || f.type === "phones" ? "1 / -1" : "auto", display: "grid", gap: 4, minWidth: 0 }}>
-                  <FeldLabel feld={f} />
-                  {fieldControl(f)}
-                </Huelle>
-              );
-            })}
-          </div>
-        )}
         </div>
 
-        <div style={{ padding: "14px 24px", borderTop: "1px solid var(--border)", flexShrink: 0, display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          <button className="btn" onClick={onClose}><Icon name="x" /> Abbrechen</button>
-          <button className="btn btn-primary" onClick={() => onSave(form)}><Icon name="save" /> Speichern</button>
+        <div className="kt-inhalt">
+          {hasLogo && (
+            <section className="kt-abschnitt">
+              <div className="kt-abschnitt-titel"><span className="ic"><Icon name="image" size={15} /></span> Logo
+                <small>erscheint in Listen und auf Dokumenten</small></div>
+              <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+                <LogoThumb src={currentLogo} color={form.color} groesse={56} />
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <label className="btn" style={{ cursor: "pointer" }}>
+                    <Icon name="upload" /> {currentLogo ? "Ersetzen" : "Logo wählen"}
+                    <input type="file" accept="image/*" onChange={onLogoFile} style={{ display: "none" }} />
+                  </label>
+                  {currentLogo && (
+                    <>
+                      <button type="button" className="btn btn-icon" title="Ansehen" aria-label="Ansehen" onClick={() => window.open(currentLogo, "_blank")}><Icon name="eye" /></button>
+                      <button type="button" className="btn btn-icon" title="Herunterladen" aria-label="Herunterladen"
+                        onClick={() => bildSpeichern(currentLogo, `${form[R.titleField] || "Logo"}-Logo`)}><Icon name="download" /></button>
+                      <button type="button" className="btn btn-icon btn-danger" title="Entfernen" aria-label="Entfernen" onClick={removeLogo}><Icon name="trash" /></button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {abschnitte.map((a) => (
+            <section key={a.titel} className="kt-abschnitt">
+              <div className="kt-abschnitt-titel">
+                <span className="ic"><Icon name={abschnittIcon(a.titel)} size={15} /></span> {a.titel}
+              </div>
+              <div className="rv-raster">
+                {a.felder.map((f) => {
+                  const span = f.type === "textarea" || f.type === "phones" ? 12 : Math.min(12, Math.max(2, f.span || 6));
+                  // Listen (mehrere Eingaben) nicht in ein <label> packen – sonst löst ein Klick die erste aus
+                  const Huelle: any = f.type === "phones" || f.type === "checkbox" ? "div" : "label";
+                  return (
+                    <Huelle key={f.key} className="rv-feld" style={{ gridColumn: `span ${span}` }}>
+                      <FeldLabel feld={f} />
+                      {fieldControl(f)}
+                    </Huelle>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+
+          {fehler && <div className="kt-fehler" role="alert"><Icon name="alert" size={16} /> {fehler}</div>}
+        </div>
+
+        <div className="kt-fuss">
+          <span className="muted only-desktop" style={{ fontSize: 12, marginRight: "auto" }}>
+            {form.id ? "Änderungen sind im Verlauf rückgängig zu machen." : ""}
+          </span>
+          <button className="btn" onClick={onClose} disabled={speichert}>Abbrechen</button>
+          <button className="btn btn-primary" onClick={speichern} disabled={speichert}>
+            {speichert ? <span className="speichern-dreh" /> : <Icon name="save" />} {speichert ? "Speichert…" : "Speichern"}
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
+/** Symbol je Abschnittstitel. */
+function abschnittIcon(t: string) {
+  const x = t.toLowerCase();
+  if (/person|name/.test(x)) return "user";
+  if (/kontakt|erreich|telefon/.test(x)) return "phone";
+  if (/adress|anschrift/.test(x)) return "home";
+  if (/steuer|preis|einkauf|abrechn/.test(x)) return "tag";
+  if (/medien|bild/.test(x)) return "image";
+  if (/artikel|lager/.test(x)) return "package";
+  if (/zugang|system|darstell/.test(x)) return "settings";
+  if (/notiz|beschreib/.test(x)) return "file-text";
+  if (/termin|datum|status/.test(x)) return "calendar";
+  if (/firma|stamm/.test(x)) return "building";
+  return "pencil";
+}
+
 // ── Detail-Vorschau (Klick auf eine Zeile) — Bild, Felder, Links, Preis ──
-function DetailModal({ resourceKey, row, suche, onClose, onEdit, onDelete }: {
-  resourceKey: string; row: any; suche?: string; onClose: () => void; onEdit: () => void; onDelete: () => void;
+function DetailModal({ resourceKey, row, suche, logo, onClose, onEdit, onDelete }: {
+  resourceKey: string; row: any; suche?: string; logo?: string; onClose: () => void; onEdit: () => void; onDelete: () => void;
 }) {
   const R = RESOURCES[resourceKey];
   const img = String(row.imageUrl || "").trim();
   const links = String(row.links || "").split(/\n+/).map((s) => s.trim()).filter(Boolean);
   const href = (u: string) => (/^https?:\/\//i.test(u) ? u : "https://" + u);
   const title = cell(row[R.titleField]) === "–" ? "(ohne Bezeichnung)" : cell(row[R.titleField]);
-  const listFields = R.fields.filter((f) => !["imageUrl", "links"].includes(f.key) && f.key !== R.titleField);
+  const leer = (v: any) => v == null || v === "" || (Array.isArray(v) && v.length === 0);
+  // Leere Felder ausblenden – die Ansicht zeigt nur, was wirklich hinterlegt ist
+  const listFields = R.fields.filter((f) => !["imageUrl", "links", "color"].includes(f.key) && f.key !== R.titleField
+    && f.type !== "checkbox" && !leer(row[f.key]));
+  const ausgeblendet = R.fields.filter((f) => !["imageUrl", "links", "color"].includes(f.key) && f.key !== R.titleField
+    && f.type !== "checkbox" && leer(row[f.key])).length;
 
   const renderVal = (f: Field) => {
     const v = row[f.key];
@@ -666,49 +701,70 @@ function DetailModal({ resourceKey, row, suche, onClose, onEdit, onDelete }: {
   };
 
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "grid", placeItems: "center", padding: 16, zIndex: 55 }}>
-      <div onClick={(e) => e.stopPropagation()} className="card dm-fenster" style={{ width: R.entity === "Supplier" ? 640 : 560, maxWidth: "94vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <div style={{ padding: "16px 22px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><Hervorheben text={title} suche={suche} /></h2>
-            {row.number != null && <div className="muted" style={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}>{R.prefix}-{row.number}</div>}
+    <div className="kt-huelle" style={{ zIndex: 55 }} onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="card dm-fenster kt-fenster" style={{ width: R.entity === "Supplier" ? 660 : 600 }}>
+        <div className="kt-held">
+          {logo || img ? <LogoThumb src={logo || img} groesse={64} /> : <Initialen text={title} farbe={row.color} groesse={64} />}
+          <div style={{ flex: 1, minWidth: 0, paddingRight: 40 }}>
+            <h2><Hervorheben text={title} suche={suche} /></h2>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+              <span className="abzeichen blau"><Icon name={R.icon} size={11} /> {R.einzahl || R.title}</span>
+              {row.number != null && <span className="abzeichen">{R.prefix}-{row.number}</span>}
+              {R.fields.filter((f) => f.type === "checkbox" && row[f.key]).map((f) => (
+                <span key={f.key} className={`abzeichen ${f.key === "archived" ? "gelb" : "gruen"}`}><Icon name="check" size={11} /> {f.label}</span>
+              ))}
+            </div>
           </div>
-          <button className="btn btn-icon" aria-label="Schließen" onClick={onClose}><Icon name="x" /></button>
+          <div className="kt-held-knoepfe">
+            <button aria-label="Schließen" title="Schließen" onClick={onClose}><Icon name="x" size={17} /></button>
+          </div>
         </div>
 
-        <div style={{ padding: 22, overflowY: "auto", display: "grid", gap: 16 }}>
-          {img && (
+        <div className="kt-inhalt">
+          {img && logo && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={img} alt={title} style={{ width: "100%", maxHeight: 240, objectFit: "contain", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)" }} />
+            <img src={img} alt={title} style={{ width: "100%", maxHeight: 240, objectFit: "contain", borderRadius: 12, border: "1px solid var(--border)", background: "var(--bg)" }} />
           )}
-          <div style={{ display: "grid", gap: 8 }}>
-            {listFields.map((f) => (
-              <div key={f.key} style={{ display: "flex", gap: 12, fontSize: 14 }}>
-                <span className="muted" style={{ minWidth: 128, flexShrink: 0 }}>{f.label}</span>
-                <span style={{ flex: 1, minWidth: 0, wordBreak: "break-word" }}>{renderVal(f)}</span>
+          {listFields.length > 0 && (
+            <div className="kt-block">
+              <div className="kt-block-titel"><Icon name="file-text" size={13} /> Angaben</div>
+              <div className="rv-werte">
+                {listFields.map((f) => {
+                  const ic = spaltenIcon(f.key, f.label);
+                  return (
+                    <div key={f.key} className={f.type === "textarea" || f.type === "phones" ? "breit" : ""}>
+                      <span className="muted">{ic && <Icon name={ic} size={12} />} {f.label}</span>
+                      <span>{renderVal(f)}</span>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
+          {ausgeblendet > 0 && <div className="muted" style={{ fontSize: 12, marginTop: -6 }}>{ausgeblendet} leere Felder ausgeblendet – über „Bearbeiten" ausfüllen.</div>}
           {/* Lieferanten: alle Ansprechpartner mit eigener Suche */}
           {R.entity === "Supplier" && (
-            <div style={{ borderTop: "1px solid var(--border)", paddingTop: 14 }}>
-              <AnsprechpartnerListe supplierId={row.id} vorgabeSuche={suche} />
+            <div className="kt-block">
+              <div className="kt-block-titel"><Icon name="users" size={13} /> Ansprechpartner</div>
+              <div className="kt-block-inhalt"><AnsprechpartnerListe supplierId={row.id} vorgabeSuche={suche} /></div>
             </div>
           )}
           {links.length > 0 && (
-            <div style={{ display: "grid", gap: 6 }}>
-              <span className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".05em" }}>Links</span>
-              {links.map((u, i) => (
-                <a key={i} href={href(u)} target="_blank" rel="noreferrer" style={{ color: "var(--accent)", wordBreak: "break-all", fontSize: 14 }}>{u}</a>
-              ))}
+            <div className="kt-block">
+              <div className="kt-block-titel"><Icon name="globe" size={13} /> Links</div>
+              <div className="kt-block-inhalt" style={{ gap: 6 }}>
+                {links.map((u, i) => (
+                  <a key={i} href={href(u)} target="_blank" rel="noreferrer" style={{ color: "var(--accent)", wordBreak: "break-all", fontSize: 14 }}>{u}</a>
+                ))}
+              </div>
             </div>
           )}
         </div>
 
-        <div style={{ padding: "14px 22px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "flex-end", alignItems: "center" }}>
-          <Link className="btn" title="Verlauf" href={`/history?entity=${R.entity}&entityId=${row.id}`}><Icon name="history" /><span className="btn-label">&nbsp;Verlauf</span></Link>
-          <button className="btn btn-danger" onClick={onDelete}><Icon name="trash" />&nbsp;Löschen</button>
-          <button className="btn btn-primary" onClick={onEdit}><Icon name="pencil" />&nbsp;Bearbeiten</button>
+        <div className="kt-fuss">
+          <Link className="btn btn-icon" title="Verlauf" aria-label="Verlauf" href={`/history?entity=${R.entity}&entityId=${row.id}`} style={{ marginRight: "auto" }}><Icon name="history" /></Link>
+          <button className="btn btn-danger" onClick={onDelete}><Icon name="trash" /> Löschen</button>
+          <button className="btn btn-primary" onClick={onEdit}><Icon name="pencil" /> Bearbeiten</button>
         </div>
       </div>
     </div>

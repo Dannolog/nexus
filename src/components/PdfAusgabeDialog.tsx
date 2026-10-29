@@ -100,23 +100,27 @@ export default function PdfAusgabeDialog({
   );
 
   return (
-    <div onClick={() => !busy && onClose()}
-      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "grid", placeItems: "center", padding: 16, zIndex: 400 }}>
-      <div onClick={(e) => e.stopPropagation()} className="card dm-fenster"
-        style={{ width: 640, maxWidth: "94vw", maxHeight: "92vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
-          <Icon name={modus === "drucken" ? "printer" : "download"} size={18} />
-          <h2 style={{ fontSize: 17, fontWeight: 700, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {modus === "drucken" ? "Drucken" : "Herunterladen"}{titel ? ` – ${titel}` : ""}
-          </h2>
-          <button className="btn btn-icon" aria-label="Schließen" disabled={!!busy} onClick={onClose}><Icon name="x" /></button>
+    <div className="kt-huelle per-huelle" onClick={() => !busy && onClose()} style={{ zIndex: 400 }}>
+      <div onClick={(e) => e.stopPropagation()} className="card dm-fenster kt-fenster per-ausgabe-fenster">
+        <div className="per-fenster-kopf">
+          <div className="per-fenster-titelzeile">
+            <span className="per-fenster-ic"><Icon name={modus === "drucken" ? "printer" : "download"} size={18} /></span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h2 className="per-ellipse">{modus === "drucken" ? "Drucken" : "Herunterladen"}</h2>
+              <div className="muted per-klein per-ellipse">
+                {titel ? `${titel} · ` : ""}Alle oder nur bestimmte Seiten ausgeben
+              </div>
+            </div>
+            <button className="btn btn-icon" aria-label="Schließen" disabled={!!busy} onClick={onClose}><Icon name="x" /></button>
+          </div>
         </div>
 
-        <div style={{ padding: 18, display: "grid", gap: 14, overflowY: "auto", flex: 1, minHeight: 0 }}>
+        <div className="per-fenster-inhalt">
           {original ? (
-            <div style={{ display: "grid", gap: 10 }}>
-              <div className="muted" style={{ fontSize: 13 }}>
-                Diese Datei ist kein PDF und kein Bild – Seitenauswahl und Drucken sind dafür nicht möglich.
+            <div className="per-abschnitt-inhalt" style={{ padding: 0 }}>
+              <div className="hinweis-leiste" style={{ marginBottom: 0 }}>
+                <Icon name="alert" size={16} />
+                <span>Diese Datei ist kein PDF und kein Bild – Seitenauswahl und Drucken sind dafür nicht möglich.</span>
               </div>
               <button className="btn btn-primary" style={{ justifySelf: "start" }}
                 onClick={() => { speichereBlob(original, dateiname); onClose(); }}>
@@ -124,24 +128,43 @@ export default function PdfAusgabeDialog({
               </button>
             </div>
           ) : !bytes || !anzahl ? (
-            <div className="muted" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              {!ladeFehler && drehen("lädt")} {ladeFehler || "Dokument wird geladen …"}
-            </div>
+            ladeFehler ? (
+              <div className="kt-fehler"><Icon name="alert" size={14} /> {ladeFehler}</div>
+            ) : (
+              <div className="leer-zustand" style={{ padding: "32px 16px" }}>
+                <span className="leer-icon">{drehen("lädt")}</span>
+                Dokument wird geladen …
+              </div>
+            )
           ) : (
             <>
-              <SeitenWahl anzahl={anzahl} vorschau={vorschau} auswahl={auswahl}
-                onChange={(v) => { setAuswahl(v); setFehler(""); }} onFehler={setSeitenFehler} />
+              <section className="per-block">
+                <div className="per-block-titel"><Icon name="file-text" size={14} /> Seiten auswählen</div>
+                <div className="per-block-inhalt">
+                  <SeitenWahl anzahl={anzahl} vorschau={vorschau} auswahl={auswahl}
+                    onChange={(v) => { setAuswahl(v); setFehler(""); }} onFehler={setSeitenFehler} />
+                </div>
+              </section>
 
-              <Feld label="Dateiname" icon="file-text" wert={name} setWert={setName} platzhalter="Dokument" kopierbar={false}
-                hinweis={`Wird gespeichert als „${zielName()}"`} />
+              <section className="per-block">
+                <div className="per-block-titel"><Icon name="save" size={14} /> Datei</div>
+                <div className="per-block-inhalt">
+                  <Feld label="Dateiname" icon="file-text" wert={name} setWert={setName} platzhalter="Dokument" kopierbar={false}
+                    hinweis={`Wird gespeichert als „${zielName()}"`} />
+                </div>
+              </section>
 
-              {fehlerAktion && <div style={{ color: "var(--danger, #dc2626)", fontSize: 13, display: "flex", gap: 6, alignItems: "center" }}><Icon name="alert" size={14} /> {fehlerAktion}</div>}
-              {hinweis && <div className="muted" style={{ fontSize: 13 }}>{hinweis}</div>}
+              {fehlerAktion && <div className="kt-fehler"><Icon name="alert" size={14} /> {fehlerAktion}</div>}
+              {hinweis && (
+                <div className="hinweis-leiste" style={{ marginBottom: 0, fontSize: 13 }}>
+                  <Icon name={busy ? "printer" : "alert"} size={15} /> <span>{hinweis}</span>
+                </div>
+              )}
             </>
           )}
         </div>
 
-        <div style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+        <div className="kt-fuss per-ausgabe-fuss">
           <button className="btn" disabled={!!busy} onClick={onClose} style={{ marginRight: "auto" }}>
             <Icon name="x" /> Abbrechen
           </button>

@@ -5,7 +5,7 @@ import Icon from "@/components/Icon";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import PdfViewerModal from "@/components/PdfViewerModal";
 import SuchSelect from "@/components/SuchSelect";
-import MitarbeiterAkte, { Gruppe } from "@/components/MitarbeiterAkte";
+import MitarbeiterAkte, { DateiSymbol, Gruppe } from "@/components/MitarbeiterAkte";
 import { useLive } from "@/lib/live";
 
 // ── Dokumentenablage ──
@@ -289,25 +289,46 @@ export default function DocumentsPage() {
 
   return (
     <div>
-      <div className="vertrag-kopf" style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, display: "flex", alignItems: "center", gap: 10 }}>
-          <Icon name="archive" size={24} /> Dokumente
-        </h1>
+      <div className="abl-kopf">
+        <div className="abl-kopf-text">
+          <h1 className="seiten-titel">
+            <span className="titel-icon"><Icon name="archive" size={20} /></span> Dokumente
+            {empId && dokumente.length > 0 && <span className="anzahl">{dokumente.length}</span>}
+          </h1>
+          <div className="seiten-untertitel">
+            Mitarbeiter wählen, Dokumente aus Vorlagen erzeugen oder hochladen – alles landet versioniert in seiner Akte.
+          </div>
+        </div>
         {/* Vorlagen liegen im Untermenü – auf dem Handy bliebe sonst kein Platz für die Akte */}
-        <button className="btn" onClick={() => setVorlagenOffen(true)}>
-          <Icon name="file-text" /> Vorlagen{vorlagen.length ? ` (${vorlagen.length})` : ""}
-        </button>
+        <div className="abl-kopf-aktionen">
+          <button className="btn" onClick={() => setVorlagenOffen(true)}>
+            <Icon name="file-text" /> Vorlagen{vorlagen.length ? <span className="anzahl">{vorlagen.length}</span> : null}
+          </button>
+        </div>
       </div>
 
-      {msg && <div className="card" style={{ padding: "8px 12px", marginBottom: 12, fontSize: 14 }}>{msg}</div>}
+      {msg && (
+        <div className={`hinweis-leiste${/^(Fehler|Vorlagen:|Rubriken:|Dokumente:|Bitte)/.test(msg) ? " fehler" : ""}`}>
+          <Icon name={/^(Fehler|Vorlagen:|Rubriken:|Dokumente:|Bitte)/.test(msg) ? "alert" : "check"} size={16} />
+          <span style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>{msg}</span>
+          <button className="btn btn-icon btn-flach" aria-label="Meldung schließen" onClick={() => setMsg("")}><Icon name="x" size={14} /></button>
+        </div>
+      )}
 
       <div className="dok-raster">
         {/* ── Mitarbeiter + Ablage ── */}
         <div style={{ display: "grid", gap: 16, alignContent: "start" }}>
-          <div className="card" style={{ padding: 14, display: "grid", gap: 12 }}>
+          <div className="card abl-panel">
+            <div className="abl-panel-titel">
+              <span className="abl-ic"><Icon name="user" size={16} /></span>
+              <span style={{ display: "grid" }}>
+                Ablegen für
+                <small>Mitarbeiter, Firma und Ziel-Rubrik wählen</small>
+              </span>
+            </div>
             <div className="feld-zeile feld-zeile-2">
-              <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                <span className="muted">Mitarbeiter</span>
+              <label className="abl-label">
+                <span><Icon name="user" size={13} /> Mitarbeiter</span>
                 <SuchSelect
                   value={empId}
                   onChange={setEmpId}
@@ -316,8 +337,8 @@ export default function DocumentsPage() {
                   options={mitarbeiter.map((m) => ({ value: m.id, label: m.name, hint: m.employeeNumber || m.email || "" }))}
                 />
               </label>
-              <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                <span className="muted">Firma (Mandant)</span>
+              <label className="abl-label">
+                <span><Icon name="building" size={13} /> Firma (Mandant)</span>
                 <SuchSelect
                   value={orgId}
                   onChange={setOrgId}
@@ -328,45 +349,62 @@ export default function DocumentsPage() {
               </label>
             </div>
 
-            <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-              <span className="muted">Rubrik in der Akte</span>
-              <SuchSelect
-                value={gruppeId}
-                onChange={setGruppeId}
-                platzhalter="— ohne Zuordnung —"
-                suchePlatzhalter="Rubrik suchen oder neue eintippen…"
-                options={gruppen.map((g) => ({ value: g.id, label: g.name }))}
-                erlaubeNeu
-                neuText="als neue Rubrik anlegen"
-                onNeu={async (name: string) => {
-                  try {
-                    const g = await api("/api/doc-groups", { method: "POST", body: JSON.stringify({ name }) });
-                    setMsg(`Rubrik „${g.name}" angelegt.`);
-                    ladeGruppen();
-                    return g.id as string;
-                  } catch (e: any) { setMsg("Fehler: " + e.message); }
-                }}
-              />
-            </label>
+            <div className="feld-zeile feld-zeile-2">
+              <label className="abl-label">
+                <span><Icon name="folder" size={13} /> Rubrik in der Akte</span>
+                <SuchSelect
+                  value={gruppeId}
+                  onChange={setGruppeId}
+                  platzhalter="— ohne Zuordnung —"
+                  suchePlatzhalter="Rubrik suchen oder neue eintippen…"
+                  options={gruppen.map((g) => ({ value: g.id, label: g.name }))}
+                  erlaubeNeu
+                  neuText="als neue Rubrik anlegen"
+                  onNeu={async (name: string) => {
+                    try {
+                      const g = await api("/api/doc-groups", { method: "POST", body: JSON.stringify({ name }) });
+                      setMsg(`Rubrik „${g.name}" angelegt.`);
+                      ladeGruppen();
+                      return g.id as string;
+                    } catch (e: any) { setMsg("Fehler: " + e.message); }
+                  }}
+                />
+              </label>
+              <div className="abl-label">
+                <span><Icon name="file-text" size={13} /> Gewählte Vorlage</span>
+                <button type="button" className="btn" style={{ justifyContent: "flex-start", minWidth: 0 }} onClick={() => setVorlagenOffen(true)}
+                  title="Vorlage im Vorlagen-Fenster wählen">
+                  <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "left" }}>
+                    {vorlage ? vorlage.name : "— keine Vorlage —"}
+                  </span>
+                  {vorlage && <span className="abzeichen blau">v{vorlage.version}</span>}
+                  <Icon name="chevron-down" size={14} />
+                </button>
+              </div>
+            </div>
 
             {emp && fehlendeStammdaten.length > 0 && (
-              <div className="muted" style={{ fontSize: 12.5, lineHeight: 1.5 }}>
-                Für das Vorausfüllen fehlen bei {emp.name} noch: <b>{fehlendeStammdaten.join(", ")}</b>.
-                Diese Felder lassen sich unter „Mitarbeiter" pflegen – der Mitarbeiter kann sie sonst selbst eintragen.
+              <div className="abl-hinweis warn">
+                <Icon name="alert" size={15} />
+                <span>
+                  Für das Vorausfüllen fehlen bei {emp.name} noch: <b>{fehlendeStammdaten.join(", ")}</b>.
+                  Diese Felder lassen sich unter „Mitarbeiter" pflegen – der Mitarbeiter kann sie sonst selbst eintragen.
+                </span>
               </div>
             )}
 
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <div className="abl-werkzeuge">
               <button className="btn btn-primary" onClick={() => ablegen(true)} disabled={!empId || !vorlageId || busy === "ablegen"}>
-                <Icon name="save" /> {busy === "ablegen" ? "Legt ab…" : "Vorausgefüllt ablegen"}
+                {busy === "ablegen" ? <span className="speichern-dreh" /> : <Icon name="save" />} {busy === "ablegen" ? "Legt ab…" : "Vorausgefüllt ablegen"}
               </button>
               <button className="btn" onClick={() => ablegen(false)} disabled={!empId || !vorlageId || busy === "ablegen"}
                 title="Leere Vorlage beim Mitarbeiter ablegen">
                 <Icon name="file-text" /> Leer ablegen
               </button>
+              <span className="abl-trenner" />
               <label className="btn" style={{ cursor: empId ? "pointer" : "default", opacity: empId ? 1 : .5 }}
                 title="Ausgefülltes/unterschriebenes Dokument hochladen">
-                <Icon name="plus" /> Datei hochladen
+                <Icon name="upload" /> Datei hochladen
                 <input type="file" style={{ display: "none" }} disabled={!empId}
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) dokumentHochladen(f); e.target.value = ""; }} />
               </label>
@@ -377,11 +415,15 @@ export default function DocumentsPage() {
                 <input type="file" accept="image/*" capture="environment" style={{ display: "none" }} disabled={!empId}
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) dokumentHochladen(f); e.target.value = ""; }} />
               </label>
+              {busy === "upload-dok" && <span className="abl-status ok"><span className="speichern-dreh" style={{ borderColor: "var(--border)", borderTopColor: "var(--accent)" }} /> Lädt hoch…</span>}
             </div>
-            <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
-              Dateiname wird automatisch vergeben: <b>Firma_Mitarbeiter_Dokument_Datum_Version.pdf</b><br />
-              Zum <b>Ausfüllen in der App</b>: Mitarbeiter wählen, bei der Vorlage auf <b>Ansehen</b> tippen –
-              im Betrachter alle Formularfelder ausfüllen oder Text einsetzen und speichern.
+            <div className="abl-hinweis">
+              <Icon name="tag" size={15} />
+              <span>
+                Dateiname wird automatisch vergeben: <b>Firma_Mitarbeiter_Dokument_Datum_Version.pdf</b><br />
+                Zum <b>Ausfüllen in der App</b>: Mitarbeiter wählen, bei der Vorlage auf <b>Ansehen</b> tippen –
+                im Betrachter alle Formularfelder ausfüllen oder Text einsetzen und speichern.
+              </span>
             </div>
           </div>
 
@@ -405,73 +447,85 @@ export default function DocumentsPage() {
 
       {/* ── Untermenü: Vorlagen ── */}
       {vorlagenOffen && (
-        <div onClick={() => setVorlagenOffen(false)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "grid", placeItems: "center", padding: 16, zIndex: 60 }}>
-          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster"
-            style={{ width: 620, maxWidth: "94vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
-              <Icon name="file-text" size={18} />
-              <h2 style={{ fontSize: 17, fontWeight: 700, flex: 1 }}>Vorlagen</h2>
-              <label className="btn" style={{ cursor: "pointer" }}>
-                <Icon name="plus" /> <span className="btn-label">Hochladen</span>
-                <input type="file" accept="application/pdf" style={{ display: "none" }}
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) vorlageHochladen(f); e.target.value = ""; }} />
-              </label>
-              <button className="btn btn-icon" aria-label="Schließen" onClick={() => setVorlagenOffen(false)}>
+        <div className="kt-huelle" style={{ zIndex: 60 }} onClick={() => setVorlagenOffen(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster kt-fenster" style={{ width: 640 }}>
+            <div className="abl-fenster-kopf">
+              <span className="abl-ic"><Icon name="file-text" size={17} /></span>
+              <h2>Vorlagen<small>Vorlage antippen, um sie für die Ablage zu wählen</small></h2>
+              <button className="btn btn-icon btn-flach" aria-label="Schließen" onClick={() => setVorlagenOffen(false)}>
                 <Icon name="x" />
               </button>
             </div>
-            <div style={{ padding: 16, overflowY: "auto", display: "grid", gap: 10 }}>
-
-        <div className="card" style={{ padding: 14, display: "grid", gap: 10, alignContent: "start" }}>
-          <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em" }}>Vorlagen</div>
-          {vorlagen.length === 0 && (
-            <div className="muted" style={{ fontSize: 13 }}>
-              Noch keine Vorlage. Lade oben ein PDF hoch – Formularfelder werden automatisch erkannt.
-            </div>
-          )}
-          {vorlagen.map((v) => {
-            const felder = (() => { try { return JSON.parse(v.formFields || "[]").length; } catch { return 0; } })();
-            const zugeordnet = (() => { try { return Object.keys(JSON.parse(v.fieldMap || "{}")).length; } catch { return 0; } })();
-            return (
-              <div key={v.id} style={{
-                border: "1px solid var(--border)", borderRadius: 10, padding: 10,
-                background: v.id === vorlageId ? "var(--bg)" : "transparent",
-              }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-                  <input type="radio" name="vorlage" checked={v.id === vorlageId} onChange={() => setVorlageId(v.id)} />
-                  <span style={{ fontWeight: 600, fontSize: 14 }}>{v.name}</span>
-                  <span className="muted" style={{ fontSize: 12, marginLeft: "auto", whiteSpace: "nowrap" }}>v{v.version}</span>
-                </label>
-                <div className="muted" style={{ fontSize: 12, margin: "6px 0 8px" }}>
-                  {felder > 0 ? `${felder} Formularfelder, ${zugeordnet} automatisch befüllt` : "keine Formularfelder"}
-                  {" · "}{datum(v.updatedAt)}
+            <div className="kt-inhalt">
+              {vorlagen.length === 0 && (
+                <div className="leer-zustand" style={{ padding: "32px 12px" }}>
+                  <div className="leer-icon"><Icon name="file-text" size={28} /></div>
+                  <div style={{ fontWeight: 650, color: "var(--fg)", fontSize: 15 }}>Noch keine Vorlage</div>
+                  <div style={{ fontSize: 13.5, maxWidth: 380, lineHeight: 1.5 }}>
+                    Lade unten ein PDF hoch – Formularfelder werden automatisch erkannt.
+                  </div>
                 </div>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  <button className="btn" onClick={() => vorlageAnsehen(v, !!empId)} disabled={busy === "view" + v.id}
-                    title={empId ? "Im Viewer ansehen (mit den Daten des gewählten Mitarbeiters)" : "Im Viewer ansehen"}>
-                    <Icon name="eye" /> Ansehen
-                  </button>
-                  <button className="btn" onClick={() => vorlageHerunterladen(v, false)} disabled={busy === "dl" + v.id}>
-                    <Icon name="save" /> Leer
-                  </button>
-                  <button className="btn" onClick={() => vorlageHerunterladen(v, true)} disabled={!empId || busy === "dl" + v.id}
-                    title={empId ? "Mit den Stammdaten des gewählten Mitarbeiters füllen" : "Erst Mitarbeiter wählen"}>
-                    <Icon name="save" /> Vorausgefüllt
-                  </button>
-                  <label className="btn" style={{ cursor: "pointer" }} title="Vorlage durch neue Fassung ersetzen (Version steigt)">
-                    <Icon name="redo" /> Ersetzen
-                    <input type="file" accept="application/pdf" style={{ display: "none" }}
-                      onChange={(e) => { const f = e.target.files?.[0]; if (f) vorlageHochladen(f, v); e.target.value = ""; }} />
-                  </label>
-                  <button className="btn btn-icon btn-danger" title="Vorlage entfernen" onClick={() => setVorlageLoeschen(v)}>
-                    <Icon name="trash" />
-                  </button>
-                </div>
+              )}
+              <div className="abl-fenster-liste" role="radiogroup" aria-label="Vorlage wählen">
+                {vorlagen.map((v) => {
+                  const felder = (() => { try { return JSON.parse(v.formFields || "[]").length; } catch { return 0; } })();
+                  const zugeordnet = (() => { try { return Object.keys(JSON.parse(v.fieldMap || "{}")).length; } catch { return 0; } })();
+                  const an = v.id === vorlageId;
+                  return (
+                    <div key={v.id} className={`abl-vorlage${an ? " an" : ""}`} role="radio" aria-checked={an} tabIndex={0}
+                      onClick={() => setVorlageId(v.id)}
+                      onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setVorlageId(v.id); } }}>
+                      <div className="abl-vorlage-kopf">
+                        <DateiSymbol mime="application/pdf" />
+                        <div className="abl-haupt">
+                          <div className="abl-titel">
+                            <b>{v.name}</b>
+                            <span className="abzeichen blau">v{v.version}</span>
+                          </div>
+                          <div className="abl-meta">
+                            <span>
+                              <Icon name="tasks" size={12} />
+                              {felder > 0 ? `${felder} Formularfelder, ${zugeordnet} automatisch befüllt` : "keine Formularfelder"}
+                            </span>
+                            <span><Icon name="calendar" size={12} /> {datum(v.updatedAt)}</span>
+                          </div>
+                        </div>
+                        <span className="abl-auswahl">{an && <Icon name="check" size={12} />}</span>
+                      </div>
+                      {/* Aktionen ändern die Auswahl nicht */}
+                      <div className="abl-aktionen" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                        <button className="abl-haupt-aktion" onClick={() => vorlageAnsehen(v, !!empId)} disabled={busy === "view" + v.id}
+                          title={empId ? "Im Viewer ansehen (mit den Daten des gewählten Mitarbeiters)" : "Im Viewer ansehen"}>
+                          <Icon name="eye" /> Ansehen
+                        </button>
+                        <button onClick={() => vorlageHerunterladen(v, false)} disabled={busy === "dl" + v.id} title="Leere Vorlage herunterladen">
+                          <Icon name="download" /> Leer
+                        </button>
+                        <button onClick={() => vorlageHerunterladen(v, true)} disabled={!empId || busy === "dl" + v.id}
+                          title={empId ? "Mit den Stammdaten des gewählten Mitarbeiters füllen" : "Erst Mitarbeiter wählen"}>
+                          <Icon name="download" /> Vorausgefüllt
+                        </button>
+                        <label style={{ cursor: "pointer" }} title="Vorlage durch neue Fassung ersetzen (Version steigt)">
+                          <Icon name="redo" /> Ersetzen
+                          <input type="file" accept="application/pdf" style={{ display: "none" }}
+                            onChange={(e) => { const f = e.target.files?.[0]; if (f) vorlageHochladen(f, v); e.target.value = ""; }} />
+                        </label>
+                        <button className="abl-weg" title="Vorlage entfernen" aria-label="Vorlage entfernen" onClick={() => setVorlageLoeschen(v)}>
+                          <Icon name="trash" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
+            </div>
+            <div className="kt-fuss">
+              <button className="btn" onClick={() => setVorlagenOffen(false)}><Icon name="x" /> Schließen</button>
+              <label className="btn btn-primary" style={{ cursor: "pointer" }} title="Neue Vorlage (PDF) hochladen">
+                {busy === "upload" ? <span className="speichern-dreh" /> : <Icon name="upload" />} {busy === "upload" ? "Lädt hoch…" : "Vorlage hochladen"}
+                <input type="file" accept="application/pdf" style={{ display: "none" }}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) vorlageHochladen(f); e.target.value = ""; }} />
+              </label>
             </div>
           </div>
         </div>
