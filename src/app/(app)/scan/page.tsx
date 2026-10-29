@@ -341,73 +341,71 @@ export default function ScanPage() {
   const statusText = busy === "scan" ? "scannt gerade" : faehig ? "bereit" : geraetId ? "antwortet nicht" : "kein Scanner eingerichtet";
   const statusFarbe = busy === "scan" ? "var(--accent)" : bereit ? "#16a34a" : geraetId ? "#ef4444" : "var(--muted)";
 
-  return (
-    <div className="scan-seite">
-      <style>{`
-        .scan-seite { display: grid; gap: 14px; }
-        .scan-kopf { display: flex; align-items: center; gap: 10px; }
-        .scan-kopf h1 { font-size: 24px; font-weight: 700; display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
-        .scan-geraet { padding: 16px; display: grid; gap: 14px; }
-        .scan-reihe { display: flex; gap: 8px; align-items: stretch; }
-        .scan-segment { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 12px;
-                        background: color-mix(in srgb, var(--muted) 12%, transparent); }
-        .scan-segment button { border: 0; border-radius: 9px; padding: 10px 8px; font-size: 14px; font-weight: 600; cursor: pointer;
-                               background: transparent; color: var(--fg); display: flex; align-items: center; justify-content: center; gap: 6px; }
-        .scan-segment button[aria-pressed="true"] { background: var(--card); color: var(--accent); box-shadow: 0 1px 4px rgba(0,0,0,.18); }
-        .scan-segment button:disabled { opacity: .45; cursor: not-allowed; }
-        .scan-chip { font-size: 11px; padding: 1px 7px; border-radius: 999px; font-weight: 600; }
-        .scan-los { width: 100%; justify-content: center; padding: 13px 16px; font-size: 16px; font-weight: 700; border-radius: 12px; }
-        .scan-ein { display: grid; gap: 12px; padding: 12px; border-radius: 12px; border: 1px dashed var(--border); }
-        .scan-eintrag { border: 1px solid var(--border); border-radius: 12px; padding: 10px; display: grid; gap: 8px; }
-        .scan-eintrag-kopf { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; }
-        .scan-titel { font-weight: 600; font-size: 14.5px; overflow-wrap: anywhere; }
-        .scan-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
-        .scan-aktionen { display: flex; gap: 6px; flex-wrap: wrap; }
-        .scan-aktionen .scan-zuordnen { margin-left: auto; }
-        @media (max-width: 768px) {
-          .scan-kopf h1 { font-size: 21px; }
-          .scan-aktionen { display: grid; grid-template-columns: repeat(4, 1fr) auto; }
-          .scan-aktionen .btn { justify-content: center; min-height: 40px; }
-          .scan-aktionen .scan-zuordnen { grid-column: 1 / -1; grid-row: 1; margin-left: 0; min-height: 44px; }
-        }
-      `}</style>
+  const statusAbzeichen = busy === "scan" ? "blau" : bereit ? "gruen" : geraetId ? "rot" : "";
 
-      {/* ── Kopf: Titel + Datei hochladen + Scanner verwalten ── */}
-      <div className="scan-kopf">
-        <h1><Icon name="printer" size={24} /> Scannen</h1>
-        <label className="btn" style={{ cursor: "pointer" }} title="Vorhandene Datei in den Posteingang legen">
-          <Icon name="upload" /> <span className="btn-label">Datei hochladen</span>
-          <input type="file" accept="application/pdf,image/*" style={{ display: "none" }}
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) hochladen(f); e.target.value = ""; }} />
-        </label>
-        <button className="btn" onClick={() => { setDialogMsg(""); setScannerOffen(true); }} title="Scanner hinzufügen oder ändern">
-          <Icon name="settings" /> <span className="btn-label">Scanner</span>
-        </button>
+  /** Knopf „Datei hochladen" – im Kopf und im leeren Posteingang. */
+  const hochladenKnopf = (klasse: string, beschriftung: React.ReactNode) => (
+    <label className={klasse} style={{ cursor: busy === "upload" ? "progress" : "pointer" }} title="Vorhandene Datei (PDF oder Bild) in den Posteingang legen">
+      {busy === "upload" ? <span className="speichern-dreh" /> : <Icon name="upload" />} {beschriftung}
+      <input type="file" accept="application/pdf,image/*" style={{ display: "none" }}
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) hochladen(f); e.target.value = ""; }} />
+    </label>
+  );
+
+  const scannerFensterAuf = () => { setDialogMsg(""); setScannerOffen(true); };
+
+  return (
+    <div className="scan-seite" style={{ display: "grid", gap: 14 }}>
+      {/* ── Kopf: Titel + Scanner verwalten + Datei hochladen ── */}
+      <div className="rv-sticky-header sca-kopf">
+        <div className="sca-kopf-text">
+          <h1 className="seiten-titel">
+            <span className="titel-icon"><Icon name="printer" size={20} /></span>
+            Scannen
+            {offeneAnzahl > 0 && <span className="anzahl" title="Offene Scans im Posteingang">{offeneAnzahl}</span>}
+          </h1>
+          <div className="seiten-untertitel">Scannen oder Datei hochladen – danach im Posteingang der passenden Akte zuordnen.</div>
+        </div>
+        <div className="sca-kopf-knoepfe">
+          <button className="btn" onClick={scannerFensterAuf} title="Scanner hinzufügen oder ändern">
+            <Icon name="settings" /> <span className="btn-label">Scanner</span>
+          </button>
+          {hochladenKnopf("btn btn-primary", <span className="btn-label">Datei hochladen</span>)}
+        </div>
       </div>
 
       {msg && (
-        <div className="card" style={{ padding: "10px 12px", fontSize: 14, display: "flex", gap: 8, alignItems: "flex-start" }}>
+        <div className={"hinweis-leiste" + (msg.startsWith("Fehler") || /^(Posteingang|Scanner):/.test(msg) ? " fehler" : "")}
+          style={{ marginBottom: 0 }}>
           <Icon name={msg.startsWith("Fehler") ? "alert" : "check"} size={16} />
-          <span style={{ flex: 1 }}>{msg}</span>
-          <button className="btn btn-icon" aria-label="Meldung schließen" onClick={() => setMsg("")}><Icon name="x" size={14} /></button>
+          <span style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>{msg}</span>
+          <button className="btn btn-icon btn-flach" aria-label="Meldung schließen" onClick={() => setMsg("")}><Icon name="x" size={14} /></button>
         </div>
       )}
 
-      {/* ── Gerät ── */}
-      <div className="card scan-geraet">
-        {geraete.length === 0 ? (
-          <div style={{ display: "grid", gap: 10, justifyItems: "start" }}>
-            <div style={{ fontWeight: 600 }}>Noch kein Scanner eingerichtet</div>
-            <div className="muted" style={{ fontSize: 13 }}>Scanner im Netzwerk suchen lassen oder die IP-Adresse eintragen.</div>
-            <button className="btn btn-primary" onClick={() => { setDialogMsg(""); setScannerOffen(true); }}>
-              <Icon name="plus" /> Scanner hinzufügen
-            </button>
-          </div>
-        ) : (
-          <>
-            <div style={{ display: "grid", gap: 6 }}>
-              <div className="scan-reihe">
-                <div style={{ flex: 1, minWidth: 0 }}>
+      <div className="sca-raster">
+        {/* ── Gerät ── */}
+        <div className="sca-seitenleiste">
+          <div className="card sca-karte">
+            <div className="sca-karten-titel">
+              <span className="sca-ic"><Icon name="printer" size={16} /></span>
+              <span>Scanner</span>
+              {geraete.length > 0 && <span className={"abzeichen " + statusAbzeichen}>{statusText}</span>}
+            </div>
+
+            {geraete.length === 0 ? (
+              <div className="leer-zustand" style={{ padding: "18px 8px" }}>
+                <span className="leer-icon"><Icon name="wifi" size={26} /></span>
+                <div style={{ fontWeight: 650, color: "var(--fg)" }}>Noch kein Scanner eingerichtet</div>
+                <div style={{ fontSize: 13 }}>Scanner im Netzwerk suchen lassen oder die IP-Adresse eintragen.
+                  Dateien lassen sich auch ohne Scanner hochladen.</div>
+                <button className="btn btn-primary" onClick={scannerFensterAuf}>
+                  <Icon name="plus" /> Scanner hinzufügen
+                </button>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: "grid", gap: 6 }}>
                   <SuchSelect
                     value={geraetId}
                     onChange={setGeraetId}
@@ -415,140 +413,305 @@ export default function ScanPage() {
                     suchePlatzhalter="Scanner suchen…"
                     options={geraete.map((g) => ({ value: g.id, label: g.name, hint: g.host }))}
                   />
+                  <div className="sca-status">
+                    <i style={{ background: statusFarbe }} />
+                    <span>{faehig?.model ? `${faehig.model} · ` : ""}{statusText}</span>
+                  </div>
                 </div>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5 }} className="muted">
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: statusFarbe, flexShrink: 0 }} />
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {faehig?.model ? `${faehig.model} · ` : ""}{statusText}
-                </span>
-              </div>
-            </div>
 
-            {/* Vorlage als Umschalter über die volle Breite */}
-            <div className="scan-segment" role="group" aria-label="Vorlage">
-              <button aria-pressed={quelle === "Platen"} onClick={() => setQuelle("Platen")}>
-                <Icon name="file-text" size={15} /> Flachbett
-              </button>
-              <button aria-pressed={quelle === "Feeder"} disabled={!einzugMoeglich} onClick={() => setQuelle("Feeder")}
-                title={einzugMoeglich ? "Über den Einzug scannen" : "Dieses Gerät hat keinen Einzug"}>
-                <Icon name="copy" size={15} /> Einzug
-                {einzugMoeglich && papier !== null && (
-                  <span className="scan-chip" style={{
-                    background: papier ? "rgba(22,163,74,.18)" : "rgba(127,127,127,.2)",
-                    color: papier ? "#16a34a" : "var(--muted)" }}>
-                    {papier ? "Papier" : "leer"}
-                  </span>
-                )}
-              </button>
-            </div>
-
-            {/* Einzug-Hinweis direkt am Umschalter */}
-            {einzugMoeglich && (einzugFehler || (papier && quelle === "Platen") || (papier === false && quelle === "Feeder")) && busy !== "scan" && (
-              <div style={{ fontSize: 13, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap",
-                            color: einzugFehler || quelle === "Feeder" ? "var(--warn, #c47f17)" : "var(--muted)" }}>
-                <Icon name="alert" size={15} />
-                <span style={{ flex: "1 1 200px" }}>
-                  {einzugFehler || (quelle === "Feeder" ? "Einzug ist leer – Papier einlegen oder Flachbett wählen." : "Im Einzug liegt Papier – gescannt wird trotzdem vom Flachbett.")}
-                </span>
-              </div>
-            )}
-
-            {/* Einstellungen: Zusammenfassung, aufklappbar */}
-            <button className="btn" style={{ justifyContent: "space-between", width: "100%" }} onClick={() => setOptionenOffen((v) => !v)}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                <Icon name="settings" size={15} /> Einstellungen
-              </span>
-              <span className="muted" style={{ fontSize: 12.5 }}>
-                {farbe === "RGB24" ? "Farbe" : "Graustufen"} · {aufloesung} dpi{quelle === "Feeder" && duplex ? " · beidseitig" : ""} {optionenOffen ? "▴" : "▾"}
-              </span>
-            </button>
-
-            {optionenOffen && (
-              <div className="scan-ein">
-                <div className="scan-segment" role="group" aria-label="Farbe">
-                  <button aria-pressed={farbe === "RGB24"} onClick={() => setFarbe("RGB24")}><Icon name="image" size={15} /> Farbe</button>
-                  <button aria-pressed={farbe !== "RGB24"} onClick={() => setFarbe("Grayscale8")}>Graustufen</button>
-                </div>
+                {/* Vorlage als Umschalter über die volle Breite */}
                 <div style={{ display: "grid", gap: 6 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                    <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="maximize" size={14} /> Auflösung</span>
-                    <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>
-                      {aufloesung} dpi <span className="muted" style={{ fontWeight: 400 }}>
-                        · {aufloesung <= 150 ? "schnell" : aufloesung >= 300 ? "fein" : "Mittelweg"}</span>
+                  <div className="sektion-titel"><Icon name="file-text" size={13} /> Vorlage</div>
+                  <div className="sca-segment" role="group" aria-label="Vorlage">
+                    <button aria-pressed={quelle === "Platen"} onClick={() => setQuelle("Platen")}>
+                      <Icon name="file-text" size={15} /> Flachbett
+                    </button>
+                    <button aria-pressed={quelle === "Feeder"} disabled={!einzugMoeglich} onClick={() => setQuelle("Feeder")}
+                      title={einzugMoeglich ? "Über den Einzug scannen" : "Dieses Gerät hat keinen Einzug"}>
+                      <Icon name="copy" size={15} /> Einzug
+                      {einzugMoeglich && papier !== null && (
+                        <span className="sca-chip" style={{
+                          background: papier ? "rgba(22,163,74,.18)" : "rgba(127,127,127,.2)",
+                          color: papier ? "#16a34a" : "var(--muted)" }}>
+                          {papier ? "Papier" : "leer"}
+                        </span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Einzug-Hinweis direkt am Umschalter */}
+                {einzugMoeglich && (einzugFehler || (papier && quelle === "Platen") || (papier === false && quelle === "Feeder")) && busy !== "scan" && (
+                  <div className="sca-warnzeile"
+                    style={{ color: einzugFehler || quelle === "Feeder" ? "var(--warn, #c47f17)" : "var(--muted)" }}>
+                    <Icon name="alert" size={15} />
+                    <span style={{ flex: "1 1 200px" }}>
+                      {einzugFehler || (quelle === "Feeder" ? "Einzug ist leer – Papier einlegen oder Flachbett wählen." : "Im Einzug liegt Papier – gescannt wird trotzdem vom Flachbett.")}
                     </span>
                   </div>
-                  <input type="range" min={0} max={Math.max(0, stufen.length - 1)} step={1}
-                    value={Math.max(0, stufen.indexOf(aufloesung))}
-                    onChange={(e) => setAufloesung(stufen[Number(e.target.value)] ?? stufen[0])}
-                    style={{ width: "100%", accentColor: "var(--accent)" }} />
-                </div>
-                {quelle === "Feeder" && faehig?.duplex && (
-                  <Toggle checked={duplex} onChange={setDuplex} label={<span style={{ fontSize: 13.5 }}>Vorder- und Rückseite</span>} />
                 )}
-              </div>
-            )}
 
-            {busy === "scan" ? (
-              <ScanAnimation
-                text={quelle === "Feeder" ? "Zieht die Seiten ein" : "Scannt die Vorlage"}
-                untertext="Läuft im Hintergrund – du kannst hier weiterarbeiten. Das Ergebnis erscheint gleich im Posteingang."
-              />
-            ) : (
-              <button className="btn btn-primary scan-los" disabled={!geraetId} onClick={scannen}>
-                <Icon name="printer" size={18} /> Jetzt scannen
-              </button>
+                {/* Einstellungen: Zusammenfassung, aufklappbar */}
+                <button className="btn sca-aufklapp" aria-expanded={optionenOffen} onClick={() => setOptionenOffen((v) => !v)}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                    <Icon name="settings" size={15} /> Einstellungen
+                  </span>
+                  <span className="muted" style={{ fontSize: 12.5, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    {farbe === "RGB24" ? "Farbe" : "Graustufen"} · {aufloesung} dpi{quelle === "Feeder" && duplex ? " · beidseitig" : ""}
+                    <span style={{ display: "inline-flex", transform: optionenOffen ? "rotate(180deg)" : undefined, transition: "transform .15s" }}>
+                      <Icon name="chevron-down" size={14} />
+                    </span>
+                  </span>
+                </button>
+
+                {optionenOffen && (
+                  <div className="sca-ein">
+                    <div style={{ display: "grid", gap: 6 }}>
+                      <div className="sektion-titel"><Icon name="image" size={13} /> Farbe</div>
+                      <div className="sca-segment" role="group" aria-label="Farbe">
+                        <button aria-pressed={farbe === "RGB24"} onClick={() => setFarbe("RGB24")}><Icon name="image" size={15} /> Farbe</button>
+                        <button aria-pressed={farbe !== "RGB24"} onClick={() => setFarbe("Grayscale8")}><Icon name="moon" size={15} /> Graustufen</button>
+                      </div>
+                    </div>
+                    <div style={{ display: "grid", gap: 6 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13 }}>
+                        <span className="sektion-titel"><Icon name="maximize" size={13} /> Auflösung</span>
+                        <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>
+                          {aufloesung} dpi <span className="muted" style={{ fontWeight: 400 }}>
+                            · {aufloesung <= 150 ? "schnell" : aufloesung >= 300 ? "fein" : "Mittelweg"}</span>
+                        </span>
+                      </div>
+                      <input type="range" min={0} max={Math.max(0, stufen.length - 1)} step={1}
+                        value={Math.max(0, stufen.indexOf(aufloesung))}
+                        onChange={(e) => setAufloesung(stufen[Number(e.target.value)] ?? stufen[0])}
+                        style={{ width: "100%", accentColor: "var(--accent)" }} />
+                      <div className="sca-hinweis">Höhere Auflösung = schärfer, aber größere Datei und längere Scanzeit.</div>
+                    </div>
+                    {quelle === "Feeder" && faehig?.duplex && (
+                      <Toggle checked={duplex} onChange={setDuplex} label={<span style={{ fontSize: 13.5 }}>Vorder- und Rückseite</span>} />
+                    )}
+                  </div>
+                )}
+
+                {busy === "scan" ? (
+                  <ScanAnimation
+                    text={quelle === "Feeder" ? "Zieht die Seiten ein" : "Scannt die Vorlage"}
+                    untertext="Läuft im Hintergrund – du kannst hier weiterarbeiten. Das Ergebnis erscheint gleich im Posteingang."
+                  />
+                ) : (
+                  <button className="btn btn-primary sca-los" disabled={!geraetId} onClick={scannen}>
+                    <Icon name="printer" size={18} /> Jetzt scannen
+                  </button>
+                )}
+              </>
             )}
-          </>
-        )}
+          </div>
+        </div>
+
+        {/* ── Posteingang, nach Tagen ── */}
+        <div className="sca-eingang">
+          <div className="sca-karten-titel" style={{ fontSize: 17 }}>
+            <span className="sca-ic"><Icon name="archive" size={16} /></span>
+            <span>Posteingang
+              <span className="muted" style={{ fontSize: 12.5, fontWeight: 500, marginLeft: 8 }}>
+                Hier liegen Scans, bis sie zugeordnet sind.
+              </span>
+            </span>
+          </div>
+          <div className="sca-werkzeug">
+            <div className="sca-segment" role="group" aria-label="Filter">
+              <button aria-pressed={nurOffen} onClick={() => setNurOffen(true)}><Icon name="tasks" size={14} /> Offen · {offeneAnzahl}</button>
+              <button aria-pressed={!nurOffen} onClick={() => setNurOffen(false)}><Icon name="archive" size={14} /> Alle · {scans.length}</button>
+            </div>
+            <SearchInput value={suche} onChange={setSuche} placeholder="Name, Scanner, Notiz…" style={{ width: "100%" }} />
+          </div>
+
+          {tage.length === 0 && (
+            <div className="card leer-zustand">
+              <span className="leer-icon"><Icon name={suche ? "search" : nurOffen ? "check" : "archive"} size={28} /></span>
+              <div style={{ fontWeight: 650, color: "var(--fg)" }}>
+                {suche ? "Kein Scan passt zur Suche." : nurOffen ? "Nichts offen – alles zugeordnet." : "Noch nichts gescannt."}
+              </div>
+              <div style={{ fontSize: 13 }}>
+                {suche ? "Suchbegriff ändern oder leeren." : nurOffen ? "Neue Scans erscheinen hier automatisch."
+                  : "Links auf „Jetzt scannen“ tippen oder eine vorhandene Datei hochladen."}
+              </div>
+              {suche ? (
+                <button className="btn" onClick={() => setSuche("")}><Icon name="x" /> Suche leeren</button>
+              ) : nurOffen && scans.length > 0 ? (
+                <button className="btn" onClick={() => setNurOffen(false)}><Icon name="archive" /> Alle anzeigen</button>
+              ) : (
+                hochladenKnopf("btn", "Datei hochladen")
+              )}
+            </div>
+          )}
+
+          {tage.map(([tag, liste]) => (
+            <div key={tag} style={{ display: "grid", gap: 8 }}>
+              <div className="sca-tag">
+                <Icon name="calendar" size={14} />
+                <span>{tagLabel(liste[0].scannedAt)}</span>
+                <small>{liste.length} Dok. · {liste.reduce((n, s) => n + (s.pages || 1), 0)} S.</small>
+              </div>
+
+              {liste.map((s) => (
+                <div key={s.id} className="card sca-eintrag">
+                  {/* Vorschau der ersten Seite – ein Klick öffnet den Scan */}
+                  <button type="button" className="sca-vorschau" onClick={() => oeffnen(s)} title="Scan öffnen">
+                    {s.thumb ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={s.thumb} alt="" />
+                    ) : (
+                      <span><Icon name="file-text" size={20} /></span>
+                    )}
+                  </button>
+
+                  <div className="sca-info">
+                    {umbenennen?.id === s.id ? (
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <input className="input" autoFocus style={{ flex: 1, minWidth: 0 }}
+                          value={umbenennen.titel}
+                          onChange={(e) => setUmbenennen({ ...umbenennen, titel: e.target.value })}
+                          onKeyDown={(e) => { if (e.key === "Enter") nameSpeichern(); if (e.key === "Escape") setUmbenennen(null); }} />
+                        <button className="btn btn-icon" title="Abbrechen" aria-label="Abbrechen" onClick={() => setUmbenennen(null)}><Icon name="x" /></button>
+                        <button className="btn btn-icon btn-primary" title="Namen speichern" aria-label="Namen speichern" onClick={nameSpeichern}><Icon name="check" /></button>
+                      </div>
+                    ) : (
+                      <div className="sca-titelzeile">
+                        <span className="sca-titel"><Hervorheben text={s.title} suche={suche} /></span>
+                        <button className="btn btn-icon btn-flach" title="Namen ändern" aria-label="Namen ändern" onClick={() => setUmbenennen({ id: s.id, titel: s.title })}>
+                          <Icon name="pencil" size={13} />
+                        </button>
+                      </div>
+                    )}
+                    <div className="sca-meta">
+                      <span className={"abzeichen " + (s.status === "offen" ? "blau" : "gruen")}>
+                        <Icon name={s.status === "offen" ? "tasks" : "check"} size={11} /> {s.status === "offen" ? "offen" : "zugeordnet"}
+                      </span>
+                      <span>{uhrzeit(s.scannedAt)}</span><span className="sca-trenner">·</span>
+                      <span>{s.pages} S.</span>
+                      {groesse(s.size) && <><span className="sca-trenner">·</span><span>{groesse(s.size)}</span></>}
+                      {s.scannerName && <><span className="sca-trenner">·</span>
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 220 }}>{s.scannerName}</span></>}
+                    </div>
+
+                    {/* Warnungen: gleiche Namen oder gleicher Inhalt */}
+                    {(s.warnungen.name || s.warnungen.inhalt || s.warnungen.bereitsAbgelegt) && (
+                      <div className="sca-abzeichen">
+                        {s.warnungen.inhalt && (
+                          <span className="abzeichen gelb"><Icon name="alert" size={12} /> Inhaltsgleicher Scan liegt bereits im Posteingang – doppelt gescannt?</span>
+                        )}
+                        {s.warnungen.bereitsAbgelegt && (
+                          <span className="abzeichen gelb"><Icon name="alert" size={12} /> Dieses Dokument liegt inhaltsgleich bereits in einer Mitarbeiterakte.</span>
+                        )}
+                        {s.warnungen.name && (
+                          <span className="abzeichen gelb"><Icon name="alert" size={12} /> Gleicher Name wie ein anderer Scan – zur Unterscheidung umbenennen.</span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Bisherige Ablagen – auch Teilablagen einzelner Seiten */}
+                    {verlauf(s).map((z, i) => (
+                      <div key={i} className="sca-verlauf">
+                        <Icon name="folder" size={13} />
+                        <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>
+                          {z.seiten && z.von && z.seiten.length < z.von
+                            ? `Seite${z.seiten.length === 1 ? "" : "n"} ${z.seiten.join(", ")} von ${z.von} → `
+                            : "zugeordnet: "}
+                          {z.ziel === "betriebsakte" ? `Betriebsakte ${z.name}` : z.name}
+                        </span>
+                      </div>
+                    ))}
+                    {s.status === "zugeordnet" && verlauf(s).length === 0 && (
+                      <div className="sca-verlauf">
+                        <Icon name="folder" size={13} />
+                        <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>
+                          zugeordnet: {s.orgId
+                            ? `Betriebsakte ${[...mandanten, ...akten].find((m) => m.id === s.orgId)?.name || ""}`
+                            : mitarbeiter.find((m) => m.id === s.employeeId)?.name || "Mitarbeiter"}
+                          {s.groupId ? ` · ${gruppen.find((g) => g.id === s.groupId)?.name || "Rubrik"}` : ""}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="sca-aktionen">
+                    <button className="btn btn-icon" title="Öffnen" aria-label="Öffnen" disabled={busy === "open" + s.id} onClick={() => oeffnen(s)}>
+                      {busy === "open" + s.id ? <span className="speichern-dreh" /> : <Icon name="eye" />}
+                    </button>
+                    <button className="btn btn-icon" title="Herunterladen oder Speichern unter – ganz oder einzelne Seiten" aria-label="Herunterladen"
+                      onClick={() => setAusgabe({ scan: s, modus: "speichern" })}>
+                      <Icon name="download" />
+                    </button>
+                    <button className="btn btn-icon" title="Drucken – ganz oder einzelne Seiten" aria-label="Drucken"
+                      onClick={() => setAusgabe({ scan: s, modus: "drucken" })}>
+                      <Icon name="printer" />
+                    </button>
+                    <button className="btn btn-icon btn-danger" title="Verwerfen" aria-label="Verwerfen" onClick={() => setLoeschen(s)}>
+                      <Icon name="trash" />
+                    </button>
+                    {s.status === "offen" && (
+                      <button className="btn btn-primary sca-zuordnen" onClick={() => setZuordnen(s)}
+                        title="In die Mitarbeiter- oder Betriebsakte legen – ganz oder nur bestimmte Seiten">
+                        <Icon name="folder" /> Zuordnen
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* ── Pop-up: Scanner verwalten (suchen, anlegen, ändern, entfernen) ── */}
       {scannerOffen && (
-        <div onClick={() => setScannerOffen(false)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "grid", placeItems: "center", padding: 16, zIndex: 60 }}>
-          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster"
-            style={{ width: 560, maxWidth: "94vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
-              <Icon name="printer" size={18} />
-              <h2 style={{ fontSize: 17, fontWeight: 700, flex: 1 }}>Scanner</h2>
-              <button className="btn btn-icon" aria-label="Schließen" onClick={() => setScannerOffen(false)}>
+        <div className="kt-huelle" style={{ zIndex: 60 }} onClick={() => setScannerOffen(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="card kt-fenster dm-fenster" style={{ width: 580 }}>
+            <div className="sca-fenster-kopf">
+              <span className="sca-ic"><Icon name="printer" size={16} /></span>
+              <div>
+                <h2>Scanner verwalten</h2>
+                <div className="sca-unter">Geräte im Netzwerk finden, hinzufügen, umbenennen oder entfernen.</div>
+              </div>
+              <button className="btn btn-icon btn-flach" aria-label="Schließen" onClick={() => setScannerOffen(false)}>
                 <Icon name="x" />
               </button>
             </div>
 
-            <div style={{ padding: 20, overflowY: "auto", display: "grid", gap: 14, flex: 1 }}>
+            <div className="kt-inhalt" style={{ flex: 1 }}>
               {dialogMsg && (
-                <div style={{ fontSize: 13.5, padding: "9px 12px", borderRadius: 10, display: "flex", gap: 8,
-                              background: dialogMsg.startsWith("Fehler") ? "rgba(239,68,68,.10)" : "rgba(22,163,74,.10)",
-                              border: `1px solid ${dialogMsg.startsWith("Fehler") ? "rgba(239,68,68,.35)" : "rgba(22,163,74,.35)"}` }}>
+                <div className={"sca-meldung" + (dialogMsg.startsWith("Fehler") ? " fehler" : "")}>
                   <Icon name={dialogMsg.startsWith("Fehler") ? "alert" : "check"} size={16} />
-                  <span style={{ flex: 1 }}>{dialogMsg}</span>
+                  <span style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>{dialogMsg}</span>
                 </div>
               )}
 
               {/* Eingerichtete Geräte */}
               {geraete.length > 0 && (
-                <div style={{ display: "grid", gap: 8 }}>
-                  <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em" }}>Eingerichtet</div>
+                <div className="kt-abschnitt">
+                  <div className="kt-abschnitt-titel">
+                    <span className="ic"><Icon name="check" size={15} /></span> Eingerichtet
+                    <small>{geraete.length} Gerät{geraete.length === 1 ? "" : "e"}</small>
+                  </div>
                   {geraete.map((g) => (
-                    <div key={g.id} style={{ border: "1px solid var(--border)", borderRadius: 12, padding: 10, display: "grid", gap: 8 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div key={g.id} className="sca-geraet">
+                      <div className="sca-geraet-zeile">
                         <Icon name="printer" size={18} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
+                        <div>
                           <div style={{ fontWeight: 600, fontSize: 14 }}>{g.name}</div>
                           <div className="muted" style={{ fontSize: 12, overflowWrap: "anywhere" }}>{g.host}{g.model ? ` · ${g.model}` : ""}</div>
                         </div>
-                        <button className="btn btn-icon" title="Bearbeiten"
+                        <button className="btn btn-icon" title="Bearbeiten" aria-label="Bearbeiten"
                           onClick={() => setBearbeite({ id: g.id, name: g.name, host: g.host, note: (g as any).note || "" })}>
                           <Icon name="pencil" size={14} />
                         </button>
-                        <button className="btn btn-icon btn-danger" title="Entfernen" onClick={() => setScannerLoeschen(g)}>
+                        <button className="btn btn-icon btn-danger" title="Entfernen" aria-label="Entfernen" onClick={() => setScannerLoeschen(g)}>
                           <Icon name="trash" size={14} />
                         </button>
                       </div>
                       {bearbeite?.id === g.id && (
-                        <div style={{ display: "grid", gap: 8, borderTop: "1px solid var(--border)", paddingTop: 10 }}>
+                        <div style={{ display: "grid", gap: 10, borderTop: "1px solid var(--border)", paddingTop: 10 }}>
                           <div className="feld-zeile feld-zeile-2">
                             <Feld label="Name" icon="tag" wert={bearbeite.name}
                               setWert={(v) => setBearbeite({ ...bearbeite, name: v })} />
@@ -557,9 +720,9 @@ export default function ScanPage() {
                           </div>
                           <Feld label="Notiz" icon="file-text" wert={bearbeite.note} kopierbar={false}
                             setWert={(v) => setBearbeite({ ...bearbeite, note: v })} />
-                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                            <button className="btn" style={{ justifyContent: "center" }} onClick={() => setBearbeite(null)}>Abbrechen</button>
-                            <button className="btn btn-primary" style={{ justifyContent: "center" }} onClick={scannerSpeichern}>
+                          <div className="sca-knopfpaar">
+                            <button className="btn" onClick={() => setBearbeite(null)}><Icon name="x" /> Abbrechen</button>
+                            <button className="btn btn-primary" onClick={scannerSpeichern}>
                               <Icon name="save" /> Speichern
                             </button>
                           </div>
@@ -571,24 +734,27 @@ export default function ScanPage() {
               )}
 
               {/* Im Netzwerk suchen */}
-              <div style={{ display: "grid", gap: 8 }}>
-                <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em" }}>Neuen Scanner hinzufügen</div>
-                <button className="btn" style={{ justifyContent: "center" }} disabled={busy === "suche"} onClick={netzSuchen}>
-                  <Icon name="wifi" /> {busy === "suche" ? <span>Sucht im Netzwerk<span className="scan-punkte" /></span> : "Im Netzwerk suchen"}
+              <div className="kt-abschnitt">
+                <div className="kt-abschnitt-titel">
+                  <span className="ic"><Icon name="wifi" size={15} /></span> Im Netzwerk suchen
+                </div>
+                <div className="sca-hinweis">Findet Scanner im lokalen Netz automatisch – das dauert bis zu 20 Sekunden.</div>
+                <button className="btn" style={{ justifyContent: "center", minHeight: 42 }} disabled={busy === "suche"} onClick={netzSuchen}>
+                  {busy === "suche" ? <><span className="speichern-dreh" /> <span>Sucht im Netzwerk<span className="scan-punkte" /></span></>
+                    : <><Icon name="search" /> Jetzt suchen</>}
                 </button>
                 {gefunden && gefunden.length === 0 && busy !== "suche" && (
-                  <div className="muted" style={{ fontSize: 13 }}>Kein Scanner gefunden – IP-Adresse unten von Hand eintragen.</div>
+                  <div className="sca-hinweis">Kein Scanner gefunden – IP-Adresse unten von Hand eintragen.</div>
                 )}
                 {gefunden?.map((f) => (
-                  <div key={f.host} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 10,
-                                              background: "color-mix(in srgb, var(--accent) 7%, transparent)" }}>
+                  <div key={f.host} className="sca-treffer">
                     <Icon name="printer" size={16} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                    <div>
                       <div style={{ fontWeight: 600, fontSize: 13.5 }}>{f.model}</div>
                       <div className="muted" style={{ fontSize: 12 }}>{f.host}</div>
                     </div>
                     {f.eingerichtet ? (
-                      <span className="muted" style={{ fontSize: 12 }}>eingerichtet</span>
+                      <span className="abzeichen gruen"><Icon name="check" size={11} /> eingerichtet</span>
                     ) : (
                       <button className="btn btn-primary" disabled={busy === "scanner"} onClick={() => scannerHinzufuegen(f.host)}>
                         <Icon name="plus" /> Hinzufügen
@@ -599,167 +765,32 @@ export default function ScanPage() {
               </div>
 
               {/* Von Hand */}
-              <div className="feld-zeile feld-zeile-2">
-                <Feld label="IP-Adresse" icon="command" wert={neuerScanner} autoFocus={geraete.length === 0}
-                  platzhalter="z. B. 192.168.1.50" setWert={setNeuerScanner} />
-                <Feld label="Name (frei)" icon="tag" wert={neuerName} kopierbar={false}
-                  platzhalter="z. B. Büro oben" setWert={setNeuerName} />
+              <div className="kt-abschnitt">
+                <div className="kt-abschnitt-titel">
+                  <span className="ic"><Icon name="command" size={15} /></span> Von Hand eintragen
+                </div>
+                <div className="feld-zeile feld-zeile-2">
+                  <Feld label="IP-Adresse" icon="command" wert={neuerScanner} autoFocus={geraete.length === 0}
+                    platzhalter="z. B. 192.168.1.50" setWert={setNeuerScanner} />
+                  <Feld label="Name (frei)" icon="tag" wert={neuerName} kopierbar={false}
+                    platzhalter="z. B. Büro oben" setWert={setNeuerName} />
+                </div>
+                <span className="sca-hinweis">
+                  Das Gerät wird sofort geprüft (erst HTTPS, dann HTTP) – antwortet es nicht, wird es nicht gespeichert.
+                  Auch möglich: <code>http://IP</code> oder <code>IP:Port</code>. Ohne Namen trägt es die Modellbezeichnung.
+                </span>
               </div>
-              <span className="muted" style={{ fontSize: 12 }}>
-                Das Gerät wird sofort geprüft (erst HTTPS, dann HTTP) – antwortet es nicht, wird es nicht gespeichert.
-                Auch möglich: <code>http://IP</code> oder <code>IP:Port</code>. Ohne Namen trägt es die Modellbezeichnung.
-              </span>
             </div>
 
-            <div style={{ padding: "12px 20px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button className="btn" onClick={() => setScannerOffen(false)}>Schließen</button>
+            <div className="kt-fuss">
+              <button className="btn sca-fuss-links" onClick={() => setScannerOffen(false)}><Icon name="x" /> Schließen</button>
               <button className="btn btn-primary" disabled={!neuerScanner.trim() || busy === "scanner"} onClick={() => scannerHinzufuegen()}>
-                <Icon name="check" /> {busy === "scanner" ? "Prüft…" : "Prüfen und hinzufügen"}
+                {busy === "scanner" ? <><span className="speichern-dreh" /> Prüft…</> : <><Icon name="check" /> Prüfen und hinzufügen</>}
               </button>
             </div>
           </div>
         </div>
       )}
-
-      {/* ── Posteingang, nach Tagen ── */}
-      <div style={{ display: "grid", gap: 10, marginTop: 6 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ fontSize: 17, fontWeight: 700, display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
-            <Icon name="archive" size={18} /> Posteingang
-          </div>
-        </div>
-        <div className="scan-segment" role="group" aria-label="Filter" style={{ maxWidth: 420 }}>
-          <button aria-pressed={nurOffen} onClick={() => setNurOffen(true)}>Offen · {offeneAnzahl}</button>
-          <button aria-pressed={!nurOffen} onClick={() => setNurOffen(false)}>Alle · {scans.length}</button>
-        </div>
-        <SearchInput value={suche} onChange={setSuche} placeholder="Name, Scanner, Notiz…" style={{ width: "100%", maxWidth: 420 }} />
-      </div>
-
-      {tage.length === 0 && (
-        <div className="card muted" style={{ padding: 16, fontSize: 14 }}>
-          {suche ? "Kein Scan passt zur Suche." : nurOffen ? "Nichts offen – alles zugeordnet." : "Noch nichts gescannt – oben auf „Jetzt scannen“ tippen."}
-        </div>
-      )}
-
-      <div style={{ display: "grid", gap: 14 }}>
-        {tage.map(([tag, liste]) => (
-          <div key={tag} style={{ display: "grid", gap: 8 }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", padding: "0 2px" }}>
-              <Icon name="calendar" size={14} />
-              <span style={{ fontWeight: 600, fontSize: 13.5 }}>{tagLabel(liste[0].scannedAt)}</span>
-              <span className="muted" style={{ fontSize: 12 }}>
-                {liste.length} Dok. · {liste.reduce((n, s) => n + (s.pages || 1), 0)} S.
-              </span>
-            </div>
-
-            {liste.map((s) => (
-              <div key={s.id} className="card scan-eintrag">
-                <div className="scan-eintrag-kopf">
-                  {/* Vorschau der ersten Seite – ein Klick öffnet den Scan */}
-                  <button type="button" onClick={() => oeffnen(s)} title="Scan öffnen"
-                    style={{ border: 0, background: "transparent", padding: 0, cursor: "zoom-in", lineHeight: 0 }}>
-                    {s.thumb ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={s.thumb} alt="" style={{ width: 52, height: 68, objectFit: "cover", borderRadius: 8,
-                                                         border: "1px solid var(--border)", background: "#fff" }} />
-                    ) : (
-                      <span style={{ width: 52, height: 68, borderRadius: 8, border: "1px solid var(--border)", display: "grid", placeItems: "center" }}>
-                        <Icon name="file-text" size={20} />
-                      </span>
-                    )}
-                  </button>
-                  <div style={{ minWidth: 0 }}>
-                    {umbenennen?.id === s.id ? (
-                      <div style={{ display: "flex", gap: 6 }}>
-                        <input className="input" autoFocus style={{ flex: 1, minWidth: 0 }}
-                          value={umbenennen.titel}
-                          onChange={(e) => setUmbenennen({ ...umbenennen, titel: e.target.value })}
-                          onKeyDown={(e) => { if (e.key === "Enter") nameSpeichern(); if (e.key === "Escape") setUmbenennen(null); }} />
-                        <button className="btn btn-icon" title="Namen speichern" onClick={nameSpeichern}><Icon name="check" /></button>
-                      </div>
-                    ) : (
-                      <div style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
-                        <span className="scan-titel" style={{ flex: 1 }}><Hervorheben text={s.title} suche={suche} /></span>
-                        <button className="btn btn-icon" title="Namen ändern" onClick={() => setUmbenennen({ id: s.id, titel: s.title })}>
-                          <Icon name="pencil" size={13} />
-                        </button>
-                      </div>
-                    )}
-                    <div className="scan-meta">
-                      {uhrzeit(s.scannedAt)} · {s.pages} S. · {groesse(s.size)}
-                    </div>
-                    {s.scannerName && <div className="scan-meta" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.scannerName}</div>}
-                  </div>
-                </div>
-
-                {/* Warnungen: gleiche Namen oder gleicher Inhalt */}
-                {(s.warnungen.name || s.warnungen.inhalt || s.warnungen.bereitsAbgelegt) && (
-                  <div style={{ display: "grid", gap: 3 }}>
-                    {s.warnungen.inhalt && (
-                      <span style={{ color: "var(--warn, #c47f17)", fontSize: 12.5, display: "flex", alignItems: "center", gap: 6 }}>
-                        <Icon name="alert" size={13} /> Inhaltsgleicher Scan liegt bereits im Posteingang – doppelt gescannt?
-                      </span>
-                    )}
-                    {s.warnungen.bereitsAbgelegt && (
-                      <span style={{ color: "var(--warn, #c47f17)", fontSize: 12.5, display: "flex", alignItems: "center", gap: 6 }}>
-                        <Icon name="alert" size={13} /> Dieses Dokument liegt inhaltsgleich bereits in einer Mitarbeiterakte.
-                      </span>
-                    )}
-                    {s.warnungen.name && (
-                      <span style={{ color: "var(--warn, #c47f17)", fontSize: 12.5, display: "flex", alignItems: "center", gap: 6 }}>
-                        <Icon name="alert" size={13} /> Gleicher Name wie ein anderer Scan – zur Unterscheidung umbenennen.
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {/* Bisherige Ablagen – auch Teilablagen einzelner Seiten */}
-                {verlauf(s).map((z, i) => (
-                  <div key={i} className="muted" style={{ fontSize: 12.5, display: "flex", alignItems: "center", gap: 6 }}>
-                    <Icon name="check" size={13} />
-                    {z.seiten && z.von && z.seiten.length < z.von
-                      ? `Seite${z.seiten.length === 1 ? "" : "n"} ${z.seiten.join(", ")} von ${z.von} → `
-                      : "zugeordnet: "}
-                    {z.ziel === "betriebsakte" ? `Betriebsakte ${z.name}` : z.name}
-                  </div>
-                ))}
-                {s.status === "zugeordnet" && verlauf(s).length === 0 && (
-                  <div className="muted" style={{ fontSize: 12.5, display: "flex", alignItems: "center", gap: 6 }}>
-                    <Icon name="check" size={13} />
-                    zugeordnet: {s.orgId
-                      ? `Betriebsakte ${[...mandanten, ...akten].find((m) => m.id === s.orgId)?.name || ""}`
-                      : mitarbeiter.find((m) => m.id === s.employeeId)?.name || "Mitarbeiter"}
-                    {s.groupId ? ` · ${gruppen.find((g) => g.id === s.groupId)?.name || "Rubrik"}` : ""}
-                  </div>
-                )}
-
-                <div className="scan-aktionen">
-                  <button className="btn" title="Öffnen" disabled={busy === "open" + s.id} onClick={() => oeffnen(s)}>
-                    <Icon name="eye" /> <span className="btn-label">Öffnen</span>
-                  </button>
-                  <button className="btn" title="Herunterladen oder Speichern unter – ganz oder einzelne Seiten"
-                    onClick={() => setAusgabe({ scan: s, modus: "speichern" })}>
-                    <Icon name="download" /> <span className="btn-label">Herunterladen</span>
-                  </button>
-                  <button className="btn" title="Drucken – ganz oder einzelne Seiten"
-                    onClick={() => setAusgabe({ scan: s, modus: "drucken" })}>
-                    <Icon name="printer" /> <span className="btn-label">Drucken</span>
-                  </button>
-                  <button className="btn btn-icon btn-danger" title="Verwerfen" onClick={() => setLoeschen(s)}>
-                    <Icon name="trash" />
-                  </button>
-                  {s.status === "offen" && (
-                    <button className="btn btn-primary scan-zuordnen" onClick={() => setZuordnen(s)}
-                      title="In die Mitarbeiter- oder Betriebsakte legen – ganz oder nur bestimmte Seiten">
-                      <Icon name="folder" /> Zuordnen
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
 
       {/* ── Zuordnen ── */}
       {zuordnen && (

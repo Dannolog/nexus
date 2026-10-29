@@ -1,1 +1,149 @@
 /* Moderne Gestaltung – Bereich scannen (Präfix .sca-). Nur Klassen mit diesem Präfix. */
+
+/* ── Seitenkopf ── */
+.sca-kopf { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.sca-kopf-text { flex: 1; min-width: 0; }
+.sca-kopf-knoepfe { display: flex; gap: 8px; align-items: center; }
+
+/* ── Aufteilung: Gerät links (bleibt stehen), Posteingang rechts ── */
+.sca-raster { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 18px; align-items: start; }
+.sca-seitenleiste { position: sticky; top: 96px; display: grid; gap: 14px; }
+
+/* ── Karten mit Titelzeile ── */
+.sca-karte { padding: 16px; display: grid; gap: 14px; }
+.sca-karten-titel { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 700; min-width: 0; }
+.sca-karten-titel > span:not(.sca-ic) { flex: 1; min-width: 0; }
+.sca-ic { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0;
+  background: var(--accent-weich); color: var(--accent); }
+.sca-hinweis { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+
+/* Statuspunkt des Scanners */
+.sca-status { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); min-width: 0; }
+.sca-status i { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.sca-status span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Segment-Umschalter über die volle Breite (gleich breite Knöpfe) */
+.sca-segment { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; padding: 3px; border-radius: 12px;
+  background: color-mix(in srgb, var(--fg) 6%, transparent); }
+.sca-segment button { border: 0; border-radius: 9px; padding: 9px 8px; min-height: 40px; font-size: 13.5px; font-weight: 600;
+  cursor: pointer; background: transparent; color: var(--muted); display: flex; align-items: center; justify-content: center;
+  gap: 6px; transition: background .15s, color .15s; white-space: nowrap; }
+.sca-segment button:hover { color: var(--fg); }
+.sca-segment button[aria-pressed="true"] { background: var(--card); color: var(--accent); box-shadow: 0 1px 4px rgba(0,0,0,.16); }
+.sca-segment button:disabled { opacity: .45; cursor: not-allowed; }
+.sca-chip { font-size: 11px; padding: 1px 7px; border-radius: 999px; font-weight: 600; }
+
+/* Einstellungen (aufklappbar) */
+.sca-aufklapp { width: 100%; justify-content: space-between !important; }
+.sca-ein { display: grid; gap: 12px; padding: 12px; border-radius: 12px; background: color-mix(in srgb, var(--fg) 3%, transparent);
+  border: 1px solid var(--border); }
+.sca-los { width: 100%; justify-content: center; padding: 13px 16px; font-size: 16px; font-weight: 700; border-radius: 12px; min-height: 48px; }
+.sca-warnzeile { font-size: 13px; display: flex; gap: 8px; align-items: center; }
+
+/* ── Posteingang ── */
+.sca-eingang { display: grid; gap: 12px; min-width: 0; }
+.sca-werkzeug { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.sca-werkzeug .sca-segment { min-width: 240px; }
+.sca-werkzeug > :last-child { flex: 1; min-width: 200px; }
+
+.sca-tag { display: flex; align-items: center; gap: 8px; margin: 10px 2px 2px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.sca-tag::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.sca-tag small { font-weight: 500; font-size: 12px; }
+
+.sca-eintrag { padding: 12px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: start;
+  transition: border-color .15s, box-shadow .15s; }
+.sca-eintrag:hover { border-color: color-mix(in srgb, var(--accent) 35%, var(--border)); }
+.sca-vorschau { border: 0; background: transparent; padding: 0; cursor: zoom-in; line-height: 0; }
+.sca-vorschau img, .sca-vorschau > span { width: 56px; height: 74px; border-radius: 9px; border: 1px solid var(--border); }
+.sca-vorschau img { object-fit: cover; background: #fff; }
+.sca-vorschau > span { display: grid; place-items: center; color: var(--muted); background: var(--flaeche); }
+.sca-info { min-width: 0; display: grid; gap: 4px; }
+.sca-titelzeile { display: flex; gap: 6px; align-items: flex-start; }
+.sca-titel { font-weight: 650; font-size: 14.5px; overflow-wrap: anywhere; flex: 1; min-width: 0; }
+.sca-meta { font-size: 12px; color: var(--muted); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.sca-meta .sca-trenner { opacity: .5; }
+.sca-abzeichen { display: flex; gap: 5px; flex-wrap: wrap; }
+.sca-abzeichen .abzeichen { white-space: normal; }
+.sca-verlauf { font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.sca-aktionen { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
+.sca-aktionen .sca-zuordnen { order: 9; }
+
+/* ── Pop-ups ── */
+.sca-fenster-kopf { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px;
+  background: var(--card); }
+.sca-fenster-kopf h2 { font-size: 17px; font-weight: 700; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sca-fenster-kopf .sca-unter { font-size: 12.5px; color: var(--muted); }
+.sca-fenster-kopf > div { flex: 1; min-width: 0; }
+.sca-meldung { padding: 9px 12px; border-radius: 10px; font-size: 13.5px; display: flex; gap: 8px; align-items: flex-start;
+  background: color-mix(in srgb, var(--gruen) 11%, transparent); border: 1px solid color-mix(in srgb, var(--gruen) 30%, transparent); }
+.sca-meldung.fehler { background: color-mix(in srgb, var(--rot) 10%, transparent); border-color: color-mix(in srgb, var(--rot) 32%, transparent); }
+.sca-geraet { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; display: grid; gap: 10px; }
+.sca-geraet-zeile { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.sca-geraet-zeile > div { flex: 1; min-width: 0; }
+.sca-treffer { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.sca-treffer > div { flex: 1; min-width: 0; }
+.sca-knopfpaar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sca-knopfpaar .btn { justify-content: center; }
+.sca-fuss-links { margin-right: auto; }
+
+/* Auswahlkarten (z. B. was mit den übrigen Seiten passiert) */
+.sca-wahl { all: unset; box-sizing: border-box; cursor: pointer; display: flex; gap: 10px; align-items: flex-start; padding: 11px 12px;
+  border-radius: 12px; border: 2px solid var(--border); transition: border-color .15s, background .15s; }
+.sca-wahl:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
+.sca-wahl:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sca-wahl.an { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.sca-wahl.an.gefahr { border-color: var(--rot); background: color-mix(in srgb, var(--rot) 7%, transparent); }
+.sca-wahl .sca-punkt { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; margin-top: 1px; display: grid; place-items: center;
+  border: 2px solid var(--border); }
+.sca-wahl.an .sca-punkt { border-color: currentColor; }
+.sca-wahl.an .sca-punkt::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+
+/* ── Visitenkarten: Bedienoberfläche (die Karte selbst gestaltet visitenkarte.css) ── */
+.sca-vk { display: grid; gap: 16px; }
+.sca-vk-buehne { padding: 6px 12px 10px; overflow: hidden;
+  background: radial-gradient(ellipse at top, color-mix(in srgb, var(--accent) 7%, transparent), transparent 70%), var(--card); }
+.sca-vk-buehne-kopf { display: flex; align-items: center; gap: 8px; padding: 8px 4px 0; flex-wrap: wrap; }
+.sca-vk-buehne-kopf > :first-child { flex: 1; min-width: 0; }
+.sca-vk-stand { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
+.sca-vk-raster { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr); gap: 16px; align-items: start; }
+.sca-vk-spalte { display: grid; gap: 16px; min-width: 0; }
+.sca-vk-person { display: flex; gap: 8px; align-items: flex-end; }
+.sca-vk-person > :first-child { flex: 1; min-width: 0; }
+.sca-kacheln { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+.sca-kachel { display: grid; justify-items: center; gap: 6px; padding: 12px 8px; border-radius: 12px; border: 1px solid var(--border);
+  background: var(--card); color: var(--fg); cursor: pointer; font-size: 13px; font-weight: 600; text-align: center;
+  transition: border-color .15s, transform .15s; }
+.sca-kachel:hover { border-color: var(--accent); transform: translateY(-1px); }
+.sca-kachel .sca-ic { width: 36px; height: 36px; }
+.sca-kachel small { font-weight: 500; font-size: 11.5px; color: var(--muted); }
+.sca-farbe { display: flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: 9px; padding: 4px 6px 4px 4px; }
+.sca-farbe i { width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0; border: 1px solid rgba(128,128,128,.35); }
+.sca-farbe code { font-size: 12.5px; font-family: ui-monospace, monospace; }
+.sca-reiter-punkt { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex-shrink: 0; }
+.sca-zahlfeld { display: grid; gap: 4px; font-size: 13px; }
+.sca-zahlfeld span { color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+.sca-zahlfeld input { width: 100%; }
+
+@media (max-width: 1100px) {
+  .sca-raster { grid-template-columns: 1fr; }
+  .sca-seitenleiste { position: static; }
+  .sca-vk-raster { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .sca-kopf-knoepfe { margin-left: auto; }
+  .sca-kopf-knoepfe .btn { min-height: 40px; }
+  .sca-werkzeug { display: grid; grid-template-columns: 1fr; }
+  .sca-werkzeug .sca-segment { min-width: 0; }
+  .sca-eintrag { grid-template-columns: auto minmax(0, 1fr); gap: 12px; }
+  .sca-aktionen { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr) auto; }
+  .sca-aktionen .btn { justify-content: center; min-height: 42px; }
+  .sca-aktionen .sca-zuordnen { grid-column: 1 / -1; grid-row: 1; order: 0; min-height: 46px; }
+  .sca-fenster-kopf { padding-top: calc(14px + env(safe-area-inset-top)); }
+  .sca-knopfpaar .btn { min-height: 44px; }
+  .sca-treffer { flex-wrap: wrap; }
+  .sca-vk-person .btn { min-height: 40px; }
+  .sca-kacheln { grid-template-columns: 1fr 1fr; }
+  .sca-fuss-links { margin-right: 0; }
+}

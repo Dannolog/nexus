@@ -31,6 +31,24 @@ function groesse(b: number) {
   return b < 1024 * 1024 ? `${Math.round(b / 1024)} KB` : `${(b / 1024 / 1024).toFixed(1)} MB`;
 }
 
+/**
+ * Dateisymbol wie in einer Dateiverwaltung: farbige Kachel je Dateityp (PDF, Bild, sonstige)
+ * mit kleinem Kürzel. Wird auch in der Dokumente-Seite und der Betriebsakte genutzt.
+ */
+export function DateiSymbol({ mime, name }: { mime?: string; name?: string }) {
+  const m = String(mime || "");
+  const endung = (String(name || "").match(/\.([a-z0-9]{1,5})$/i)?.[1] || "").toUpperCase();
+  const bild = m.startsWith("image/");
+  const pdf = m === "application/pdf" || (!m && endung === "PDF") || (!m && !endung);
+  const kuerzel = pdf ? "PDF" : bild ? (endung || "BILD") : (endung || "DATEI");
+  return (
+    <span className={`abl-datei${pdf ? " pdf" : bild ? " bild" : ""}`} aria-hidden="true">
+      <Icon name={bild ? "image" : "file-text"} size={18} />
+      <span className="abl-datei-typ">{kuerzel.slice(0, 4)}</span>
+    </span>
+  );
+}
+
 export default function MitarbeiterAkte({
   empId, empName, gruppen, gruppeId, setGruppeId, dokumente, busy,
   neuLadenGruppen, neuLadenDokumente, onOeffnen, onHochladen, onLoeschen, melde,
@@ -185,83 +203,105 @@ export default function MitarbeiterAkte({
 
   if (!empId) {
     return (
-      <div className="card" style={{ padding: 14 }}>
-        <div className="muted" style={{ fontSize: 13 }}>Bitte einen Mitarbeiter wählen – dann erscheint hier die Akte.</div>
+      <div className="card">
+        <div className="leer-zustand">
+          <div className="leer-icon"><Icon name="folder" size={28} /></div>
+          <div style={{ fontWeight: 650, color: "var(--fg)", fontSize: 15 }}>Noch keine Akte geöffnet</div>
+          <div style={{ fontSize: 13.5, maxWidth: 420, lineHeight: 1.5 }}>
+            Oben einen Mitarbeiter wählen – dann erscheint hier seine Akte mit allen Rubriken, Dokumenten und Notizen.
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="card" style={{ padding: 14, display: "grid", gap: 12 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em" }}>
-          Akte {empName ? `– ${empName}` : ""}
+    <div className="abl-akte">
+      {/* ── Kopf der Akte ── */}
+      <div className="card">
+        <div className="abl-akte-kopf">
+          <span className="abl-akte-ic"><Icon name="folder" size={20} /></span>
+          <div style={{ minWidth: 0, flex: "1 1 180px" }}>
+            <div className="sektion-titel"><Icon name="user" size={12} /> Mitarbeiterakte</div>
+            <h2>{empName || "Mitarbeiter"}</h2>
+          </div>
+          <div className="abl-kopf-aktionen">
+            <button className="btn" onClick={() => setNotizEditor({ groupId: gruppeId, title: "", text: "" })} title="Notiz in der Akte ablegen">
+              <Icon name="pencil" /> <span className="btn-label">Notiz</span>
+            </button>
+            <button className="btn btn-primary" onClick={() => setRubrikOffen((v) => !v)} title="Neue Rubrik anlegen">
+              <Icon name="plus" /> <span className="btn-label">Rubrik</span>
+            </button>
+          </div>
         </div>
-        <div style={{ marginLeft: "auto", display: "flex", gap: 6, flexWrap: "wrap" }}>
-          <button className="btn" onClick={() => setNotizEditor({ groupId: gruppeId, title: "", text: "" })}>
-            <Icon name="file-text" /> <span className="btn-label">Notiz</span>
-          </button>
-          <button className="btn" onClick={() => setRubrikOffen((v) => !v)} title="Neue Rubrik anlegen">
-            <Icon name="plus" /> <span className="btn-label">Rubrik</span>
-          </button>
-        </div>
+
+        {rubrikOffen && (
+          <div className="abl-neu-rubrik">
+            <input className="input" style={{ flex: "1 1 200px", minWidth: 0 }} autoFocus
+              placeholder="Name der Rubrik, z. B. Krankenversicherung"
+              value={neueRubrik}
+              onChange={(e) => setNeueRubrik(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") rubrikAnlegen(); if (e.key === "Escape") { setRubrikOffen(false); setNeueRubrik(""); } }} />
+            <button className="btn" onClick={() => { setRubrikOffen(false); setNeueRubrik(""); }}><Icon name="x" /> Abbrechen</button>
+            <button className="btn btn-primary" onClick={rubrikAnlegen}><Icon name="check" /> Anlegen</button>
+          </div>
+        )}
       </div>
 
-      {rubrikOffen && (
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          <input className="input" style={{ flex: "1 1 200px", minWidth: 0 }} autoFocus
-            placeholder="Name der Rubrik, z. B. Krankenversicherung"
-            value={neueRubrik}
-            onChange={(e) => setNeueRubrik(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") rubrikAnlegen(); if (e.key === "Escape") { setRubrikOffen(false); setNeueRubrik(""); } }} />
-          <button className="btn btn-primary" onClick={rubrikAnlegen}><Icon name="check" /> Anlegen</button>
-        </div>
-      )}
-
       {abschnitte.length === 0 && (
-        <div className="muted" style={{ fontSize: 13 }}>Noch keine Rubrik – oben eine anlegen, dann Dokumente und Notizen einsortieren.</div>
+        <div className="card">
+          <div className="leer-zustand">
+            <div className="leer-icon"><Icon name="folder" size={28} /></div>
+            <div style={{ fontWeight: 650, color: "var(--fg)", fontSize: 15 }}>Noch keine Rubrik</div>
+            <div style={{ fontSize: 13.5, maxWidth: 420, lineHeight: 1.5 }}>
+              Rubriken gliedern die Akte, z. B. „Krankenversicherung" oder „Verträge". Sie gelten für alle Mitarbeiter.
+            </div>
+            <button className="btn btn-primary" onClick={() => setRubrikOffen(true)}><Icon name="plus" /> Rubrik anlegen</button>
+          </div>
+        </div>
       )}
 
       {abschnitte.map((a) => {
         const zugeklappt = zu[a.id];
         const anzahl = a.dokumente.length + a.notizen.length;
         return (
-          <div key={a.id} style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
-            <div className="akte-kopf" style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 10px", background: "var(--bg)", flexWrap: "wrap" }}>
-              <button className="btn btn-icon" title={zugeklappt ? "Aufklappen" : "Zuklappen"}
+          <div key={a.id} className={`abl-rubrik${zugeklappt ? "" : " offen"}${a.echt ? "" : " ohne"}`}>
+            <div className="abl-rubrik-kopf akte-kopf">
+              <button className="abl-rubrik-schalter" title={zugeklappt ? "Aufklappen" : "Zuklappen"} aria-expanded={!zugeklappt}
                 onClick={() => setZu((z) => ({ ...z, [a.id]: !z[a.id] }))}>
-                <span style={{ display: "inline-flex", transform: zugeklappt ? "rotate(-90deg)" : "none", transition: "transform .15s" }}>
-                  <Icon name="chevron-down" />
+                <span className="abl-pfeil"><Icon name="chevron-down" /></span>
+                <span className="abl-rubrik-ic"><Icon name={a.echt ? "folder" : "archive"} size={16} /></span>
+                <span style={{ display: "grid", minWidth: 0 }}>
+                  <span className="abl-rubrik-name">{a.name}</span>
+                  <span className="abl-rubrik-zahl">
+                    {a.dokumente.length} Dokument{a.dokumente.length === 1 ? "" : "e"}
+                    {a.notizen.length ? ` · ${a.notizen.length} Notiz${a.notizen.length === 1 ? "" : "en"}` : ""}
+                  </span>
                 </span>
               </button>
-              <span style={{ fontWeight: 600, fontSize: 14 }}>{a.name}</span>
-              <span className="muted" style={{ fontSize: 12 }}>
-                {a.dokumente.length} Dokument{a.dokumente.length === 1 ? "" : "e"}
-                {a.notizen.length ? ` · ${a.notizen.length} Notiz${a.notizen.length === 1 ? "" : "en"}` : ""}
-              </span>
-              <div style={{ marginLeft: "auto", display: "flex", gap: 6, flexWrap: "wrap" }}>
-                <label className="btn btn-icon" style={{ cursor: "pointer" }} title="Datei in diese Rubrik hochladen">
-                  <Icon name="plus" />
+              <div className="abl-rubrik-werkzeuge">
+                <label className="btn btn-icon" style={{ cursor: "pointer" }} title="Datei in diese Rubrik hochladen" aria-label="Datei hochladen">
+                  <Icon name="upload" />
                   <input type="file" style={{ display: "none" }}
                     onChange={(e) => { const f = e.target.files?.[0]; if (f) onHochladen(f, a.echt ? a.id : ""); e.target.value = ""; }} />
                 </label>
                 {/* Foto aufnehmen oder Bild aus der Galerie – auf dem Handy öffnet sich direkt die Kamera */}
-                <label className="btn btn-icon" style={{ cursor: "pointer" }} title="Foto aufnehmen oder Bild wählen">
+                <label className="btn btn-icon" style={{ cursor: "pointer" }} title="Foto aufnehmen oder Bild wählen" aria-label="Foto oder Bild">
                   <Icon name="image" />
                   <input type="file" accept="image/*" capture="environment" style={{ display: "none" }}
                     onChange={(e) => { const f = e.target.files?.[0]; if (f) onHochladen(f, a.echt ? a.id : ""); e.target.value = ""; }} />
                 </label>
-                <button className="btn btn-icon" title="Notiz in dieser Rubrik ablegen"
+                <button className="btn btn-icon" title="Notiz in dieser Rubrik ablegen" aria-label="Notiz ablegen"
                   onClick={() => setNotizEditor({ groupId: a.echt ? a.id : "", title: "", text: "" })}>
                   <Icon name="file-text" />
                 </button>
                 {a.echt && (
                   <>
-                    <button className="btn btn-icon" title="Rubrik umbenennen"
+                    <button className="btn btn-icon" title="Rubrik umbenennen" aria-label="Rubrik umbenennen"
                       onClick={() => rubrikUmbenennen(gruppen.find((g) => g.id === a.id)!)}>
                       <Icon name="pencil" />
                     </button>
-                    <button className="btn btn-icon btn-danger" title="Rubrik entfernen (Inhalte bleiben erhalten)"
+                    <button className="btn btn-icon btn-danger" title="Rubrik entfernen (Inhalte bleiben erhalten)" aria-label="Rubrik entfernen"
                       onClick={() => setRubrikLoeschen(gruppen.find((g) => g.id === a.id)!)}>
                       <Icon name="trash" />
                     </button>
@@ -270,26 +310,32 @@ export default function MitarbeiterAkte({
               </div>
             </div>
 
-            {!zugeklappt && (
-              <div style={{ padding: 10, display: "grid", gap: 8 }}>
-                {anzahl === 0 && <div className="muted" style={{ fontSize: 12.5 }}>Noch nichts abgelegt.</div>}
+            {!zugeklappt && anzahl === 0 && (
+              <div className="abl-rubrik-leer"><Icon name="folder" size={15} /> Noch nichts abgelegt – oben über die Symbole hochladen, fotografieren oder eine Notiz schreiben.</div>
+            )}
 
+            {!zugeklappt && anzahl > 0 && (
+              <div className="abl-liste">
                 {a.notizen.map((n) => (
-                  <div key={n.id} style={{ border: "1px dashed var(--border)", borderRadius: 10, padding: 10, display: "grid", gap: 6 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                      <Icon name="file-text" size={14} />
-                      <span style={{ fontWeight: 600, fontSize: 13.5 }}>{n.title || "Notiz"}</span>
-                      <span className="muted" style={{ fontSize: 12, marginLeft: "auto" }}>
-                        {n.author ? `${n.author} · ` : ""}{datum(n.createdAt)}
-                      </span>
+                  <div key={n.id} className="abl-notiz">
+                    <span className="abl-datei"><Icon name="pencil" size={17} /></span>
+                    <div className="abl-haupt">
+                      <div className="abl-titel">
+                        <b>{n.title || "Notiz"}</b>
+                        <span className="abzeichen gelb">Notiz</span>
+                      </div>
+                      <div className="abl-meta">
+                        {n.author && <span><Icon name="user" size={12} /> {n.author}</span>}
+                        <span><Icon name="calendar" size={12} /> {datum(n.createdAt)}</span>
+                      </div>
+                      <div className="abl-notiz-inhalt">{n.text}</div>
                     </div>
-                    <div style={{ fontSize: 13.5, whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{n.text}</div>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <button className="btn btn-icon" title="Notiz bearbeiten"
+                    <div className="abl-aktionen">
+                      <button title="Notiz bearbeiten" aria-label="Notiz bearbeiten"
                         onClick={() => setNotizEditor({ id: n.id, groupId: n.groupId, title: n.title, text: n.text })}>
                         <Icon name="pencil" />
                       </button>
-                      <button className="btn btn-icon btn-danger" title="Notiz entfernen" onClick={() => setNotizLoeschen(n)}>
+                      <button className="abl-weg" title="Notiz entfernen" aria-label="Notiz entfernen" onClick={() => setNotizLoeschen(n)}>
                         <Icon name="trash" />
                       </button>
                     </div>
@@ -297,45 +343,45 @@ export default function MitarbeiterAkte({
                 ))}
 
                 {a.dokumente.map((d) => (
-                  <div key={d.id} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 10, display: "grid", gap: 6 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                      <span style={{ fontWeight: 600, fontSize: 14 }}>{d.title || d.templateKey}</span>
-                      <span className="muted" style={{ fontSize: 12, border: "1px solid var(--border)", borderRadius: 6, padding: "1px 6px" }}>v{d.version}</span>
-                      {d.filled && <span className="muted" style={{ fontSize: 12 }}>vorausgefüllt</span>}
-                      <span className="muted" style={{ fontSize: 12, marginLeft: "auto" }}>{datum(d.createdAt)}</span>
-                    </div>
-                    <div className="muted" style={{ fontSize: 12, wordBreak: "break-all" }}>
-                      {d.fileName}{d.size ? ` · ${groesse(d.size)}` : ""}
-                    </div>
-                    {d.note && (
-                      <div className="muted" style={{ fontSize: 12.5, whiteSpace: "pre-wrap", borderLeft: "2px solid var(--border)", paddingLeft: 8 }}>
-                        {d.note}
+                  <div key={d.id} className="abl-zeile">
+                    <DateiSymbol mime={d.mimeType} name={d.fileName} />
+                    <div className="abl-haupt">
+                      <div className="abl-titel">
+                        <b>{d.title || d.templateKey}</b>
+                        <span className="abzeichen blau" title="Version">v{d.version}</span>
+                        {d.filled && <span className="abzeichen gruen"><Icon name="check" size={11} /> vorausgefüllt</span>}
                       </div>
-                    )}
-                    <div className="akte-knoepfe" style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-                      <button className="btn" onClick={() => onOeffnen(d, false)} disabled={busy === "dok" + d.id}>
+                      <div className="abl-meta">
+                        <span><Icon name="calendar" size={12} /> {datum(d.createdAt)}</span>
+                        {d.size ? <span>{groesse(d.size)}</span> : null}
+                        <span className="abl-dateiname" title={d.fileName}>{d.fileName}</span>
+                      </div>
+                      {d.note && <div className="abl-notiz-text">{d.note}</div>}
+                    </div>
+                    <div className="abl-verschieben" title="In eine andere Rubrik einsortieren">
+                      <SuchSelect
+                        value={d.groupId && gruppen.some((g) => g.id === d.groupId) ? d.groupId : OHNE}
+                        onChange={(v: string) => dokumentVerschieben(d, v)}
+                        platzhalter="Rubrik"
+                        suchePlatzhalter="Rubrik suchen oder neue eintippen…"
+                        options={rubrikOptionen}
+                        erlaubeNeu
+                        neuText="als neue Rubrik anlegen"
+                        onNeu={rubrikAusAuswahl}
+                      />
+                    </div>
+                    <div className="abl-aktionen akte-knoepfe">
+                      <button className="abl-haupt-aktion" onClick={() => onOeffnen(d, false)} disabled={busy === "dok" + d.id} title="Dokument öffnen">
                         <Icon name="eye" /> Öffnen
                       </button>
-                      <button className="btn" onClick={() => onOeffnen(d, true)} disabled={busy === "dok" + d.id}>
-                        <Icon name="save" /> Speichern
+                      <button onClick={() => onOeffnen(d, true)} disabled={busy === "dok" + d.id} title="Herunterladen / speichern" aria-label="Speichern">
+                        <Icon name="download" />
                       </button>
-                      <button className="btn btn-icon" title="Notiz am Dokument"
+                      <button title="Notiz am Dokument" aria-label="Notiz am Dokument"
                         onClick={() => setDokNotiz({ id: d.id, titel: d.title || d.fileName, note: d.note || "" })}>
                         <Icon name="file-text" />
                       </button>
-                      <div style={{ minWidth: 180, flex: "0 1 220px" }} title="In eine andere Rubrik einsortieren">
-                        <SuchSelect
-                          value={d.groupId && gruppen.some((g) => g.id === d.groupId) ? d.groupId : OHNE}
-                          onChange={(v: string) => dokumentVerschieben(d, v)}
-                          platzhalter="Rubrik"
-                          suchePlatzhalter="Rubrik suchen oder neue eintippen…"
-                          options={rubrikOptionen}
-                          erlaubeNeu
-                          neuText="als neue Rubrik anlegen"
-                          onNeu={rubrikAusAuswahl}
-                        />
-                      </div>
-                      <button className="btn btn-icon btn-danger" title="Dokument entfernen" onClick={() => onLoeschen(d)}>
+                      <button className="abl-weg" title="Dokument entfernen" aria-label="Dokument entfernen" onClick={() => onLoeschen(d)}>
                         <Icon name="trash" />
                       </button>
                     </div>
@@ -349,22 +395,21 @@ export default function MitarbeiterAkte({
 
       {/* ── Notiz anlegen/bearbeiten ── */}
       {notizEditor && (
-        <div onClick={() => setNotizEditor(null)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "grid", placeItems: "center", padding: 16, zIndex: 60 }}>
-          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster"
-            style={{ width: 560, maxWidth: "94vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
-              <h2 style={{ fontSize: 17, fontWeight: 700, flex: 1 }}>{notizEditor.id ? "Notiz bearbeiten" : "Neue Notiz"}</h2>
-              <button className="btn btn-icon" aria-label="Schließen" onClick={() => setNotizEditor(null)}><Icon name="x" /></button>
+        <div className="kt-huelle" style={{ zIndex: 60 }} onClick={() => setNotizEditor(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster kt-fenster" style={{ width: 560 }}>
+            <div className="abl-fenster-kopf">
+              <span className="abl-ic"><Icon name="pencil" size={17} /></span>
+              <h2>{notizEditor.id ? "Notiz bearbeiten" : "Neue Notiz"}<small>Freier Text in der Akte, z. B. Absprachen oder Hinweise</small></h2>
+              <button className="btn btn-icon btn-flach" aria-label="Schließen" onClick={() => setNotizEditor(null)}><Icon name="x" /></button>
             </div>
-            <div style={{ padding: 18, display: "grid", gap: 12, overflowY: "auto" }}>
-              <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                <span className="muted">Überschrift (optional)</span>
+            <div className="kt-inhalt">
+              <label className="abl-label">
+                <span><Icon name="tag" size={13} /> Überschrift (optional)</span>
                 <input className="input" value={notizEditor.title} autoFocus
                   onChange={(e) => setNotizEditor({ ...notizEditor, title: e.target.value })} />
               </label>
-              <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                <span className="muted">Rubrik</span>
+              <label className="abl-label">
+                <span><Icon name="folder" size={13} /> Rubrik</span>
                 <SuchSelect
                   value={notizEditor.groupId || OHNE}
                   onChange={(v: string) => setNotizEditor({ ...notizEditor, groupId: v === OHNE ? "" : v })}
@@ -376,14 +421,14 @@ export default function MitarbeiterAkte({
                   onNeu={rubrikAusAuswahl}
                 />
               </label>
-              <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                <span className="muted">Notiz</span>
+              <label className="abl-label">
+                <span><Icon name="file-text" size={13} /> Notiz</span>
                 <textarea className="input" rows={7} value={notizEditor.text}
                   onChange={(e) => setNotizEditor({ ...notizEditor, text: e.target.value })} />
               </label>
             </div>
-            <div style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button className="btn" onClick={() => setNotizEditor(null)}>Abbrechen</button>
+            <div className="kt-fuss">
+              <button className="btn" onClick={() => setNotizEditor(null)}><Icon name="x" /> Abbrechen</button>
               <button className="btn btn-primary" onClick={notizSpeichern}><Icon name="save" /> Speichern</button>
             </div>
           </div>
@@ -392,22 +437,22 @@ export default function MitarbeiterAkte({
 
       {/* ── Notiz am Dokument ── */}
       {dokNotiz && (
-        <div onClick={() => setDokNotiz(null)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "grid", placeItems: "center", padding: 16, zIndex: 60 }}>
-          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster"
-            style={{ width: 520, maxWidth: "94vw", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
-              <h2 style={{ fontSize: 16, fontWeight: 700, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                Notiz zu „{dokNotiz.titel}"
-              </h2>
-              <button className="btn btn-icon" aria-label="Schließen" onClick={() => setDokNotiz(null)}><Icon name="x" /></button>
+        <div className="kt-huelle" style={{ zIndex: 60 }} onClick={() => setDokNotiz(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster kt-fenster" style={{ width: 520 }}>
+            <div className="abl-fenster-kopf">
+              <span className="abl-ic"><Icon name="file-text" size={17} /></span>
+              <h2>Notiz zum Dokument<small style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{dokNotiz.titel}</small></h2>
+              <button className="btn btn-icon btn-flach" aria-label="Schließen" onClick={() => setDokNotiz(null)}><Icon name="x" /></button>
             </div>
-            <div style={{ padding: 18 }}>
-              <textarea className="input" rows={6} autoFocus value={dokNotiz.note}
-                onChange={(e) => setDokNotiz({ ...dokNotiz, note: e.target.value })} />
+            <div className="kt-inhalt">
+              <label className="abl-label">
+                <span><Icon name="pencil" size={13} /> Notiz</span>
+                <textarea className="input" rows={6} autoFocus value={dokNotiz.note}
+                  onChange={(e) => setDokNotiz({ ...dokNotiz, note: e.target.value })} />
+              </label>
             </div>
-            <div style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button className="btn" onClick={() => setDokNotiz(null)}>Abbrechen</button>
+            <div className="kt-fuss">
+              <button className="btn" onClick={() => setDokNotiz(null)}><Icon name="x" /> Abbrechen</button>
               <button className="btn btn-primary" onClick={dokNotizSpeichern}><Icon name="save" /> Speichern</button>
             </div>
           </div>

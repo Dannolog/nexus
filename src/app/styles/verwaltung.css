@@ -1,1 +1,173 @@
-/* Moderne Gestaltung – Bereich verwaltung (Präfix .ver-). Nur Klassen mit diesem Präfix. */
+/* Moderne Gestaltung – Bereich verwaltung (Präfix .ver-). Nur Klassen mit diesem Präfix.
+   Seiten: Userverwaltung (identities), Datensicherung (backups), Verlauf (history). */
+
+/* ---- Seitenkopf ---- */
+.ver-kopf { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.ver-kopf-text { flex: 1 1 260px; min-width: 0; }
+.ver-kopf-aktionen { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.ver-werkzeuge { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+.ver-werkzeuge .ver-info { font-size: 12.5px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+/* Meldungszeile mit Schließen-Knopf */
+.ver-meldung { justify-content: space-between; }
+.ver-meldung > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.ver-meldung .btn-icon { border: 0; background: transparent; }
+
+/* ---- Kennzahlen-Kacheln ---- */
+.ver-kacheln { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.ver-kachel { display: flex; align-items: center; gap: 12px; padding: 14px; }
+.ver-kachel-icon { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; flex-shrink: 0;
+  background: var(--accent-weich); color: var(--accent); }
+.ver-kachel-icon.gruen { background: color-mix(in srgb, var(--gruen) 14%, transparent); color: #059669; }
+.ver-kachel-icon.grau { background: var(--flaeche); color: var(--muted); }
+.dark .ver-kachel-icon.gruen { color: #34d399; }
+.ver-kachel-wert { font-size: 19px; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.ver-kachel-text { font-size: 12px; color: var(--muted); }
+
+/* ---- Tabellen-Zellen ---- */
+.ver-tab td { padding: 12px 14px; vertical-align: middle; }
+.ver-tab th { padding: 10px 14px; }
+.ver-th { display: inline-flex; align-items: center; gap: 6px; }
+.ver-nr { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12.5px; white-space: nowrap; }
+.ver-person { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ver-person-text { min-width: 0; display: grid; }
+.ver-person-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ver-chips { display: flex; gap: 4px; flex-wrap: wrap; }
+.ver-aktionen { display: flex; gap: 6px; justify-content: flex-end; white-space: nowrap; }
+
+/* ---- Karten am Handy ---- */
+.ver-karten { gap: 10px; }
+.ver-karte { padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.ver-karte-kopf { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ver-karte-zeile { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); min-width: 0; flex-wrap: wrap; }
+.ver-karte-knoepfe { display: flex; gap: 8px; }
+.ver-karte-knoepfe .btn { flex: 1; justify-content: center; min-height: 40px; }
+
+/* ---- Fenster (Ergänzungen zu kt-fenster) ---- */
+.ver-fenster-kopf { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+.ver-fenster-kopf h2 { font-size: 17px; font-weight: 700; line-height: 1.25; }
+.ver-fenster-icon { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; flex-shrink: 0;
+  background: var(--accent-weich); color: var(--accent); }
+.ver-fenster-icon.rot { background: color-mix(in srgb, var(--rot) 13%, transparent); color: #dc2626; }
+.dark .ver-fenster-icon.rot { color: #f87171; }
+.ver-held-zeile { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+.ver-sid { padding: 2px 8px; border: 1px dashed var(--border); border-radius: 999px; background: transparent; cursor: pointer;
+  font-size: 11.5px; color: var(--muted); font-family: ui-monospace, monospace; display: inline-flex; gap: 5px; align-items: center;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ver-sid:hover { border-color: var(--accent); color: var(--accent); }
+.ver-hinweis { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+/* Auswahlkarten (z. B. „Nur fehlende" / „Alle neu setzen") */
+.ver-wahl { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 12px 14px; border-radius: 14px;
+  border: 1px solid var(--border); background: var(--card); color: var(--fg); cursor: pointer; transition: border-color .15s, background .15s; }
+.ver-wahl:hover:not(:disabled) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 5%, var(--card)); }
+.ver-wahl:disabled { opacity: .45; cursor: default; }
+.ver-wahl.warn:hover:not(:disabled) { border-color: var(--rot); background: color-mix(in srgb, var(--rot) 5%, var(--card)); }
+.ver-wahl b { display: block; font-size: 14px; }
+.ver-wahl small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+
+/* Passwortanzeige */
+.ver-pw { flex: 1; min-width: 0; font-size: 17px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--flaeche); word-break: break-all; font-family: ui-monospace, monospace; }
+.ver-pw-zeile { display: flex; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.ver-pw-zeile:last-child { border-bottom: 0; }
+.ver-pw-zeile code { font-family: ui-monospace, monospace; font-size: 13.5px; word-break: break-all; padding: 4px 8px;
+  border-radius: 8px; background: var(--flaeche); }
+
+/* Passwortfeld im Einstellfenster */
+.ver-pw-feld { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.ver-pw-feld .input { flex: 1 1 200px; min-width: 0; }
+
+/* Weitere Anmelde-Adressen */
+.ver-mail { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; border-radius: 12px;
+  border: 1px solid var(--border); background: color-mix(in srgb, var(--fg) 2%, var(--card)); }
+.ver-mail-text { flex: 1 1 180px; min-width: 0; display: grid; }
+.ver-mail-text span { font-size: 13.5px; overflow-wrap: anywhere; }
+.ver-mail-neu { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+
+/* Schalterzeile (Anmeldung ohne Passwort) */
+.ver-schalter-zeile { display: flex; align-items: flex-start; gap: 12px; padding: 12px; border-radius: 12px;
+  background: color-mix(in srgb, var(--fg) 3%, transparent); }
+.ver-schalter-zeile > div { flex: 1; min-width: 0; }
+
+/* App-Zulassung: Liste mit Schiebeschalter + Rolle je App */
+.ver-apps { display: grid; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.ver-apps.gesperrt { opacity: .45; pointer-events: none; }
+.ver-app { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-bottom: 1px solid var(--border);
+  transition: background .15s; }
+.ver-app:last-child { border-bottom: 0; }
+.ver-app.an { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+.ver-app-logo { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0;
+  font-weight: 750; font-size: 13px; background: var(--flaeche); color: var(--muted); transition: background .15s, color .15s; }
+.ver-app.an .ver-app-logo { background: var(--accent); color: #fff; }
+.ver-app-text { flex: 1; min-width: 0; display: grid; }
+.ver-app-text b { font-size: 14px; font-weight: 650; }
+.ver-app-text small { font-size: 12px; color: var(--muted); }
+.ver-app-rolle { width: 160px; flex-shrink: 0; }
+
+/* ---- Datensicherung ---- */
+.ver-zeitplan { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 12px; margin-bottom: 14px; }
+.ver-zeitplan .kt-abschnitt { background: var(--card); }
+.ver-uhr { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; }
+.ver-aufbewahrung { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.ver-aufbewahrung label { display: grid; gap: 6px; padding: 10px; border-radius: 12px; border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--fg) 2%, var(--card)); font-size: 12px; color: var(--muted); }
+.ver-aufbewahrung .input { width: 100%; text-align: center; font-weight: 650; font-variant-numeric: tabular-nums; }
+.ver-vergleich { display: grid; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.ver-vergleich-zeile { display: grid; grid-template-columns: minmax(0, 1fr) 80px 90px 100px; gap: 10px; align-items: center;
+  padding: 8px 12px; font-size: 13.5px; border-bottom: 1px solid var(--border); }
+.ver-vergleich-zeile:last-child { border-bottom: 0; }
+.ver-vergleich-zeile.kopf { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted);
+  background: color-mix(in srgb, var(--fg) 3%, transparent); }
+.ver-vergleich-zeile .zahl { text-align: right; font-variant-numeric: tabular-nums; }
+.ver-vergleich-zeile .rechts { text-align: right; justify-self: end; }
+.ver-status { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; font-size: 13.5px;
+  background: color-mix(in srgb, var(--gruen) 10%, transparent); }
+.ver-status.fehler { background: color-mix(in srgb, var(--rot) 10%, transparent); }
+
+/* ---- Verlauf als Zeitleiste ---- */
+.ver-tag { display: flex; align-items: center; gap: 10px; margin: 18px 2px 8px; font-size: 12.5px; font-weight: 750; color: var(--muted); }
+.ver-tag::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.ver-tag:first-child { margin-top: 4px; }
+.ver-zeitleiste { position: relative; display: grid; gap: 8px; padding-left: 22px; }
+.ver-zeitleiste::before { content: ""; position: absolute; left: 15px; top: 8px; bottom: 8px; width: 2px; border-radius: 2px;
+  background: var(--border); }
+.ver-eintrag { position: relative; display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; margin-left: 14px; }
+.ver-eintrag.zurueck { opacity: .6; }
+.ver-punkt { position: absolute; left: -36px; top: 12px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--accent-weich); color: var(--accent); box-shadow: 0 0 0 4px var(--bg); }
+.ver-punkt.gruen { background: color-mix(in srgb, var(--gruen) 16%, var(--card)); color: #059669; }
+.ver-punkt.rot { background: color-mix(in srgb, var(--rot) 14%, var(--card)); color: #dc2626; }
+.dark .ver-punkt.gruen { color: #34d399; } .dark .ver-punkt.rot { color: #f87171; }
+.ver-eintrag-text { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.ver-eintrag-kopf { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; }
+.ver-eintrag-kopf b { font-weight: 650; }
+.ver-eintrag-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.ver-eintrag-meta span { display: inline-flex; align-items: center; gap: 4px; }
+.ver-aenderung { font-size: 13px; color: var(--fg); opacity: .85; overflow-wrap: anywhere; display: -webkit-box;
+  -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ---- Handy ---- */
+@media (max-width: 768px) {
+  .ver-kopf-aktionen { width: 100%; }
+  .ver-kopf-aktionen .btn { flex: 1; justify-content: center; min-height: 42px; }
+  .ver-kopf-aktionen .btn-primary { order: 2; }
+  .ver-kacheln { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .ver-kachel { padding: 12px; gap: 10px; }
+  .ver-kachel-icon { width: 34px; height: 34px; }
+  .ver-kachel-wert { font-size: 16px; }
+  .ver-zeitplan { grid-template-columns: 1fr; }
+  .ver-aufbewahrung { grid-template-columns: 1fr 1fr; }
+  .ver-vergleich-zeile { grid-template-columns: minmax(0, 1fr) 56px 76px; }
+  .ver-vergleich-zeile > :nth-child(3) { display: none; }
+  .ver-mail-neu { grid-template-columns: 1fr; }
+  .ver-mail-neu .btn { justify-content: center; min-height: 42px; }
+  .ver-app { flex-wrap: wrap; }
+  .ver-app-rolle { width: 100%; order: 3; }
+  .ver-pw-feld .btn { min-height: 42px; }
+  .ver-eintrag { flex-wrap: wrap; padding: 12px; }
+  .ver-eintrag .btn { min-height: 40px; min-width: 40px; }
+  .ver-zeitleiste { padding-left: 18px; }
+  .ver-punkt { left: -32px; width: 28px; height: 28px; }
+  .ver-zeitleiste::before { left: 13px; }
+}

@@ -10,6 +10,7 @@ import SuchSelect from "@/components/SuchSelect";
 import PdfViewerModal from "@/components/PdfViewerModal";
 import UnterschriftDialog from "@/components/UnterschriftDialog";
 import SearchInput from "@/components/SearchInput";
+import { Feld as TextFeld } from "@/components/KontaktFeld";
 import { ARBEITGEBER } from "@/components/VertragDokument";
 
 /** „02.10.2026, 14:05" */
@@ -322,8 +323,13 @@ export default function ContractsPage() {
 
   const befristet = form.contractType === "befristet";
 
+  const modell = form.workTimeModel || "flex";
+  const aktNr = vertragsNr(form.number);
+  const msgFehler = /fehler|fehlgeschlagen|nicht möglich|konnte nicht|konflikt|bitte/i.test(msg);
+  const sperrStil = { opacity: gesperrt ? 0.6 : 1 };
+
   return (
-    <div>
+    <div className="per-vertraege">
       {/* Gedruckt wird nicht aus dem Editor, sondern über /vertrag/[id]. Falls hier
           trotzdem jemand Strg+P drückt, kommt statt der halben App ein klarer Hinweis. */}
       <style>{`
@@ -337,31 +343,24 @@ export default function ContractsPage() {
         }
       `}</style>
 
-      <div className="vertrag-kopf" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, display: "flex", alignItems: "center", gap: 10 }}>
-          <Icon name="file-text" size={24} /> Arbeitsverträge
-        </h1>
-        {vertragsNr(form.number) && (
-          <button
-            type="button"
-            className="btn"
-            title="Vertragsnummer in die Zwischenablage kopieren"
-            onClick={() => nrKopieren(vertragsNr(form.number))}
-            style={{ fontVariantNumeric: "tabular-nums", fontWeight: 600, letterSpacing: ".02em" }}
-          >
-            <Icon name={copied === vertragsNr(form.number) ? "check" : "copy"} />
-            {vertragsNr(form.number)}
-          </button>
-        )}
-        <button className="btn" onClick={neu}><Icon name="plus" /> Neu</button>
-        {/* Untermenü: gespeicherte Verträge mit PDF-Ansicht */}
-        <button className="btn" onClick={() => setListeOffen(true)}>
-          <Icon name="folder" /> <span className="nur-desktop">Gespeicherte Verträge</span><span className="nur-handy">Verträge</span>
-          {contracts.length ? ` (${contracts.length})` : ""}
-        </button>
-        <div className="vertrag-aktionen" style={{ display: "flex", gap: 8, marginLeft: "auto", flexWrap: "wrap" }}>
-          <button className="btn btn-primary" onClick={speichern} disabled={saving}>
-            <Icon name="save" /> {saving ? "Speichert…" : "Speichern"}
+      {/* ── Seitenkopf: Titel, Erklärung, Aktionen (Hauptaktion rechts) ── */}
+      <div className="vertrag-kopf per-kopf">
+        <div className="per-kopf-text">
+          <h1 className="seiten-titel">
+            <span className="titel-icon"><Icon name="file-text" size={20} /></span>
+            Arbeitsverträge
+            {contracts.length > 0 && <span className="anzahl">{contracts.length}</span>}
+          </h1>
+          <div className="seiten-untertitel">
+            Links ausfüllen, rechts die Vorschau prüfen – danach unterschreiben und als PDF in die Akte legen.
+          </div>
+        </div>
+        <div className="vertrag-aktionen per-kopf-aktionen">
+          <button className="btn" onClick={neu}><Icon name="plus" /> Neu</button>
+          {/* Untermenü: gespeicherte Verträge mit PDF-Ansicht */}
+          <button className="btn nur-desktop" onClick={() => setListeOffen(true)}>
+            <Icon name="folder" /> Gespeicherte Verträge
+            {contracts.length ? <span className="per-zahl">{contracts.length}</span> : null}
           </button>
           <button className="btn" onClick={inAkteAblegen} disabled={ablegen || !form.id}
             title={form.employeeId
@@ -371,58 +370,88 @@ export default function ContractsPage() {
             <span className="nur-desktop">
               {ablegen ? "Legt ab…" : staende.length ? `In die Akte (Version ${staende.length + 1})` : "In die Akte ablegen"}
             </span>
-            <span className="nur-handy">Akte</span>
+            <span className="nur-handy">{ablegen ? "Legt ab…" : "Akte"}</span>
           </button>
-          <button className="btn" onClick={() => (form.id ? pdfOeffnen(form) : pdfAnsicht())} disabled={pdfBusy === (form.id || "form")}
+          <button className="btn nur-desktop" onClick={() => (form.id ? pdfOeffnen(form) : pdfAnsicht())} disabled={pdfBusy === (form.id || "form")}
             title={form.id ? "PDF ansehen – dort herunterladen oder drucken" : "Erst speichern, dann PDF-Ansicht"}>
-            <Icon name="file-text" />
-            <span className="nur-desktop">PDF-Vorschau / Drucken</span>
-            <span className="nur-handy">PDF</span>
+            <Icon name="printer" /> PDF-Vorschau / Drucken
           </button>
           {form.id && (
             <>
-              <Link className="btn btn-icon" title="Verlauf" href={`/history?entity=EmploymentContract&entityId=${form.id}`}><Icon name="history" /></Link>
-              <button className="btn btn-icon btn-danger" title="Löschen" onClick={() => setDeleting(true)}><Icon name="trash" /></button>
+              <Link className="btn btn-icon" title="Verlauf" aria-label="Verlauf" href={`/history?entity=EmploymentContract&entityId=${form.id}`}><Icon name="history" /></Link>
+              <button className="btn btn-icon btn-danger" title="Löschen" aria-label="Löschen" onClick={() => setDeleting(true)}><Icon name="trash" /></button>
             </>
           )}
+          <button className="btn btn-primary nur-desktop" onClick={speichern} disabled={saving}>
+            {saving ? <><span className="speichern-dreh" /> Speichert…</> : <><Icon name="save" /> Speichern</>}
+          </button>
         </div>
       </div>
 
-      {form.id && (
-        <div className="muted" style={{ fontSize: 12.5, margin: "-8px 0 12px", display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Icon name="history" size={13} /> zuletzt geändert {zeitpunkt(form.updatedAt)}</span>
-          {form.createdAt && <span>angelegt {zeitpunkt(form.createdAt)}</span>}
+      {/* ── Aktueller Vertrag: Nummer (Klick = kopieren), Status, Sperre, Zeitstempel ── */}
+      <div className="per-akt-leiste">
+        {aktNr ? (
+          <button
+            type="button"
+            className="btn per-nr-knopf"
+            title="Vertragsnummer in die Zwischenablage kopieren"
+            onClick={() => nrKopieren(aktNr)}
+          >
+            <Icon name={copied === aktNr ? "check" : "copy"} size={14} />
+            {aktNr}
+          </button>
+        ) : (
+          <span className="abzeichen blau"><Icon name="plus" size={12} /> Neuer Vertrag – noch nicht gespeichert</span>
+        )}
+        <StatusAbzeichen status={form.status} />
+        {gesperrt && <span className="abzeichen"><Icon name="lock" size={12} /> Inhalt gesperrt</span>}
+        {form.id && (
+          <span className="per-akt-zeit">
+            <Icon name="history" size={13} /> zuletzt geändert {zeitpunkt(form.updatedAt)}
+            {form.createdAt && <span className="nur-desktop"> · angelegt {zeitpunkt(form.createdAt)}</span>}
+          </span>
+        )}
+      </div>
+
+      {msg && (
+        <div className={`hinweis-leiste${msgFehler ? " fehler" : ""}`} role="status">
+          <Icon name={msgFehler ? "alert" : "check"} size={16} />
+          <span style={{ flex: 1, minWidth: 0 }}>{msg}</span>
+          <button type="button" className="btn btn-icon btn-flach" aria-label="Meldung schließen" onClick={() => setMsg("")}><Icon name="x" size={14} /></button>
         </div>
       )}
-      {msg && <div className="card" style={{ padding: "8px 12px", marginBottom: 12, fontSize: 14 }}>{msg}</div>}
 
       <div className="contract-grid">
-        {/* ── Linke Spalte: gespeicherte Verträge + Formular ── */}
-        <div style={{ display: "grid", gap: 16 }}>
+        {/* ── Linke Spalte: Unterschriften + Formular in Abschnitten ── */}
+        <div className="per-spalte">
           {/* ── Unterschriften: Arbeitgeber und Arbeitnehmer ── */}
           {form.id && (
-            <div className="card" style={{ padding: 14, display: "grid", gap: 10 }}>
-              <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em", display: "flex", alignItems: "center", gap: 6 }}>
-                <Icon name="pencil" size={14} /> Unterschriften
-              </div>
+            <Abschnitt icon="pencil" titel="Unterschriften"
+              hinweis="Beide Seiten unterschreiben hier per Finger, Stift oder Maus. Danach ist der Inhalt gesperrt.">
               {(["arbeitgeber", "arbeitnehmer"] as Rolle[]).map((r) => {
                 const bild = r === "arbeitgeber" ? form.signEmployerImage : form.signEmployeeImage;
                 const wer = r === "arbeitgeber" ? form.signEmployerName : form.signEmployeeName;
                 const am = r === "arbeitgeber" ? form.signEmployerAt : form.signEmployeeAt;
                 return (
-                  <div key={r} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", border: "1px solid var(--border)", borderRadius: 10, padding: "8px 10px" }}>
-                    <div style={{ width: 96, height: 32, background: "#fff", borderRadius: 6, border: "1px solid var(--border)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                  <div key={r} className={`per-sign-zeile${bild ? " fertig" : ""}`}>
+                    <div className="per-sign-bild">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      {bild ? <img src={bild} alt="" style={{ maxWidth: "100%", maxHeight: "100%" }} /> : <Icon name="pencil" size={14} />}
+                      {bild ? <img src={bild} alt="" /> : <Icon name="pencil" size={14} />}
                     </div>
-                    <div style={{ flex: "1 1 160px", minWidth: 0, fontSize: 13 }}>
-                      <div style={{ fontWeight: 600 }}>{r === "arbeitgeber" ? "Arbeitgeber" : "Arbeitnehmer"}</div>
-                      <div className="muted" style={{ fontSize: 12 }}>
+                    <div className="per-sign-text">
+                      <div className="per-sign-rolle">
+                        <Icon name={r === "arbeitgeber" ? "building" : "user"} size={14} />
+                        {r === "arbeitgeber" ? "Arbeitgeber" : "Arbeitnehmer"}
+                        {bild
+                          ? <span className="abzeichen gruen"><Icon name="check" size={11} /> unterschrieben</span>
+                          : <span className="abzeichen gelb">offen</span>}
+                      </div>
+                      <div className="muted per-sign-wer">
                         {bild ? `${wer} · ${zeitpunkt(am)}` : "noch nicht unterschrieben"}
                       </div>
                     </div>
                     {!bild && (
-                      <button className="btn btn-primary" onClick={() => setUnterschrift({ vertrag: form, rolle: r })}>
+                      <button className="btn btn-primary per-sign-knopf" onClick={() => setUnterschrift({ vertrag: form, rolle: r })}>
                         <Icon name="pencil" /> Unterschreiben
                       </button>
                     )}
@@ -430,8 +459,8 @@ export default function ContractsPage() {
                 );
               })}
               {gesperrt && (
-                <div style={{ fontSize: 12.5, display: "flex", gap: 8, alignItems: "flex-start", flexWrap: "wrap" }}>
-                  <span className="muted" style={{ flex: "1 1 220px" }}>
+                <div className="per-sperre">
+                  <span className="muted">
                     <Icon name="lock" size={13} /> Der Inhalt ist gesperrt, weil bereits unterschrieben wurde. Status und Vertragsname bleiben änderbar.
                   </span>
                   <button className="btn btn-danger" onClick={() => setZuruecksetzen(true)}>
@@ -439,17 +468,21 @@ export default function ContractsPage() {
                   </button>
                 </div>
               )}
-            </div>
+            </Abschnitt>
           )}
 
-          <div className="card" style={{ padding: 16, display: "grid", gap: 12 }}>
-            <Feld label="Vertragsname (zur Zuordnung)">
-              <input className="input" placeholder={form.employeeName ? `Arbeitsvertrag – ${form.employeeName}` : "z. B. Arbeitsvertrag – Max Mustermann"}
-                value={form.title || ""} onChange={(e) => set("title", e.target.value)} />
-            </Feld>
-            <fieldset disabled={gesperrt} style={{ border: 0, padding: 0, margin: 0, minWidth: 0, display: "grid", gap: 12, opacity: gesperrt ? 0.6 : 1 }}>
-            <Feld label="Vorlage">
-              <SuchSelect
+          {/* ── Vertrag: Name, Status, Vorlage ── */}
+          <Abschnitt icon="file-text" titel="Vertrag" hinweis="Name zur Zuordnung in der Liste, Bearbeitungsstand und die Vertragsvorlage.">
+            <TextFeld label="Vertragsname (zur Zuordnung)" icon="tag"
+              platzhalter={form.employeeName ? `Arbeitsvertrag – ${form.employeeName}` : "z. B. Arbeitsvertrag – Max Mustermann"}
+              wert={form.title || ""} setWert={(v) => set("title", v)} />
+            <Gruppe label="Status" icon="check">
+              <Segment wert={form.status || "entwurf"} onChange={(v) => set("status", v)}
+                optionen={[["entwurf", "Entwurf"], ["aktiv", "Aktiv"], ["beendet", "Beendet"]]} />
+            </Gruppe>
+            <fieldset disabled={gesperrt} className="per-fieldset" style={sperrStil}>
+              <Feld label="Vorlage" icon="file-text">
+                <SuchSelect
                   value={form.template || "vollstaendig"}
                   onChange={(v) => set("template", v)}
                   platzhalter="Vorlage wählen"
@@ -459,252 +492,240 @@ export default function ContractsPage() {
                     { value: "minijob", label: "Minijob – geringfügige Beschäftigung" },
                   ]}
                 />
-            </Feld>
-            <Feld label="Mitarbeiter">
-              <SuchSelect
-                value={form.employeeId || ""}
-                onChange={onEmployee}
-                platzhalter="— aus Nexus wählen —"
-                suchePlatzhalter="Name oder Personalnummer…"
-                options={employees.map((e) => ({ value: e.id, label: e.name, hint: e.employeeNumber || e.email || "" }))}
-              />
-            </Feld>
-            <Feld label="Name des Arbeitnehmers">
-              <input className="input" value={form.employeeName || ""} onChange={(e) => set("employeeName", e.target.value)} />
-            </Feld>
-            <Feld label="Anschrift (Straße, PLZ Ort)">
-              <textarea className="input" rows={2} value={form.employeeAddress || ""} onChange={(e) => set("employeeAddress", e.target.value)} />
-            </Feld>
-            <Feld label="Geburtsdatum">
-              <input className="input" placeholder="z. B. 01.01.1990" value={form.employeeBirth || ""} onChange={(e) => set("employeeBirth", e.target.value)} />
-            </Feld>
-
-            <Feld label="Tätigkeit / Position">
-              <input className="input" value={form.jobTitle || ""} onChange={(e) => set("jobTitle", e.target.value)} />
-            </Feld>
-
-            <div className="feld-zeile feld-zeile-2">
-              <Feld label="Eintrittsdatum">
-                <input className="input" type="date" value={form.startDate ? String(form.startDate).slice(0, 10) : ""}
-                  onChange={(e) => set("startDate", e.target.value ? new Date(e.target.value).toISOString() : null)} />
               </Feld>
-              <Feld label="Vertragsart">
+            </fieldset>
+          </Abschnitt>
+
+          {/* ── Arbeitnehmer ── */}
+          <Abschnitt icon="user" titel="Arbeitnehmer" hinweis="Mitarbeiter aus Nexus wählen – der Name wird übernommen und lässt sich anpassen.">
+            <fieldset disabled={gesperrt} className="per-fieldset" style={sperrStil}>
+              <Feld label="Mitarbeiter" icon="users">
                 <SuchSelect
-                  value={form.contractType || "unbefristet"}
-                  onChange={(v) => set("contractType", v)}
-                  platzhalter="Art wählen"
-                  options={[{ value: "unbefristet", label: "unbefristet" }, { value: "befristet", label: "befristet" }]}
+                  value={form.employeeId || ""}
+                  onChange={onEmployee}
+                  platzhalter="— aus Nexus wählen —"
+                  suchePlatzhalter="Name oder Personalnummer…"
+                  options={employees.map((e) => ({ value: e.id, label: e.name, hint: e.employeeNumber || e.email || "" }))}
                 />
               </Feld>
-            </div>
-
-            {befristet && (
-              <Feld label="Befristet bis">
-                <input className="input" type="date" value={form.endDate ? String(form.endDate).slice(0, 10) : ""}
-                  onChange={(e) => set("endDate", e.target.value ? new Date(e.target.value).toISOString() : null)} />
+              <TextFeld label="Name des Arbeitnehmers" icon="user" wert={form.employeeName || ""} setWert={(v) => set("employeeName", v)} />
+              <Feld label="Anschrift (Straße, PLZ Ort)" icon="home">
+                <textarea className="input" rows={2} value={form.employeeAddress || ""} onChange={(e) => set("employeeAddress", e.target.value)} />
               </Feld>
-            )}
+              <TextFeld label="Geburtsdatum" icon="calendar" platzhalter="z. B. 01.01.1990"
+                wert={form.employeeBirth || ""} setWert={(v) => set("employeeBirth", v)} />
+            </fieldset>
+          </Abschnitt>
 
-            <Feld label="Probezeit (Monate)">
-              <input className="input" type="number" min={0} value={form.probationMonths ?? 0}
-                onChange={(e) => set("probationMonths", e.target.value === "" ? 0 : Number(e.target.value))} />
-            </Feld>
-
-            {/* Arbeitszeitmodell: entweder feste Zeiten oder Flexzeit mit Bandbreite.
-                Die Auswahl steuert sowohl die Eingabefelder als auch den Vertragstext. */}
-            <Feld label="Arbeitszeit">
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {[["flex", "Flexzeit (Bandbreite)"], ["fest", "Festzeit (feste Stunden)"]].map(([wert, text]) => {
-                  const aktiv = (form.workTimeModel || "flex") === wert;
-                  return (
-                    <button key={wert} type="button" className="btn"
-                      style={{ background: aktiv ? "var(--accent)" : undefined, color: aktiv ? "#fff" : undefined }}
-                      onClick={() => set("workTimeModel", wert)}>
-                      {text}
-                    </button>
-                  );
-                })}
-              </div>
-            </Feld>
-
-            {(form.workTimeModel || "flex") === "fest" ? (
-              <div className="feld-zeile feld-zeile-3">
-                <Feld label="Wochenstunden">
-                  <input className="input" type="number" min={0} step="0.5" value={form.weeklyHours ?? 40}
-                    onChange={(e) => set("weeklyHours", e.target.value === "" ? 0 : Number(e.target.value))} />
+          {/* ── Tätigkeit & Laufzeit ── */}
+          <Abschnitt icon="id-card" titel="Tätigkeit & Laufzeit" hinweis="Position, Beginn, Befristung und Probezeit.">
+            <fieldset disabled={gesperrt} className="per-fieldset" style={sperrStil}>
+              <TextFeld label="Tätigkeit / Position" icon="id-card" wert={form.jobTitle || ""} setWert={(v) => set("jobTitle", v)} />
+              <Gruppe label="Vertragsart" icon="file-text">
+                <Segment wert={form.contractType || "unbefristet"} onChange={(v) => set("contractType", v)}
+                  optionen={[["unbefristet", "unbefristet"], ["befristet", "befristet"]]} />
+              </Gruppe>
+              <div className="feld-zeile feld-zeile-2">
+                <Feld label="Eintrittsdatum" icon="calendar">
+                  <input className="input" type="date" value={form.startDate ? String(form.startDate).slice(0, 10) : ""}
+                    onChange={(e) => set("startDate", e.target.value ? new Date(e.target.value).toISOString() : null)} />
                 </Feld>
-                <Feld label="Arbeitszeit von">
-                  <input className="input" type="time" value={form.coreTimeFrom || "07:00"}
-                    onChange={(e) => set("coreTimeFrom", e.target.value)} />
-                </Feld>
-                <Feld label="Arbeitszeit bis">
-                  <input className="input" type="time" value={form.coreTimeTo || "16:00"}
-                    onChange={(e) => set("coreTimeTo", e.target.value)} />
-                </Feld>
-              </div>
-            ) : (
-              <>
-                <div className="feld-zeile feld-zeile-2">
-                  <Feld label="Flexzeit von (Std.)">
-                    <input className="input" type="number" min={0} step="0.5" value={form.weekHoursMin ?? 32}
-                      onChange={(e) => set("weekHoursMin", e.target.value === "" ? 0 : Number(e.target.value))} />
+                {befristet ? (
+                  <Feld label="Befristet bis" icon="calendar">
+                    <input className="input" type="date" value={form.endDate ? String(form.endDate).slice(0, 10) : ""}
+                      onChange={(e) => set("endDate", e.target.value ? new Date(e.target.value).toISOString() : null)} />
                   </Feld>
-                  <Feld label="Flexzeit bis (Std.)">
-                    <input className="input" type="number" min={0} step="0.5" value={form.weekHoursMax ?? 42}
-                      onChange={(e) => set("weekHoursMax", e.target.value === "" ? 0 : Number(e.target.value))} />
+                ) : (
+                  <Feld label="Probezeit (Monate)" icon="history">
+                    <input className="input" type="number" min={0} value={form.probationMonths ?? 0}
+                      onChange={(e) => set("probationMonths", e.target.value === "" ? 0 : Number(e.target.value))} />
                   </Feld>
-                </div>
-                <div className="feld-zeile feld-zeile-3" style={{ alignItems: "end" }}>
-                  <Feld label="Regelarbeitszeit von">
+                )}
+              </div>
+              {befristet && (
+                <Feld label="Probezeit (Monate)" icon="history">
+                  <input className="input" type="number" min={0} value={form.probationMonths ?? 0}
+                    onChange={(e) => set("probationMonths", e.target.value === "" ? 0 : Number(e.target.value))} />
+                </Feld>
+              )}
+            </fieldset>
+          </Abschnitt>
+
+          {/* ── Arbeitszeit: entweder feste Zeiten oder Flexzeit mit Bandbreite.
+                Die Auswahl steuert sowohl die Eingabefelder als auch den Vertragstext. ── */}
+          <Abschnitt icon="history" titel="Arbeitszeit" hinweis="Flexzeit: Wochenstunden in einer Bandbreite. Festzeit: feste Stunden und Zeiten.">
+            <fieldset disabled={gesperrt} className="per-fieldset" style={sperrStil}>
+              <Gruppe label="Arbeitszeitmodell" icon="settings">
+                <Segment wert={modell} onChange={(v) => set("workTimeModel", v)}
+                  optionen={[["flex", "Flexzeit (Bandbreite)"], ["fest", "Festzeit (feste Stunden)"]]} />
+              </Gruppe>
+
+              {modell === "fest" ? (
+                <div className="feld-zeile feld-zeile-3">
+                  <Feld label="Wochenstunden" icon="history">
+                    <input className="input" type="number" min={0} step="0.5" value={form.weeklyHours ?? 40}
+                      onChange={(e) => set("weeklyHours", e.target.value === "" ? 0 : Number(e.target.value))} />
+                  </Feld>
+                  <Feld label="Arbeitszeit von" icon="login">
                     <input className="input" type="time" value={form.coreTimeFrom || "07:00"}
                       onChange={(e) => set("coreTimeFrom", e.target.value)} />
                   </Feld>
-                  <Feld label="Regelarbeitszeit bis">
-                    <input className="input" type="time" value={form.coreTimeTo || "17:00"}
+                  <Feld label="Arbeitszeit bis" icon="logout">
+                    <input className="input" type="time" value={form.coreTimeTo || "16:00"}
                       onChange={(e) => set("coreTimeTo", e.target.value)} />
                   </Feld>
-                  <label style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 8, paddingBottom: 9 }}>
-                    <input type="checkbox" checked={form.timeAccount !== false}
-                      onChange={(e) => set("timeAccount", e.target.checked)} />
-                    <span>Arbeitszeitkonto</span>
-                  </label>
                 </div>
-              </>
-            )}
+              ) : (
+                <>
+                  <div className="feld-zeile feld-zeile-2">
+                    <Feld label="Flexzeit von (Std.)" icon="history">
+                      <input className="input" type="number" min={0} step="0.5" value={form.weekHoursMin ?? 32}
+                        onChange={(e) => set("weekHoursMin", e.target.value === "" ? 0 : Number(e.target.value))} />
+                    </Feld>
+                    <Feld label="Flexzeit bis (Std.)" icon="history">
+                      <input className="input" type="number" min={0} step="0.5" value={form.weekHoursMax ?? 42}
+                        onChange={(e) => set("weekHoursMax", e.target.value === "" ? 0 : Number(e.target.value))} />
+                    </Feld>
+                  </div>
+                  <div className="feld-zeile feld-zeile-2">
+                    <Feld label="Regelarbeitszeit von" icon="login">
+                      <input className="input" type="time" value={form.coreTimeFrom || "07:00"}
+                        onChange={(e) => set("coreTimeFrom", e.target.value)} />
+                    </Feld>
+                    <Feld label="Regelarbeitszeit bis" icon="logout">
+                      <input className="input" type="time" value={form.coreTimeTo || "17:00"}
+                        onChange={(e) => set("coreTimeTo", e.target.value)} />
+                    </Feld>
+                  </div>
+                  <Schalter an={form.timeAccount !== false} onChange={(v) => set("timeAccount", v)}>
+                    Arbeitszeitkonto führen
+                  </Schalter>
+                </>
+              )}
 
-            {/* Gleitzeit lässt sich an- und abwählen. Ist sie aus, entfällt die Klausel im Vertrag. */}
-            <Feld label="Gleitzeit">
-              <label style={{ fontSize: 13.5, display: "flex", alignItems: "center", gap: 8 }}>
-                <input type="checkbox" checked={form.flexTime === true}
-                  onChange={(e) => set("flexTime", e.target.checked)} />
-                <span>Gleitzeit vereinbaren (freie Wahl von Beginn und Ende im Rahmen)</span>
-              </label>
-            </Feld>
+              {/* Gleitzeit lässt sich an- und abwählen. Ist sie aus, entfällt die Klausel im Vertrag. */}
+              <Schalter an={form.flexTime === true} onChange={(v) => set("flexTime", v)}>
+                Gleitzeit vereinbaren <span className="muted per-klein">(freie Wahl von Beginn und Ende im Rahmen)</span>
+              </Schalter>
 
-            {form.flexTime === true && (
+              {form.flexTime === true && (
+                <div className="feld-zeile feld-zeile-2">
+                  <Feld label="Gleitzeit von" icon="login">
+                    <input className="input" type="time" value={form.flexTimeFrom || "06:00"}
+                      onChange={(e) => set("flexTimeFrom", e.target.value)} />
+                  </Feld>
+                  <Feld label="Gleitzeit bis" icon="logout">
+                    <input className="input" type="time" value={form.flexTimeTo || "19:00"}
+                      onChange={(e) => set("flexTimeTo", e.target.value)} />
+                  </Feld>
+                </div>
+              )}
+            </fieldset>
+          </Abschnitt>
+
+          {/* ── Vergütung, Urlaub & Ort ── */}
+          <Abschnitt icon="tag" titel="Vergütung, Urlaub & Ort" hinweis="Bruttoentgelt je Stunde oder Monat, Urlaubsanspruch und Arbeitsort.">
+            <fieldset disabled={gesperrt} className="per-fieldset" style={sperrStil}>
               <div className="feld-zeile feld-zeile-2">
-                <Feld label="Gleitzeit von">
-                  <input className="input" type="time" value={form.flexTimeFrom || "06:00"}
-                    onChange={(e) => set("flexTimeFrom", e.target.value)} />
+                <Feld label="Bruttoentgelt (€)" icon="tag">
+                  <input className="input" type="number" min={0} step="0.01" value={form.salary ?? 0}
+                    onChange={(e) => set("salary", e.target.value === "" ? 0 : Number(e.target.value))} />
                 </Feld>
-                <Feld label="Gleitzeit bis">
-                  <input className="input" type="time" value={form.flexTimeTo || "19:00"}
-                    onChange={(e) => set("flexTimeTo", e.target.value)} />
+                <Gruppe label="Zahlung" icon="calendar">
+                  <Segment wert={form.salaryPeriod || "stündlich"} onChange={(v) => set("salaryPeriod", v)}
+                    optionen={[["monatlich", "monatlich"], ["stündlich", "stündlich"]]} />
+                </Gruppe>
+              </div>
+              <div className="feld-zeile feld-zeile-2">
+                <Feld label="Urlaubstage / Jahr (max. 30)" icon="star">
+                  <input className="input" type="number" min={0} max={30} value={form.vacationDays ?? 0}
+                    onChange={(e) => set("vacationDays", e.target.value === "" ? 0 : Number(e.target.value))} />
+                </Feld>
+                <TextFeld label="Arbeitsort" icon="building" kopierbar={false} wert={form.workplace || ""} setWert={(v) => set("workplace", v)} />
+              </div>
+            </fieldset>
+          </Abschnitt>
+
+          {/* ── Kündigung & Vereinbarungen ── */}
+          <Abschnitt icon="shield" titel="Kündigung & Vereinbarungen" hinweis="Kündigungsfrist und optionale Zusatzvereinbarungen.">
+            <fieldset disabled={gesperrt} className="per-fieldset" style={sperrStil}>
+              <TextFeld label="Kündigungsfrist" icon="calendar" wert={form.noticeText || ""} setWert={(v) => set("noticeText", v)} />
+              <Feld label="Zusätzliche Vereinbarungen (optional)" icon="pencil">
+                <textarea className="input" rows={3} value={form.additionalTerms || ""} onChange={(e) => set("additionalTerms", e.target.value)} />
+              </Feld>
+            </fieldset>
+          </Abschnitt>
+
+          {/* ── Ort und Datum der Unterschrift ── */}
+          <Abschnitt icon="globe" titel="Ort & Datum der Unterschrift" hinweis="Erscheint über den Unterschriftszeilen im Vertrag.">
+            <fieldset disabled={gesperrt} className="per-fieldset" style={sperrStil}>
+              <div className="feld-zeile feld-zeile-2">
+                <TextFeld label="Unterschriftsort" icon="globe" kopierbar={false} wert={form.signCity || ""} setWert={(v) => set("signCity", v)} />
+                <Feld label="Unterschriftsdatum" icon="calendar">
+                  <input className="input" type="date" value={form.signDate ? String(form.signDate).slice(0, 10) : ""}
+                    onChange={(e) => set("signDate", e.target.value ? new Date(e.target.value).toISOString() : null)} />
                 </Feld>
               </div>
-            )}
-
-            <div className="feld-zeile feld-zeile-2">
-              <Feld label="Bruttoentgelt (€)">
-                <input className="input" type="number" min={0} step="0.01" value={form.salary ?? 0}
-                  onChange={(e) => set("salary", e.target.value === "" ? 0 : Number(e.target.value))} />
-              </Feld>
-              <Feld label="Zahlung">
-                <SuchSelect
-                  value={form.salaryPeriod || "stündlich"}
-                  onChange={(v) => set("salaryPeriod", v)}
-                  platzhalter="Zeitraum wählen"
-                  options={[{ value: "monatlich", label: "monatlich" }, { value: "stündlich", label: "stündlich" }]}
-                />
-              </Feld>
-            </div>
-
-            <div className="feld-zeile feld-zeile-2">
-              <Feld label="Urlaubstage / Jahr (max. 30)">
-                <input className="input" type="number" min={0} max={30} value={form.vacationDays ?? 0}
-                  onChange={(e) => set("vacationDays", e.target.value === "" ? 0 : Number(e.target.value))} />
-              </Feld>
-              <Feld label="Arbeitsort">
-                <input className="input" value={form.workplace || ""} onChange={(e) => set("workplace", e.target.value)} />
-              </Feld>
-            </div>
-
-            <Feld label="Kündigungsfrist">
-              <input className="input" value={form.noticeText || ""} onChange={(e) => set("noticeText", e.target.value)} />
-            </Feld>
-
-            <Feld label="Zusätzliche Vereinbarungen (optional)">
-              <textarea className="input" rows={3} value={form.additionalTerms || ""} onChange={(e) => set("additionalTerms", e.target.value)} />
-            </Feld>
-
-            <div className="feld-zeile feld-zeile-2">
-              <Feld label="Unterschriftsort">
-                <input className="input" value={form.signCity || ""} onChange={(e) => set("signCity", e.target.value)} />
-              </Feld>
-              <Feld label="Unterschriftsdatum">
-                <input className="input" type="date" value={form.signDate ? String(form.signDate).slice(0, 10) : ""}
-                  onChange={(e) => set("signDate", e.target.value ? new Date(e.target.value).toISOString() : null)} />
-              </Feld>
-            </div>
-
             </fieldset>
-            <Feld label="Status">
-              <SuchSelect
-                value={form.status || "entwurf"}
-                onChange={(v) => set("status", v)}
-                platzhalter="Status wählen"
-                options={[
-                  { value: "entwurf", label: "Entwurf" },
-                  { value: "aktiv", label: "Aktiv" },
-                  { value: "beendet", label: "Beendet" },
-                ]}
-              />
-            </Feld>
+          </Abschnitt>
 
-            {/* Abgelegte Stände dieses Vertrags – jede Ablage ist eine eigene Version in der Akte */}
-            {form.id && form.employeeId && (
-              <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, display: "grid", gap: 6 }}>
-                <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em",
-                                                display: "flex", alignItems: "center", gap: 6 }}>
-                  <Icon name="archive" size={14} /> In der Akte abgelegte Stände
+          {/* Abgelegte Stände dieses Vertrags – jede Ablage ist eine eigene Version in der Akte */}
+          {form.id && form.employeeId && (
+            <Abschnitt icon="archive" titel="In der Akte abgelegte Stände"
+              rechts={staende.length ? <span className="abzeichen blau">{staende.length}</span> : undefined}>
+              {staende.length === 0 ? (
+                <div className="muted per-klein">
+                  Noch kein Stand abgelegt. Über „In die Akte ablegen" wandert der Vertrag als PDF in die
+                  Mitarbeiterakte; jede weitere Ablage wird eine neue Version.
                 </div>
-                {staende.length === 0 ? (
-                  <div className="muted" style={{ fontSize: 13 }}>
-                    Noch kein Stand abgelegt. Über „In die Akte ablegen" wandert der Vertrag als PDF in die
-                    Mitarbeiterakte; jede weitere Ablage wird eine neue Version.
-                  </div>
-                ) : (
-                  <div style={{ display: "grid", gap: 4 }}>
-                    {staende
-                      .slice()
-                      .sort((a, b) => b.version - a.version)
-                      .map((d) => (
-                        <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13,
-                                                 border: "1px solid var(--border)", borderRadius: 8, padding: "5px 8px" }}>
-                          <span style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>v{d.version}</span>
-                          <span className="muted" style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {new Date(d.createdAt).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                            {d.note ? ` · ${d.note}` : ""}
-                          </span>
-                        </div>
-                      ))}
-                    <Link className="btn" style={{ justifySelf: "start", marginTop: 4 }}
-                      href={`/documents?employee=${form.employeeId}`}>
-                      <Icon name="folder" /> Akte öffnen
-                    </Link>
-                  </div>
+              ) : (
+                <div className="per-staende">
+                  {staende
+                    .slice()
+                    .sort((a, b) => b.version - a.version)
+                    .map((d) => (
+                      <div key={d.id} className="per-stand">
+                        <span className="abzeichen blau per-stand-v">v{d.version}</span>
+                        <span className="muted per-stand-text">
+                          {new Date(d.createdAt).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          {d.note ? ` · ${d.note}` : ""}
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              )}
+              <div className="per-knopfreihe">
+                <button className="btn" onClick={inAkteAblegen} disabled={ablegen || !form.id}>
+                  <Icon name="archive" /> {ablegen ? "Legt ab…" : staende.length ? `Neue Version ablegen (v${staende.length + 1})` : "In die Akte ablegen"}
+                </button>
+                {staende.length > 0 && (
+                  <Link className="btn" href={`/documents?employee=${form.employeeId}`}>
+                    <Icon name="folder" /> Akte öffnen
+                  </Link>
                 )}
               </div>
-            )}
-          </div>
+            </Abschnitt>
+          )}
         </div>
 
         {/* ── Rechte Spalte: Live-Vorschau (Papier), zoombar ── */}
-        <div>
-          <button type="button" className="btn nur-handy" style={{ width: "100%", justifyContent: "center", marginBottom: 10 }}
-            onClick={() => setVorschauOffen((v) => !v)}>
-            <Icon name={vorschauOffen ? "eye-off" : "eye"} />
-            {vorschauOffen ? "Vorschau ausblenden" : "Vorschau anzeigen"}
-          </button>
+        <div className="per-vorschau">
+          <div className="per-vorschau-kopf">
+            <span className="sektion-titel"><Icon name="eye" size={14} /> Vorschau</span>
+            <button type="button" className="btn nur-handy" onClick={() => setVorschauOffen((v) => !v)}>
+              <Icon name={vorschauOffen ? "eye-off" : "eye"} />
+              {vorschauOffen ? "Ausblenden" : "Anzeigen"}
+            </button>
+          </div>
           {vorschauOffen ? (
             <ZoomView>
               <VertragDokument form={form} befristet={befristet} />
             </ZoomView>
           ) : (
-            <div className="card nur-handy" style={{ padding: 14, fontSize: 13.5, lineHeight: 1.5 }}>
+            <div className="card nur-handy per-vorschau-hinweis">
               <span className="muted">
                 Die Seitenvorschau ist auf dem Handy stark verkleinert. Zum Lesen und Weitergeben
-                besser <b>PDF-Vorschau</b> öffnen – dort lässt sich der Vertrag auch speichern oder drucken.
+                besser <b>PDF</b> öffnen – dort lässt sich der Vertrag auch speichern oder drucken.
               </span>
             </div>
           )}
@@ -714,56 +735,62 @@ export default function ContractsPage() {
       {/* Handy: Speichern immer greifbar am unteren Rand (Hauptaktion rechts) */}
       <div className="vertrag-handyleiste">
         <button className="btn" onClick={() => setListeOffen(true)}><Icon name="folder" /> Verträge</button>
-        <button className="btn" onClick={() => (form.id ? pdfOeffnen(form) : pdfAnsicht())}><Icon name="eye" /> PDF</button>
-        <button className="btn btn-primary" onClick={speichern} disabled={saving}><Icon name="save" /> {saving ? "Speichert…" : "Speichern"}</button>
+        <button className="btn" onClick={() => (form.id ? pdfOeffnen(form) : pdfAnsicht())} disabled={pdfBusy === (form.id || "form")}><Icon name="eye" /> PDF</button>
+        <button className="btn btn-primary" onClick={speichern} disabled={saving}>
+          {saving ? <><span className="speichern-dreh" /> Speichert…</> : <><Icon name="save" /> Speichern</>}
+        </button>
       </div>
 
       {/* ── Untermenü: Gespeicherte Verträge ── */}
       {listeOffen && (
-        <div onClick={() => setListeOffen(false)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "grid", placeItems: "center", padding: 16, zIndex: 60 }}>
-          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster"
-            style={{ width: 760, maxWidth: "96vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--border)", display: "grid", gap: 10 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <Icon name="folder" size={18} />
-                <h2 style={{ fontSize: 17, fontWeight: 700, flex: 1 }}>Gespeicherte Verträge ({contracts.length})</h2>
+        <div className="kt-huelle" style={{ zIndex: 60 }} onClick={() => setListeOffen(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster kt-fenster per-liste-fenster">
+            <div className="per-fenster-kopf">
+              <div className="per-fenster-titelzeile">
+                <span className="per-fenster-ic"><Icon name="folder" size={18} /></span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h2>Gespeicherte Verträge <span className="anzahl">{contracts.length}</span></h2>
+                  <div className="muted per-klein">Zuletzt geänderte zuerst. Nummer antippen kopiert sie.</div>
+                </div>
                 <button className="btn btn-icon" aria-label="Schließen" onClick={() => setListeOffen(false)}><Icon name="x" /></button>
               </div>
               <SearchInput value={listeSuche} onChange={setListeSuche} placeholder="Nummer, Name, Tätigkeit, Status…" style={{ width: "100%" }} />
             </div>
-            <div style={{ padding: 14, overflowY: "auto", display: "grid", gap: 8, flex: 1, minHeight: 0, alignContent: "start" }}>
+            <div className="per-liste">
               {listeGefiltert.length === 0 && (
-                <div className="muted" style={{ fontSize: 13.5 }}>{contracts.length ? "Kein Treffer." : "Noch keine Verträge angelegt."}</div>
+                <div className="leer-zustand">
+                  <span className="leer-icon"><Icon name={contracts.length ? "search" : "file-text"} size={28} /></span>
+                  <div style={{ fontWeight: 600, color: "var(--fg)" }}>{contracts.length ? "Kein Treffer." : "Noch keine Verträge angelegt."}</div>
+                  <div className="per-klein">
+                    {contracts.length ? "Anderen Suchbegriff versuchen." : "Einen neuen Vertrag anlegen, ausfüllen und speichern – er erscheint dann hier."}
+                  </div>
+                  {!contracts.length && (
+                    <button className="btn btn-primary" onClick={() => { neu(); setListeOffen(false); }}><Icon name="plus" /> Neuer Vertrag</button>
+                  )}
+                </div>
               )}
               {listeGefiltert.map((c) => {
                 const ag = !!c.signEmployerImage, an = !!c.signEmployeeImage;
                 const nr = vertragsNr(c.number);
                 return (
-                  <div key={c.id} style={{ border: `1px solid ${c.id === form.id ? "var(--accent)" : "var(--border)"}`, borderRadius: 10, padding: 10, display: "grid", gap: 8 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <div key={c.id} className={`per-liste-karte${c.id === form.id ? " aktiv" : ""}`}>
+                    <div className="per-liste-kopf">
                       {nr && (
-                        <button type="button" className="btn" title="Vertragsnummer kopieren" onClick={() => nrKopieren(nr)}
-                          style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums", padding: "2px 8px", minHeight: 0, fontSize: 12.5 }}>
+                        <button type="button" className="btn per-nr-knopf klein nr-badge" title="Vertragsnummer kopieren" onClick={() => nrKopieren(nr)}>
                           <Icon name={copied === nr ? "check" : "copy"} size={13} /> {nr}
                         </button>
                       )}
-                      <span style={{ fontWeight: 600, fontSize: 14, flex: "1 1 200px", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {c.title || c.employeeName || "Ohne Namen"}
-                      </span>
-                      <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 999, border: "1px solid var(--border)",
-                        background: c.status === "aktiv" ? "rgba(22,163,74,.12)" : c.status === "beendet" ? "rgba(127,127,127,.15)" : "rgba(196,127,23,.12)" }}>
-                        {c.status || "entwurf"}
+                      <span className="per-liste-name">{c.title || c.employeeName || "Ohne Namen"}</span>
+                      <StatusAbzeichen status={c.status} />
+                    </div>
+                    <div className="muted per-liste-meta">
+                      {c.employeeName && <span><Icon name="user" size={13} /> {c.employeeName}</span>}
+                      <span><Icon name="history" size={13} /> geändert {zeitpunkt(c.updatedAt)}</span>
+                      <span className={`abzeichen${ag && an ? " gruen" : ag || an ? " gelb" : ""}`}>
+                        <Icon name="pencil" size={11} /> {ag && an ? "von beiden unterschrieben" : ag ? "Arbeitgeber unterschrieben" : an ? "Arbeitnehmer unterschrieben" : "nicht unterschrieben"}
                       </span>
                     </div>
-                    <div className="muted" style={{ fontSize: 12.5, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-                      {c.employeeName && <span style={{ display: "inline-flex", gap: 5, alignItems: "center" }}><Icon name="user" size={13} /> {c.employeeName}</span>}
-                      <span style={{ display: "inline-flex", gap: 5, alignItems: "center" }}><Icon name="history" size={13} /> geändert {zeitpunkt(c.updatedAt)}</span>
-                      <span style={{ display: "inline-flex", gap: 5, alignItems: "center", color: ag && an ? "#16a34a" : undefined }}>
-                        <Icon name="pencil" size={13} /> {ag && an ? "von beiden unterschrieben" : ag ? "Arbeitgeber unterschrieben" : an ? "Arbeitnehmer unterschrieben" : "nicht unterschrieben"}
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    <div className="per-knopfreihe">
                       <button className="btn btn-primary" disabled={pdfBusy === c.id} onClick={() => pdfOeffnen(c)}>
                         <Icon name="eye" /> {pdfBusy === c.id ? "Erstellt…" : "PDF ansehen"}
                       </button>
@@ -779,6 +806,10 @@ export default function ContractsPage() {
                   </div>
                 );
               })}
+            </div>
+            <div className="kt-fuss">
+              <button className="btn" onClick={() => setListeOffen(false)} style={{ marginRight: "auto" }}><Icon name="x" /> Schließen</button>
+              <button className="btn btn-primary" onClick={() => { neu(); setListeOffen(false); }}><Icon name="plus" /> Neuer Vertrag</button>
             </div>
           </div>
         </div>
@@ -823,10 +854,75 @@ export default function ContractsPage() {
   );
 }
 
-function Feld({ label, children }: { label: string; children: React.ReactNode }) {
+// ── Bausteine der Oberfläche ──
+
+const STATUS: Record<string, { text: string; klasse: string; icon: string }> = {
+  entwurf: { text: "Entwurf", klasse: "gelb", icon: "pencil" },
+  aktiv: { text: "Aktiv", klasse: "gruen", icon: "check" },
+  beendet: { text: "Beendet", klasse: "", icon: "archive" },
+};
+
+/** Vertragsstatus als farbige Pille */
+function StatusAbzeichen({ status }: { status?: string | null }) {
+  const s = STATUS[status || "entwurf"] || { text: status || "Entwurf", klasse: "", icon: "tag" };
+  return <span className={`abzeichen ${s.klasse}`}><Icon name={s.icon} size={11} /> {s.text}</span>;
+}
+
+/** Abschnitt des Formulars: Karte mit Symbol, Titel und kurzer Erklärung */
+function Abschnitt({ icon, titel, hinweis, rechts, children }: {
+  icon: string; titel: string; hinweis?: string; rechts?: React.ReactNode; children: React.ReactNode;
+}) {
   return (
-    <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-      <span className="muted">{label}</span>
+    <section className="card per-abschnitt">
+      <div className="per-abschnitt-kopf">
+        <span className="per-abschnitt-ic"><Icon name={icon} size={16} /></span>
+        <div className="per-abschnitt-titel">
+          <h3>{titel}</h3>
+          {hinweis && <p>{hinweis}</p>}
+        </div>
+        {rechts}
+      </div>
+      <div className="per-abschnitt-inhalt">{children}</div>
+    </section>
+  );
+}
+
+/** Beschriftete Gruppe ohne <label> – für Segment-Umschalter (Knöpfe würden sonst per Label-Klick ausgelöst) */
+function Gruppe({ label, icon, children }: { label: string; icon?: string; children: React.ReactNode }) {
+  return (
+    <div className="per-feld" role="group" aria-label={label}>
+      <span className="muted per-feld-label">{icon && <Icon name={icon} size={14} />} {label}</span>
+      {children}
+    </div>
+  );
+}
+
+/** Segment-Umschalter (eine Auswahl aus wenigen Möglichkeiten) */
+function Segment({ wert, optionen, onChange }: { wert: string; optionen: [string, string][]; onChange: (v: string) => void }) {
+  return (
+    <div className="kt-segment per-segment" role="tablist">
+      {optionen.map(([w, text]) => (
+        <button key={w} type="button" role="tab" aria-selected={wert === w} className={wert === w ? "an" : ""} onClick={() => onChange(w)}>
+          {text}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Schiebeschalter statt Checkbox */
+function Schalter({ an, onChange, children }: { an: boolean; onChange: (v: boolean) => void; children: React.ReactNode }) {
+  return (
+    <button type="button" role="switch" aria-checked={an} className={`kt-schalter per-schalter${an ? " an" : ""}`} onClick={() => onChange(!an)}>
+      <i /> <span>{children}</span>
+    </button>
+  );
+}
+
+function Feld({ label, icon, children }: { label: string; icon?: string; children: React.ReactNode }) {
+  return (
+    <label className="per-feld">
+      <span className="muted per-feld-label">{icon && <Icon name={icon} size={14} />} {label}</span>
       {children}
     </label>
   );
@@ -864,7 +960,7 @@ function ZoomView({ children }: { children: React.ReactNode }) {
     // `isolation` hält das skalierte Papier in einer eigenen Ebene: es kann die
     // Eingabespalte daneben nicht überdecken.
     <div style={{ isolation: "isolate", position: "relative", zIndex: 0, maxWidth: "100%", overflow: "hidden" }}>
-      <div className="vv-toolbar" style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, position: "relative", zIndex: 1, background: "var(--bg)" }}>
+      <div className="vv-toolbar per-zoomleiste" style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, position: "relative", zIndex: 1, background: "var(--bg)" }}>
         <button className="btn btn-icon" title="Verkleinern" onClick={() => applyZoom(z - 0.1)} style={{ fontWeight: 700 }}>−</button>
         <button type="button" title="Auf 100 % setzen" onClick={() => applyZoom(1)}
           style={{ fontSize: 12, width: 52, textAlign: "center", fontVariantNumeric: "tabular-nums", cursor: "pointer", background: "transparent", border: "1px solid var(--border)", borderRadius: 6, padding: "4px 0", color: "var(--muted)" }}>

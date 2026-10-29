@@ -168,36 +168,53 @@ export default function UnterschriftDialog({
   }
 
   return (
-    <div onClick={() => !busy && onClose()}
-      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", display: "grid", placeItems: "center", padding: 16, zIndex: 250 }}>
-      <div onClick={(e) => e.stopPropagation()} className="card dm-fenster" data-swipe-lock
-        style={{ width: 640, maxWidth: "96vw", maxHeight: "94vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
-          <Icon name="pencil" size={18} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <h2 style={{ fontSize: 17, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{titel}</h2>
-            {untertitel && <div className="muted" style={{ fontSize: 12 }}>{untertitel}</div>}
+    <div className="kt-huelle per-huelle" onClick={() => !busy && onClose()} style={{ zIndex: 250 }}>
+      <div onClick={(e) => e.stopPropagation()} className="card dm-fenster kt-fenster per-sign-fenster" data-swipe-lock>
+        <div className="per-fenster-kopf">
+          <div className="per-fenster-titelzeile">
+            <span className="per-fenster-ic"><Icon name="pencil" size={18} /></span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h2 className="per-ellipse">{titel}</h2>
+              {untertitel && <div className="muted per-klein per-ellipse">{untertitel}</div>}
+            </div>
+            <button className="btn btn-icon" aria-label="Schließen" disabled={busy} onClick={onClose}><Icon name="x" /></button>
           </div>
-          <button className="btn btn-icon" aria-label="Schließen" disabled={busy} onClick={onClose}><Icon name="x" /></button>
         </div>
 
-        <div style={{ padding: 16, display: "grid", gap: 12, overflowY: "auto", flex: 1, minHeight: 0, alignContent: "start" }}>
+        <div className="per-fenster-inhalt">
           {onPdf && (
-            <button type="button" className="btn" style={{ justifySelf: "start" }} onClick={onPdf}>
-              <Icon name="eye" /> Vertrag vorher ansehen
+            <button type="button" className="per-pdf-zeile" onClick={onPdf}>
+              <span className="per-abschnitt-ic"><Icon name="eye" size={16} /></span>
+              <span style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+                <b>Vertrag vorher ansehen</b>
+                <span className="muted per-klein" style={{ display: "block" }}>Öffnet das PDF – danach hier unterschreiben.</span>
+              </span>
+              <Icon name="file-text" size={16} />
             </button>
           )}
 
+          <div className="per-sign-flaeche-kopf">
+            <span className="sektion-titel"><Icon name="pencil" size={14} /> Unterschrift</span>
+            <div className="per-knopfreihe">
+              <button type="button" className="btn btn-flach" onClick={leeren} disabled={leer || busy}><Icon name="undo" /> Neu zeichnen</button>
+              <button type="button" className="btn btn-flach" onClick={() => bildInput.current?.click()} disabled={busy}
+                title="Eine Unterschrift auf Papier fotografieren – die Schrift wird freigestellt">
+                <Icon name="image" /> Aus Foto / Bild
+              </button>
+            </div>
+            <input ref={bildInput} type="file" accept="image/*" capture="environment" style={{ display: "none" }}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) ausBild(f); e.target.value = ""; }} />
+          </div>
+
           {/* Schreibfläche: weißes Papier, Linie wie im Vertrag */}
-          <div ref={boxRef}
-            style={{ position: "relative", width: "100%", height: "clamp(170px, 34vh, 280px)", background: "#fff",
-                     borderRadius: 10, border: "1px solid var(--border)", touchAction: "none", overflow: "hidden" }}>
+          <div ref={boxRef} className={`per-sign-flaeche${leer ? "" : " beschrieben"}`}>
             <div style={{ position: "absolute", left: "6%", right: "6%", bottom: "24%", borderTop: "1.5px dashed #b8c0cc", pointerEvents: "none" }} />
             <span style={{ position: "absolute", left: "6%", bottom: "10%", fontSize: 12, color: "#8a94a3", pointerEvents: "none" }}>
               {rolle}{name ? ` · ${name}` : ""}
             </span>
             {leer && (
-              <span style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "#a0a8b5", fontSize: 15, pointerEvents: "none" }}>
+              <span className="per-sign-platzhalter">
+                <Icon name="pencil" size={22} />
                 Hier mit Finger, Stift oder Maus unterschreiben
               </span>
             )}
@@ -206,36 +223,26 @@ export default function UnterschriftDialog({
               style={{ position: "absolute", inset: 0, touchAction: "none", cursor: "crosshair" }} />
           </div>
 
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button type="button" className="btn" onClick={leeren} disabled={leer || busy}><Icon name="undo" /> Neu zeichnen</button>
-            <button type="button" className="btn" onClick={() => bildInput.current?.click()} disabled={busy}
-              title="Eine Unterschrift auf Papier fotografieren – die Schrift wird freigestellt">
-              <Icon name="image" /> Aus Foto / Bild
-            </button>
-            <input ref={bildInput} type="file" accept="image/*" capture="environment" style={{ display: "none" }}
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) ausBild(f); e.target.value = ""; }} />
-          </div>
-
           <Feld label="Name der unterschreibenden Person" icon="user" wert={name} setWert={setName} kopierbar={false} />
 
           {bestaetigung && (
-            <label style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 13.5, lineHeight: 1.45, cursor: "pointer" }}>
-              <input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} style={{ width: 18, height: 18, marginTop: 1, flexShrink: 0 }} />
+            <label className={`per-bestaetigung${ok ? " an" : ""}`}>
+              <input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} />
               <span>{bestaetigung}</span>
             </label>
           )}
 
           {fehler && (
-            <div style={{ color: "var(--danger, #dc2626)", fontSize: 13, display: "flex", gap: 6, alignItems: "center" }}>
+            <div className="kt-fehler">
               <Icon name="alert" size={14} /> {fehler}
             </div>
           )}
         </div>
 
-        <div style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          <button className="btn" disabled={busy} onClick={onClose}><Icon name="x" /> Abbrechen</button>
+        <div className="kt-fuss">
+          <button className="btn" disabled={busy} onClick={onClose} style={{ marginRight: "auto" }}><Icon name="x" /> Abbrechen</button>
           <button className="btn btn-primary" disabled={busy || leer || !ok} onClick={speichern}>
-            <Icon name="check" /> {busy ? "Speichert…" : "Unterschreiben"}
+            {busy ? <><span className="speichern-dreh" /> Speichert…</> : <><Icon name="check" /> Unterschreiben</>}
           </button>
         </div>
       </div>

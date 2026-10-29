@@ -113,27 +113,30 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
   // die Entität dieser Liste plus die Ansprechpartner, die in ihr mit angezeigt werden.
   useLive([R.entity, "Contact"], load);
 
-  async function save(form: any) {
+  /** Speichert und liefert bei Fehlern den Text zurück – das Fenster zeigt ihn selbst an. */
+  async function save(form: any): Promise<string | null> {
     try {
       if (form.id) {
         await api(`/api/${R.key}/${form.id}`, {
           method: "PATCH",
           body: JSON.stringify({ ...form, expectedVersion: form.version }),
         });
-        setMsg("Gespeichert.");
+        setMsg(`${R.einzahl || "Eintrag"} gespeichert.`);
         if (hasLogo && form.logo !== undefined) setLogos((prev) => ({ ...prev, [form.id]: form.logo }));
       } else {
         await api(`/api/${R.key}`, { method: "POST", body: JSON.stringify(form) });
-        setMsg("Angelegt.");
+        setMsg(`${R.einzahl || "Eintrag"} angelegt.`);
       }
       setEditing(null);
       load();
+      return null;
     } catch (e: any) {
       if (e instanceof ConflictError) {
-        setMsg("Versionskonflikt — der Datensatz wurde zwischenzeitlich geändert. Aktueller Stand geladen.");
         setEditing({ ...e.current });
         load();
-      } else setMsg("Fehler: " + e.message);
+        return "Versionskonflikt – der Datensatz wurde zwischenzeitlich geändert. Der aktuelle Stand ist geladen, bitte Änderung erneut eintragen.";
+      }
+      return e.message || "Speichern fehlgeschlagen";
     }
   }
 
@@ -149,179 +152,211 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
     }
   }
 
-  const colCount = R.columns.length + 2 + (hasLogo ? 1 : 0) + (thumbField ? 1 : 0);
+  // Meldungen verschwinden nach ein paar Sekunden von selbst
+  useEffect(() => {
+    if (!msg) return;
+    const t = setTimeout(() => setMsg(""), 5000);
+    return () => clearTimeout(t);
+  }, [msg]);
+
+  /** Klick auf eine Zeile: Vorschau (sofern vorhanden), sonst direkt bearbeiten. */
+  function zeileKlick(row: any) {
+    if (!R.detail) { setEditing({ ...row }); return; }
+    if (klickTimer.current) return;
+    klickTimer.current = setTimeout(() => { klickTimer.current = null; setViewing(row); }, 220);
+  }
+  function zeileDoppel(row: any) {
+    if (klickTimer.current) { clearTimeout(klickTimer.current); klickTimer.current = null; }
+    setViewing(null);
+    setEditing({ ...row });
+  }
+
+  /** Bild/Logo oder Initialen vor dem Titel – jede Zeile wird auf einen Blick erkennbar. */
+  const vorschau = (row: any, gross?: boolean) => {
+    const g = gross ? 44 : 36;
+    if (hasLogo && logos[row.id]) return <LogoThumb src={logos[row.id]} groesse={g} onClick={() => setBild({ src: logos[row.id], name: `${cell(row[R.titleField])}-Logo` })} />;
+    if (thumbField && row[thumbField]) return <LogoThumb src={row[thumbField]} groesse={g} onClick={() => setBild({ src: row[thumbField], name: cell(row[R.titleField]) })} />;
+    return <Initialen text={String(row[R.titleField] || "")} farbe={row.color} groesse={g} />;
+  };
+
+  /** Zellwert: Ja/Nein und Archiv als Abzeichen, E-Mail anklickbar mit Kopieren, sonst Text mit Treffer. */
+  const zelle = (row: any, key: string) => {
+    const v = row[key];
+    if (typeof v === "boolean") {
+      if (key === "archived") return v ? <span className="abzeichen gelb"><Icon name="archive" size={11} /> archiviert</span> : <span className="muted">–</span>;
+      return v ? <span className="abzeichen gruen"><Icon name="check" size={11} /> ja</span> : <span className="muted">–</span>;
+    }
+    if (/email/i.test(key) && v) {
+      return (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, maxWidth: "100%" }} onClick={(e) => e.stopPropagation()}>
+          <a href={`mailto:${v}`} className="rv-link"><Hervorheben text={String(v)} suche={search} /></a>
+          <KopierKnopf wert={String(v)} was="E-Mail" klein />
+        </span>
+      );
+    }
+    if (key === "status" || key === "priority") return v ? <span className={`abzeichen ${statusFarbe(String(v))}`}><Hervorheben text={String(v)} suche={search} /></span> : <span className="muted">–</span>;
+    const t = cell(v);
+    return t === "–" ? <span className="muted">–</span> : <Hervorheben text={t} suche={search} />;
+  };
+
+  /** Ansprechpartner-Treffer unter dem Titel. */
+  const kontaktTreffer = (row: any) => passendeKontakte(row, search).length > 0 && (
+    <div className="muted" style={{ fontSize: 12, marginTop: 3, fontWeight: 400, display: "grid", gap: 1 }}>
+      {passendeKontakte(row, search).map((k: any) => (
+        <span key={k.id}>
+          <Icon name="user" size={11} />{" "}
+          <Hervorheben text={[k.name, k.role, k.email, k.phone, k.mobile].filter(Boolean).join(" · ")} suche={search} />
+        </span>
+      ))}
+    </div>
+  );
+
+  /** Aktionen je Datensatz – in Tabelle und Karte dieselben. */
+  const aktionen = (row: any) => (
+    <>
+      <button className="btn btn-icon btn-flach" title="Bearbeiten" aria-label="Bearbeiten" onClick={() => setEditing({ ...row })}><Icon name="pencil" /></button>
+      {resourceKey === "organizations" && (
+        <Link className="btn btn-icon btn-flach" title="Betriebsakte: Dokumente dieses Mandanten"
+          aria-label="Betriebsakte" href={`/betriebsakte?org=${row.id}`}><Icon name="folder" /></Link>
+      )}
+      {resourceKey === "employees" && (
+        <>
+          <Link className="btn btn-icon btn-flach" title="Akte: Dokumente und Notizen" aria-label="Akte: Dokumente und Notizen" href={`/documents?employee=${row.id}`}><Icon name="folder" /></Link>
+          <Link className="btn btn-icon btn-flach" title="Zugang in der Userverwaltung" aria-label="Zugang in der Userverwaltung" href={userVerwaltungHref(row)}><Icon name="shield" /></Link>
+        </>
+      )}
+      <Link className="btn btn-icon btn-flach" title="Verlauf" aria-label="Verlauf" href={`/history?entity=${R.entity}&entityId=${row.id}`}><Icon name="history" /></Link>
+      <button className="btn btn-icon btn-flach btn-danger" title="Löschen" aria-label="Löschen" onClick={() => setDeleting(row)}><Icon name="trash" /></button>
+    </>
+  );
+
+  const titelSpalte = R.columns.find((c) => c.key === R.titleField) ? R.titleField : R.columns[0]?.key;
+  const weitereSpalten = R.columns.filter((c) => c.key !== titelSpalte);
+  const einzahl = R.einzahl || R.title;
 
   return (
     <div>
-      <div className="rv-sticky-header" style={{ display: "grid", gap: 10 }}>
+      <div className="rv-sticky-header" style={{ display: "grid", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <h1 style={{ fontSize: 24, fontWeight: 700, display: "flex", alignItems: "center", gap: 10 }}>
-            <Icon name={R.icon} size={24} /> {R.title}
-          </h1>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <h1 className="seiten-titel">
+              <span className="titel-icon"><Icon name={R.icon} size={20} /></span>
+              {R.title}
+              <span className="anzahl">{loading && !rows.length ? "…" : rows.length}</span>
+            </h1>
+            {R.beschreibung && <div className="seiten-untertitel only-desktop">{R.beschreibung}</div>}
+          </div>
           {/* Hauptaktion steht immer rechts – am Rechner wie auf dem Handy */}
-          <button className="btn btn-primary" style={{ marginLeft: "auto" }} onClick={() => setEditing({})}>
-            <Icon name="plus" /> Neu
+          <button className="btn btn-primary" onClick={() => setEditing({})}>
+            <Icon name="plus" /> <span>{einzahl} anlegen</span>
           </button>
         </div>
         {/* Suchfeld linksbündig direkt über der Liste – dort wird es gesucht, nicht am rechten Rand. */}
-        <SearchInput value={search} onChange={setSearch} style={{ width: "100%", maxWidth: 320 }} />
+        <SearchInput value={search} onChange={setSearch} style={{ width: "100%", maxWidth: 560 }} />
       </div>
-      {msg && <div className="card" style={{ padding: "8px 12px", marginBottom: 12, fontSize: 14 }}>{msg}</div>}
+      {msg && (
+        <div className={"hinweis-leiste" + (/^(Fehler|Versionskonflikt)/.test(msg) ? " fehler" : "")} role="status">
+          <Icon name={/^(Fehler|Versionskonflikt)/.test(msg) ? "alert" : "check"} size={16} />
+          <span style={{ flex: 1 }}>{msg}</span>
+          <button className="btn btn-icon btn-flach" aria-label="Meldung schließen" onClick={() => setMsg("")}><Icon name="x" size={14} /></button>
+        </div>
+      )}
+
+      {/* Leere Liste: erklären, was hier hingehört */}
+      {!loading && rows.length === 0 && (
+        <div className="card leer-zustand">
+          <span className="leer-icon"><Icon name={search ? "search" : R.icon} size={28} /></span>
+          <div style={{ fontSize: 16, fontWeight: 650, color: "var(--fg)" }}>{search ? "Nichts gefunden" : `Noch keine ${R.title}`}</div>
+          <div style={{ fontSize: 13.5, maxWidth: 420 }}>{search ? `Kein Eintrag passt zu „${search}". Andere Schreibweise oder weniger Begriffe versuchen.` : R.beschreibung}</div>
+          {search
+            ? <button className="btn" onClick={() => setSearch("")}><Icon name="x" /> Suche leeren</button>
+            : <button className="btn btn-primary" onClick={() => setEditing({})}><Icon name="plus" /> {einzahl} anlegen</button>}
+        </div>
+      )}
 
       {/* Desktop: Tabelle */}
-      <div className="card only-desktop" style={{ overflow: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
-          <thead>
-            <tr style={{ textAlign: "left", borderBottom: "1px solid var(--border)" }}>
-              <th style={{ padding: "10px 12px", width: 1, whiteSpace: "nowrap" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="tag" size={14} /> Nr.</span>
-              </th>
-              {hasLogo && <th style={{ padding: "10px 12px", width: 44 }}></th>}
-              {thumbField && !R.thumbAfter && <th style={{ padding: "10px 12px", width: 48 }}></th>}
-              {R.columns.map((c) => (
-                <Fragment key={c.key}>
-                  {/* Symbol im Kopf – macht die Spalte auf einen Blick erkennbar */}
-                  <th style={{ padding: "10px 12px" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                      {spaltenIcon(c.key, c.label) && <Icon name={spaltenIcon(c.key, c.label) as string} size={14} />}
-                      {c.label}
-                    </span>
-                  </th>
-                  {thumbField && R.thumbAfter === c.key && <th style={{ padding: "10px 12px", width: 48 }}>Bild</th>}
-                </Fragment>
-              ))}
-              <th style={{ padding: "10px 12px", width: 1 }}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && <tr><td colSpan={colCount} style={{ padding: 16 }} className="muted">Lädt…</td></tr>}
-            {!loading && rows.length === 0 && <tr><td colSpan={colCount} style={{ padding: 16 }} className="muted">Keine Einträge.</td></tr>}
-            {rows.map((row, i) => (
-              <tr key={row.id}
-                // Einfacher Klick öffnet die Vorschau (sofern vorhanden), Doppelklick immer
-                // das Bearbeiten-Fenster. Der Einzelklick wartet kurz, damit ein Doppelklick
-                // nicht zuerst die Vorschau aufzieht.
-                onClick={R.detail ? () => {
-                  if (klickTimer.current) return;
-                  klickTimer.current = setTimeout(() => { klickTimer.current = null; setViewing(row); }, 220);
-                } : undefined}
-                onDoubleClick={() => {
-                  if (klickTimer.current) { clearTimeout(klickTimer.current); klickTimer.current = null; }
-                  setViewing(null);
-                  setEditing({ ...row });
-                }}
-                style={{ borderBottom: "1px solid var(--border)", cursor: "pointer" }}
-                title="Doppelklick zum Bearbeiten">
-                <td style={{ padding: "10px 12px", whiteSpace: "nowrap", color: "var(--muted)", fontVariantNumeric: "tabular-nums", fontSize: 13 }}>
-                  {R.prefix}-{i + 1}
-                </td>
-                {hasLogo && (
-                  <td style={{ padding: "6px 12px" }}>
-                    <LogoThumb src={logos[row.id]} color={row.color}
-                      onClick={() => setBild({ src: logos[row.id], name: `${cell(row[R.titleField])}-Logo` })} />
-                  </td>
-                )}
-                {thumbField && !R.thumbAfter && (
-                  <td style={{ padding: "6px 12px" }}>
-                    <LogoThumb src={row[thumbField]}
-                      onClick={() => setBild({ src: row[thumbField], name: cell(row[R.titleField]) })} />
-                  </td>
-                )}
-                {R.columns.map((c, ci) => (
-                  <Fragment key={c.key}>
-                    <td style={{ padding: "10px 12px" }}>
-                      <Hervorheben text={cell(row[c.key])} suche={search} />
-                      {/* Treffer bei einem Ansprechpartner sichtbar machen */}
-                      {ci === 0 && passendeKontakte(row, search).length > 0 && (
-                        <div className="muted" style={{ fontSize: 12, marginTop: 3, display: "grid", gap: 1 }}>
-                          {passendeKontakte(row, search).map((k: any) => (
-                            <span key={k.id}>
-                              <Icon name="user" size={11} />{" "}
-                              <Hervorheben text={[k.name, k.role, k.email, k.phone, k.mobile].filter(Boolean).join(" · ")} suche={search} />
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </td>
-                    {thumbField && R.thumbAfter === c.key && (
-                      <td style={{ padding: "6px 12px" }}>
-                        <LogoThumb src={row[thumbField]}
-                          onClick={() => setBild({ src: row[thumbField], name: cell(row[R.titleField]) })} />
-                      </td>
-                    )}
-                  </Fragment>
-                ))}
-                <td onClick={(e) => e.stopPropagation()} style={{ padding: "8px 12px", whiteSpace: "nowrap", display: "flex", gap: 6 }}>
-                  <button className="btn btn-icon" title="Bearbeiten" aria-label="Bearbeiten" onClick={() => setEditing({ ...row })}><Icon name="pencil" /></button>
-                  {resourceKey === "organizations" && (
-                    <Link className="btn btn-icon" title="Betriebsakte: Dokumente dieses Mandanten"
-                      aria-label="Betriebsakte" href={`/betriebsakte?org=${row.id}`}><Icon name="folder" /></Link>
-                  )}
-                  {resourceKey === "employees" && (
-                    <>
-                      <Link className="btn btn-icon" title="Akte: Dokumente und Notizen" aria-label="Akte: Dokumente und Notizen" href={`/documents?employee=${row.id}`}><Icon name="folder" /></Link>
-                      <Link className="btn btn-icon" title="Zugang in der Userverwaltung" aria-label="Zugang in der Userverwaltung" href={userVerwaltungHref(row)}><Icon name="shield" /></Link>
-                    </>
-                  )}
-                  <Link className="btn btn-icon" title="Verlauf" aria-label="Verlauf" href={`/history?entity=${R.entity}&entityId=${row.id}`}><Icon name="history" /></Link>
-                  <button className="btn btn-icon btn-danger" title="Löschen" aria-label="Löschen" onClick={() => setDeleting(row)}><Icon name="trash" /></button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Handy: Kacheln/Karten statt Tabelle */}
-      <div className="only-mobile" style={{ gap: 10 }}>
-        {loading && <div className="card muted" style={{ padding: 16 }}>Lädt…</div>}
-        {!loading && rows.length === 0 && <div className="card muted" style={{ padding: 16 }}>Keine Einträge.</div>}
-        {rows.map((row, i) => (
-          <div key={row.id} className="card" onClick={R.detail ? () => setViewing(row) : undefined}
-            style={{ padding: 14, display: "grid", gap: 10, cursor: R.detail ? "pointer" : "default" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              {hasLogo && <LogoThumb src={logos[row.id]} color={row.color}
-                onClick={() => setBild({ src: logos[row.id], name: `${cell(row[R.titleField])}-Logo` })} />}
-              {thumbField && <LogoThumb src={row[thumbField]}
-                onClick={() => setBild({ src: row[thumbField], name: cell(row[R.titleField]) })} />}
-              <div style={{ fontWeight: 600, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
-                {cell(row[R.titleField]) === "–" ? `${R.prefix}-${i + 1}` : <Hervorheben text={cell(row[R.titleField])} suche={search} />}
-                {passendeKontakte(row, search).length > 0 && (
-                  <div className="muted" style={{ fontSize: 12, marginTop: 3, fontWeight: 400, display: "grid", gap: 1 }}>
-                    {passendeKontakte(row, search).map((k: any) => (
-                      <span key={k.id}>
-                        <Icon name="user" size={11} />{" "}
-                        <Hervorheben text={[k.name, k.role, k.email, k.phone, k.mobile].filter(Boolean).join(" · ")} suche={search} />
+      {(loading || rows.length > 0) && (
+        <div className="card only-desktop rv-tabelle" style={{ overflow: "auto" }}>
+          <table>
+            <thead>
+              <tr>
+                {[titelSpalte, ...weitereSpalten.map((c) => c.key)].map((key) => {
+                  const c = R.columns.find((x) => x.key === key)!;
+                  if (!c) return null;
+                  const ic = spaltenIcon(c.key, c.label);
+                  return (
+                    <th key={c.key} style={{ padding: "11px 14px" }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        {ic && <Icon name={ic} size={13} />} {c.label}
                       </span>
-                    ))}
+                    </th>
+                  );
+                })}
+                <th style={{ padding: "11px 14px", width: 1 }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && rows.length === 0 && [0, 1, 2, 3, 4].map((i) => (
+                <tr key={i}><td colSpan={R.columns.length + 1} style={{ padding: "16px 14px" }}><span className="lade-zeile" style={{ display: "block", width: `${70 - i * 8}%` }} /></td></tr>
+              ))}
+              {rows.map((row) => (
+                <tr key={row.id} onClick={() => zeileKlick(row)} onDoubleClick={() => zeileDoppel(row)}
+                  style={{ cursor: "pointer" }} title={R.detail ? "Klick: ansehen · Doppelklick: bearbeiten" : "Klick: bearbeiten"}>
+                  <td style={{ padding: "10px 14px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+                      {vorschau(row)}
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 600 }}>{zelle(row, titelSpalte)}</div>
+                        {kontaktTreffer(row)}
+                      </div>
+                    </div>
+                  </td>
+                  {weitereSpalten.map((c) => (
+                    <td key={c.key} style={{ padding: "10px 14px" }}>{zelle(row, c.key)}</td>
+                  ))}
+                  <td onClick={(e) => e.stopPropagation()} style={{ padding: "6px 10px", whiteSpace: "nowrap" }}>
+                    <div className="zeilen-aktionen" style={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>{aktionen(row)}</div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Handy: Karten statt Tabelle */}
+      <div className="only-mobile" style={{ gap: 10 }}>
+        {loading && rows.length === 0 && [0, 1, 2].map((i) => (
+          <div key={i} className="card" style={{ padding: 16, display: "grid", gap: 10 }}>
+            <span className="lade-zeile" style={{ width: "60%" }} /><span className="lade-zeile" style={{ width: "40%" }} />
+          </div>
+        ))}
+        {rows.map((row) => (
+          <div key={row.id} className="card rv-karte" onClick={() => zeileKlick(row)}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              {vorschau(row, true)}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 650, fontSize: 15.5, overflow: "hidden", textOverflow: "ellipsis" }}>{zelle(row, titelSpalte)}</div>
+                {weitereSpalten[0] && cell(row[weitereSpalten[0].key]) !== "–" && typeof row[weitereSpalten[0].key] !== "boolean" && (
+                  <div className="muted" style={{ fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <Hervorheben text={cell(row[weitereSpalten[0].key])} suche={search} />
                   </div>
                 )}
+                {kontaktTreffer(row)}
               </div>
-              <span className="muted" style={{ fontSize: 12, flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{R.prefix}-{i + 1}</span>
+              <Icon name="chevron-down" size={16} style={{ transform: "rotate(-90deg)", color: "var(--muted)" }} />
             </div>
-            <div style={{ display: "grid", gap: 5, fontSize: 13 }}>
-              {R.columns.filter((c) => c.key !== R.titleField).map((c) => (
-                <div key={c.key} style={{ display: "flex", gap: 10 }}>
-                  <span className="muted" style={{ minWidth: 96, flexShrink: 0 }}>{c.label}</span>
-                  <span style={{ flex: 1, minWidth: 0, wordBreak: "break-word" }}><Hervorheben text={cell(row[c.key])} suche={search} /></span>
-                </div>
-              ))}
-            </div>
-            <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", gap: 8, justifyContent: "flex-end", borderTop: "1px solid var(--border)", paddingTop: 10 }}>
-              <button className="btn btn-icon" title="Bearbeiten" aria-label="Bearbeiten" onClick={() => setEditing({ ...row })}><Icon name="pencil" /></button>
-              {resourceKey === "organizations" && (
-                <Link className="btn btn-icon" title="Betriebsakte: Dokumente dieses Mandanten"
-                  aria-label="Betriebsakte" href={`/betriebsakte?org=${row.id}`}><Icon name="folder" /></Link>
-              )}
-              {resourceKey === "employees" && (
-                <>
-                  <Link className="btn btn-icon" title="Akte: Dokumente und Notizen" aria-label="Akte: Dokumente und Notizen" href={`/documents?employee=${row.id}`}><Icon name="folder" /></Link>
-                  <Link className="btn btn-icon" title="Zugang in der Userverwaltung" aria-label="Zugang in der Userverwaltung" href={userVerwaltungHref(row)}><Icon name="shield" /></Link>
-                </>
-              )}
-              <Link className="btn btn-icon" title="Verlauf" aria-label="Verlauf" href={`/history?entity=${R.entity}&entityId=${row.id}`}><Icon name="history" /></Link>
-              <button className="btn btn-icon btn-danger" title="Löschen" aria-label="Löschen" onClick={() => setDeleting(row)}><Icon name="trash" /></button>
-            </div>
+            {weitereSpalten.slice(1).some((c) => cell(row[c.key]) !== "–" && row[c.key] !== false) && (
+              <div className="rv-karte-werte">
+                {weitereSpalten.slice(1).filter((c) => cell(row[c.key]) !== "–" && row[c.key] !== false).map((c) => (
+                  <div key={c.key}>
+                    <span className="muted">{spaltenIcon(c.key, c.label) && <Icon name={spaltenIcon(c.key, c.label) as string} size={12} />} {c.label}</span>
+                    <span>{zelle(row, c.key)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div onClick={(e) => e.stopPropagation()} className="rv-karte-aktionen">{aktionen(row)}</div>
           </div>
         ))}
       </div>
@@ -352,6 +387,7 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
           resourceKey={resourceKey}
           suche={search}
           row={viewing}
+          logo={hasLogo ? logos[viewing.id] : undefined}
           onClose={() => setViewing(null)}
           onEdit={() => { setEditing({ ...viewing }); setViewing(null); }}
           onDelete={() => { setDeleting(viewing); setViewing(null); }}
@@ -379,6 +415,30 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
   );
 }
 
+/** Farbe eines Status-/Prioritätswerts. */
+function statusFarbe(v: string) {
+  const t = v.toLowerCase();
+  if (/fertig|erledigt|aktiv|done/.test(t)) return "gruen";
+  if (/hoch|überfällig|gesperrt/.test(t)) return "rot";
+  if (/laeuft|läuft|normal|offen/.test(t)) return /offen/.test(t) ? "gelb" : "blau";
+  return "";
+}
+
+/** Initialen-Kreis für Datensätze ohne Bild – Farbe aus dem Namen (oder der hinterlegten Farbe). */
+function Initialen({ text, farbe, groesse = 36 }: { text: string; farbe?: string; groesse?: number }) {
+  const t = text.trim().split(/\s+/).filter(Boolean);
+  const kurz = ((t[0]?.[0] || "?") + (t.length > 1 ? t[t.length - 1][0] : t[0]?.[1] || "")).toUpperCase();
+  let h = 0;
+  for (const c of text) h = (h * 31 + c.charCodeAt(0)) % 360;
+  return (
+    <span className="rv-initialen" style={{ width: groesse, height: groesse, fontSize: groesse * 0.36,
+      background: farbe && /^#[0-9a-f]{6}$/i.test(farbe) ? `linear-gradient(135deg, ${farbe}, color-mix(in srgb, ${farbe} 70%, #000))`
+        : `linear-gradient(135deg, hsl(${h} 72% 60%), hsl(${(h + 40) % 360} 68% 46%))` }} aria-hidden>
+      {kurz}
+    </span>
+  );
+}
+
 /** Endung aus einer Daten-URL („data:image/png;base64,…") – für den Dateinamen. */
 function bildEndung(datenUrl: string) {
   const typ = datenUrl.match(/^data:image\/([a-z0-9.+-]+)/i)?.[1]?.toLowerCase() || "png";
@@ -395,19 +455,22 @@ function bildSpeichern(datenUrl: string, name: string) {
   document.body.removeChild(a);
 }
 
-function LogoThumb({ src, color, onClick }: { src?: string; color?: string; onClick?: () => void }) {
+function LogoThumb({ src, color, onClick, groesse = 32 }: { src?: string; color?: string; onClick?: () => void; groesse?: number }) {
+  const stil: React.CSSProperties = { width: groesse, height: groesse, borderRadius: groesse * 0.28, objectFit: "cover",
+    border: "1px solid var(--border)", background: "#fff", flexShrink: 0, display: "block" };
   if (src && onClick) {
     return (
       <button type="button" onClick={(e) => { e.stopPropagation(); onClick(); }}
-        title="Logo ansehen oder herunterladen"
-        style={{ border: 0, background: "transparent", padding: 0, cursor: "zoom-in", lineHeight: 0 }}>
+        title="Bild ansehen oder herunterladen"
+        style={{ border: 0, background: "transparent", padding: 0, cursor: "zoom-in", lineHeight: 0, flexShrink: 0 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={src} alt="" style={{ width: 32, height: 32, borderRadius: 6, objectFit: "cover", border: "1px solid var(--border)" }} />
+        <img src={src} alt="" style={stil} />
       </button>
     );
   }
-  if (src) return <img src={src} alt="" style={{ width: 32, height: 32, borderRadius: 6, objectFit: "cover", border: "1px solid var(--border)" }} />;
-  return <div style={{ width: 32, height: 32, borderRadius: 6, background: color || "var(--border)", opacity: 0.5 }} />;
+  // eslint-disable-next-line @next/next/no-img-element
+  if (src) return <img src={src} alt="" style={stil} />;
+  return <div style={{ ...stil, background: color || "var(--border)", opacity: 0.5 }} />;
 }
 
 function EditModal({ resourceKey, hasLogo, initial, onClose, onSave }: {
