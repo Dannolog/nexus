@@ -463,7 +463,7 @@ export default function ContactsPage() {
           </h1>
           <button className="btn btn-primary" style={{ marginLeft: "auto" }} onClick={() => bearbeite(leer())}
             title="Kontakt anlegen – mit oder ohne Firma (z. B. Vertreter oder Shop)">
-            <Icon name="plus" /> Neuer Kontakt
+            <Icon name="plus" /> <span>Neuer Kontakt</span>
           </button>
         </div>
         <SearchInput value={suche} onChange={setSuche} placeholder="Name, Firma, E-Mail, Telefon, Funktion…"

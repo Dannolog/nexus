@@ -1181,3 +1181,9 @@
 - Doppeltes Scrollen: `.app-shell` scrollte am Handy selbst (100vh, overflow auto) zusätzlich zur Seite → am Handy `height:auto; overflow:visible`, `html, body { overflow-x: clip }` (clip statt hidden, sonst wird body eigener Scrollbereich).
 - Karten (`.rv-karte`): Grid-Spalte `minmax(0,1fr)` + `> * { min-width:0 }`, Titel `.rv-karte-titel` max. 2 Zeilen, Knopfreihe umbrechend – vorher drückten die vielen Mitarbeiter-Knöpfe die Karte breiter.
 - Test nur mit erfundenen Testdaten: `scripts/ui-test-testdaten.mjs` (API komplett gesperrt, Fantasie-Datensätze). 9 Seiten ok, 0 Überlauf, 0 Seitenfehler, nur ein Scrollbereich.
+
+## 2026-10-29 – Handy-Kopf, Kartenbreite, A–Z-Register
+- Ursache „Header verdeckt obersten Container“ + schmale Karten: globale Regel `.main { padding: 28px 32px }` stand NACH dem Handy-Block und überschrieb Abstand unter Topbar + 16-px-Rand → jetzt nur `@media (min-width: 769px)`.
+- `.rv-sticky-header` Grid `minmax(0,1fr)`: breite Filterleiste (Kontakte) schob „Neu“-Knopf aus dem Bild; `.kt-segment` scrollt in sich.
+- A–Z-Register: `src/components/BuchstabenLeiste.tsx` (anfangsBuchstabe, vergleicheAZ, springeZu; Leiste rechts, Tippen/Wischen, Buchstaben-Blase). ResourceView: Umschalter „A–Z / Neueste“ (useSeitenZustand `sort`, Vorgabe A–Z), Buchstaben-Abschnitte in Tabelle (`tr.rv-gruppe`) und Karten (`.rv-gruppe-handy`), Ziel per `data-buchstabe`. Kontakte: Leiste auf vorhandene Gruppen.
+- Test nur mit erfundenen Testdaten (`scripts/ui-test-testdaten.mjs`): 9 Seiten Handy + 2 Rechner ok, 0 Seitenfehler.

@@ -900,3 +900,16 @@ mark.treffer {
     justify-content: space-between; padding: 6px 0; box-shadow: none; background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; }
   .az-leiste span { padding: 0 4px; font-size: 10px; }
 }
+@media (max-width: 768px) {
+  /* Platz für das A–Z-Register rechts, damit es nichts überdeckt */
+  .main:has(.az-leiste) { padding-right: calc(24px + env(safe-area-inset-right)); }
+  .main:has(.az-leiste) .az-leiste { right: calc(2px + env(safe-area-inset-right)); }
+  /* E-Mail in der Karte einzeilig mit „…“ statt Zeichen-Umbruch */
+  .rv-karte-werte > div > span:first-child { min-width: 84px; }
+  .rv-karte-werte .rv-link { white-space: nowrap; min-width: 0; display: block; }
+  .rv-karte-werte > div > span:last-child > span { min-width: 0; }
+}
+/* Kopf nie breiter als die Seite – breite Filterleisten scrollen in sich, statt Knöpfe hinauszuschieben */
+.rv-sticky-header { grid-template-columns: minmax(0, 1fr); }
+.rv-sticky-header > * { min-width: 0; }
+.kt-segment { overflow-x: auto; scrollbar-width: none; }
