@@ -172,7 +172,6 @@ export const RESOURCES: Record<string, Resource> = {
       { key: "lastName", label: "Nachname", group: "Person", span: 6 },
       { key: "email", label: "E-Mail (Firma)", type: "email", group: "Kontakt", span: 6 },
       { key: "privateEmail", label: "E-Mail privat", type: "email", group: "Kontakt", span: 6 },
-      { key: "employeeNumber", label: "Personalnummer", group: "Zugang und Darstellung", span: 6 },
       // Beliebig viele Nummern (Firma, Privat, Mobil …); die Hauptnummer für Formulare leitet der Server ab
       { key: "phones", label: "Telefonnummern", type: "phones", group: "Kontakt" },
       // Stammdaten für Personalunterlagen (werden in Formulare übernommen)
@@ -181,6 +180,7 @@ export const RESOURCES: Record<string, Resource> = {
       { key: "city", label: "Ort", group: "Anschrift", span: 8 },
       { key: "birthDate", label: "Geburtsdatum", type: "date", group: "Person", span: 6 },
       { key: "nationality", label: "Staatsangehörigkeit", group: "Person", span: 6 },
+      { key: "employeeNumber", label: "Personalnummer", group: "Zugang und Darstellung", span: 6 },
       { key: "color", label: "Farbe", type: "color", group: "Zugang und Darstellung", span: 6 },
       { key: "identityId", label: "Identität-ID (SSO)", group: "Zugang und Darstellung", span: 6 },
       { key: "archived", label: "Archiviert", type: "checkbox", group: "Zugang und Darstellung", span: 6 },

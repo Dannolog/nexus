@@ -23,6 +23,23 @@ function summarize(r: any) {
   } catch { return r.action; }
 }
 
+/** Darstellung je Aktion: Text, Symbol und Farbe des Zeitleisten-Punkts. */
+const AKTION: Record<string, { text: string; icon: string; farbe: string }> = {
+  CREATE: { text: "angelegt", icon: "plus", farbe: "gruen" },
+  UPDATE: { text: "geändert", icon: "pencil", farbe: "" },
+  DELETE: { text: "gelöscht", icon: "trash", farbe: "rot" },
+};
+
+/** Überschrift je Tag: „Heute", „Gestern" oder das Datum mit Wochentag. */
+function tagesUeberschrift(ts: string) {
+  const d = new Date(ts);
+  const heute = new Date();
+  const gestern = new Date(); gestern.setDate(heute.getDate() - 1);
+  if (d.toDateString() === heute.toDateString()) return "Heute";
+  if (d.toDateString() === gestern.toDateString()) return "Gestern";
+  return d.toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
+}
+
 export default function HistoryPage() {
   const [filter, setFilter] = useState<{ entity?: string; entityId?: string }>({});
   const [rows, setRows] = useState<any[]>([]);
@@ -51,48 +68,100 @@ export default function HistoryPage() {
     } catch (e: any) { setMsg("Fehler: " + e.message); }
   }
 
+
+  // Nach Kalendertag gruppieren – die Nummer VL-n bleibt die fortlaufende Position in der Liste.
+  const tage: { tag: string; eintraege: { r: any; i: number }[] }[] = [];
+  rows.forEach((r, i) => {
+    const tag = tagesUeberschrift(r.createdAt);
+    const letzte = tage[tage.length - 1];
+    if (letzte && letzte.tag === tag) letzte.eintraege.push({ r, i });
+    else tage.push({ tag, eintraege: [{ r, i }] });
+  });
+  const istFehler = msg.startsWith("Fehler");
+
   return (
     <div>
-      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 10 }}>
-        <Icon name="history" size={24} /> Verlauf
-      </h1>
-      <p className="muted" style={{ marginBottom: 16 }}>
-        {filter.entityId ? `Datensatz ${filter.entity} ${filter.entityId}` : "Alle Änderungen — jede Aktion ist rückgängig und wiederherstellbar."}
-      </p>
-      {msg && <div className="card" style={{ padding: "8px 12px", marginBottom: 12, fontSize: 14 }}>{msg}</div>}
-      <div className="card" style={{ overflow: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
-          <thead>
-            <tr style={{ textAlign: "left", borderBottom: "1px solid var(--border)" }}>
-              <th style={{ padding: "10px 12px", width: 1, whiteSpace: "nowrap" }}>Nr.</th>
-              <th style={{ padding: "10px 12px" }}>Zeit</th>
-              <th style={{ padding: "10px 12px" }}>Entität</th>
-              <th style={{ padding: "10px 12px" }}>Aktion</th>
-              <th style={{ padding: "10px 12px" }}>Änderung</th>
-              <th style={{ padding: "10px 12px" }}>App</th>
-              <th style={{ padding: "10px 12px" }}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 && <tr><td colSpan={7} className="muted" style={{ padding: 16 }}>Keine Einträge.</td></tr>}
-            {rows.map((r, i) => (
-              <tr key={r.id} style={{ borderBottom: "1px solid var(--border)", opacity: r.undone ? 0.55 : 1 }}>
-                <td style={{ padding: "10px 12px", whiteSpace: "nowrap", color: "var(--muted)", fontVariantNumeric: "tabular-nums", fontSize: 13 }}>VL-{i + 1}</td>
-                <td style={{ padding: "10px 12px", whiteSpace: "nowrap" }}>{fmt(r.createdAt)}</td>
-                <td style={{ padding: "10px 12px" }}>{r.entity}</td>
-                <td style={{ padding: "10px 12px" }}>{r.action}{r.undone ? " (rückgängig)" : ""}</td>
-                <td style={{ padding: "10px 12px", maxWidth: 360, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={summarize(r)}>{summarize(r)}</td>
-                <td style={{ padding: "10px 12px" }}>{r.appKey}</td>
-                <td style={{ padding: "8px 12px" }}>
-                  {r.undone
-                    ? <button className="btn btn-icon" title="Wiederherstellen" aria-label="Wiederherstellen" onClick={() => act(r.txId, "redo")}><Icon name="redo" /></button>
-                    : <button className="btn btn-icon" title="Rückgängig" aria-label="Rückgängig" onClick={() => act(r.txId, "undo")}><Icon name="undo" /></button>}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* ── Seitenkopf ── */}
+      <div className="rv-sticky-header">
+        <div className="ver-kopf">
+          <div className="ver-kopf-text">
+            <h1 className="seiten-titel">
+              <span className="titel-icon"><Icon name="history" size={20} /></span>
+              Verlauf
+              <span className="anzahl">{rows.length}</span>
+            </h1>
+            <p className="seiten-untertitel">
+              {filter.entityId ? `Datensatz ${filter.entity} ${filter.entityId}` : "Alle Änderungen — jede Aktion ist rückgängig und wiederherstellbar."}
+            </p>
+          </div>
+        </div>
+        <div className="ver-werkzeuge">
+          <span className="ver-info">
+            <span className="abzeichen gruen"><Icon name="plus" size={12} /> angelegt</span>
+            <span className="abzeichen blau"><Icon name="pencil" size={12} /> geändert</span>
+            <span className="abzeichen rot"><Icon name="trash" size={12} /> gelöscht</span>
+            <span className="abzeichen"><Icon name="undo" size={12} /> rückgängig gemacht</span>
+          </span>
+        </div>
       </div>
+
+      {msg && (
+        <div className={`hinweis-leiste ver-meldung${istFehler ? " fehler" : ""}`} role="status">
+          <Icon name={istFehler ? "alert" : "check"} size={16} />
+          <span>{msg}</span>
+          <button className="btn btn-icon" title="Meldung schließen" aria-label="Meldung schließen" onClick={() => setMsg("")}>
+            <Icon name="x" size={14} />
+          </button>
+        </div>
+      )}
+
+      {rows.length === 0 && (
+        <div className="card leer-zustand">
+          <span className="leer-icon"><Icon name="history" size={28} /></span>
+          <b style={{ color: "var(--fg)" }}>Keine Einträge.</b>
+          <span style={{ fontSize: 13 }}>Sobald Daten angelegt, geändert oder gelöscht werden, erscheinen sie hier – mit Rückgängig-Knopf.</span>
+        </div>
+      )}
+
+      {/* ── Zeitleiste, nach Tagen gruppiert ── */}
+      {tage.map((t) => (
+        <div key={t.tag}>
+          <div className="ver-tag"><Icon name="calendar" size={14} /> {t.tag}</div>
+          <div className="ver-zeitleiste">
+            {t.eintraege.map(({ r, i }) => {
+              const art = AKTION[r.action] || { text: r.action, icon: "pencil", farbe: "" };
+              const text = summarize(r);
+              return (
+                <div key={r.id} className={`card ver-eintrag${r.undone ? " zurueck" : ""}`}>
+                  <span className={`ver-punkt${art.farbe ? " " + art.farbe : ""}`} aria-hidden><Icon name={art.icon} size={14} /></span>
+                  <div className="ver-eintrag-text">
+                    <div className="ver-eintrag-kopf">
+                      <b>{r.entity}</b>
+                      <span className={`abzeichen${art.farbe === "gruen" ? " gruen" : art.farbe === "rot" ? " rot" : " blau"}`} title={r.action}>
+                        {art.text}
+                      </span>
+                      {r.undone && <span className="abzeichen"><Icon name="undo" size={11} /> rückgängig</span>}
+                    </div>
+                    <div className="ver-aenderung" title={text}>{text}</div>
+                    <div className="ver-eintrag-meta">
+                      <span><Icon name="history" size={12} /> {fmt(r.createdAt)}</span>
+                      {r.appKey && <span><Icon name="command" size={12} /> {r.appKey}</span>}
+                      <span style={{ fontVariantNumeric: "tabular-nums" }}><Icon name="tag" size={12} /> VL-{i + 1}</span>
+                    </div>
+                  </div>
+                  {r.undone
+                    ? <button className="btn" title="Wiederherstellen" aria-label="Wiederherstellen" onClick={() => act(r.txId, "redo")}>
+                        <Icon name="redo" /> <span className="btn-label">Wiederherstellen</span>
+                      </button>
+                    : <button className="btn" title="Rückgängig" aria-label="Rückgängig" onClick={() => act(r.txId, "undo")}>
+                        <Icon name="undo" /> <span className="btn-label">Rückgängig</span>
+                      </button>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

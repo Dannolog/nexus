@@ -8,6 +8,7 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import SuchSelect from "@/components/SuchSelect";
 import PdfViewerModal from "@/components/PdfViewerModal";
 import { Feld } from "@/components/KontaktFeld";
+import { DateiSymbol } from "@/components/MitarbeiterAkte";
 import { useLive } from "@/lib/live";
 import { useSeitenZustand } from "@/lib/seitenzustand";
 import ScanAnimation from "@/components/ScanAnimation";
@@ -347,37 +348,50 @@ export default function BetriebsaktePage() {
 
   const rubrikName = (id: string) => gruppen.find((g) => g.id === id)?.name || "";
 
+  const meldungFehler = /^(Fehler|Dokumente:|Rubriken:|Akten:|Bitte|Kein Scanner)/.test(msg);
+
   return (
     <div>
       <div className="rv-sticky-header" style={{ display: "grid", gap: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <h1 style={{ fontSize: 24, fontWeight: 700, display: "flex", alignItems: "center", gap: 10 }}>
-            <Icon name="building" size={24} /> Betriebsakte
-          </h1>
-          <div style={{ display: "flex", gap: 6 }}>
-            {([["rubriken", "Rubriken", "folder"], ["zeitstrahl", "Zeitstrahl", "history"]] as const).map(([wert, text, icon]) => (
-              <button key={wert} className="btn" onClick={() => setAnsicht(wert)}
-                style={{ background: ansicht === wert ? "var(--accent)" : undefined, color: ansicht === wert ? "#fff" : undefined }}>
-                <Icon name={icon} size={14} /> {text}
-              </button>
-            ))}
+        <div className="abl-kopf" style={{ marginBottom: 0 }}>
+          <div className="abl-kopf-text">
+            <h1 className="seiten-titel">
+              <span className="titel-icon"><Icon name="building" size={20} /></span> Betriebsakte
+              {orgId && <span className="anzahl">{dokumente.length}</span>}
+            </h1>
+            <div className="seiten-untertitel">
+              {ablageName
+                ? <>Ablage für <b style={{ color: "var(--fg)" }}>{ablageName}</b>{akte ? " (eigene Akte)" : ""} – nach Rubriken oder als Zeitstrahl.</>
+                : "Firmendokumente je Mandant oder eigener Akte ablegen, scannen und wiederfinden."}
+            </div>
           </div>
-          <span className="muted" style={{ fontSize: 12, marginLeft: "auto" }}>
-            {orgId ? `${dokumente.length} Dokumente` : "Mandant oder Akte wählen"}
-          </span>
+          <div className="abl-kopf-aktionen">
+            <div className="kt-segment" role="tablist" aria-label="Ansicht">
+              {([["rubriken", "Rubriken", "folder"], ["zeitstrahl", "Zeitstrahl", "history"]] as const).map(([wert, text, icon]) => (
+                <button key={wert} role="tab" aria-selected={ansicht === wert} className={ansicht === wert ? "an" : ""}
+                  onClick={() => setAnsicht(wert)}>
+                  <Icon name={icon} size={14} /> {text}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
         <SearchInput value={suche} onChange={setSuche} placeholder="Titel, Dateiname, Notiz…" style={{ width: "100%", maxWidth: 380 }} />
       </div>
 
-      {msg && <div className="card" style={{ padding: "8px 12px", marginBottom: 12, fontSize: 14 }}>{msg}</div>}
+      {msg && (
+        <div className={`hinweis-leiste${meldungFehler ? " fehler" : ""}`}>
+          <Icon name={meldungFehler ? "alert" : "check"} size={16} />
+          <span style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>{msg}</span>
+          <button className="btn btn-icon btn-flach" aria-label="Meldung schließen" onClick={() => setMsg("")}><Icon name="x" size={14} /></button>
+        </div>
+      )}
 
       {/* ── Mandant und Ablage ── */}
-      <div className="card" style={{ padding: 14, marginBottom: 12, display: "grid", gap: 12 }}>
+      <div className="card abl-panel" style={{ marginBottom: 12 }}>
         <div className="feld-zeile feld-zeile-2">
-          <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-            <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <Icon name="building" size={14} /> Mandant oder Akte
-            </span>
+          <label className="abl-label">
+            <span><Icon name="building" size={13} /> Mandant oder Akte</span>
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <SuchSelect
@@ -396,11 +410,11 @@ export default function BetriebsaktePage() {
               </div>
               {akte && (
                 <>
-                  <button type="button" className="btn btn-icon" title="Akte umbenennen / Notiz"
+                  <button type="button" className="btn btn-icon" title="Akte umbenennen / Notiz" aria-label="Akte bearbeiten"
                     onClick={() => setAkteForm({ id: akte.id, name: akte.name, note: akte.note || "" })}>
                     <Icon name="pencil" size={14} />
                   </button>
-                  <button type="button" className="btn btn-icon btn-danger" title="Akte entfernen (nur wenn leer)"
+                  <button type="button" className="btn btn-icon btn-danger" title="Akte entfernen (nur wenn leer)" aria-label="Akte entfernen"
                     onClick={() => setAkteLoeschen(akte)}>
                     <Icon name="trash" size={14} />
                   </button>
@@ -413,10 +427,8 @@ export default function BetriebsaktePage() {
             </div>
             {akte?.note && <span className="muted" style={{ fontSize: 12 }}>{akte.note}</span>}
           </label>
-          <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-            <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <Icon name="tag" size={14} /> Rubrik für neue Ablagen
-            </span>
+          <label className="abl-label">
+            <span><Icon name="tag" size={13} /> Rubrik für neue Ablagen</span>
             <SuchSelect
               value={zielGruppe}
               onChange={setZielGruppe}
@@ -429,9 +441,9 @@ export default function BetriebsaktePage() {
             />
           </label>
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div className="abl-werkzeuge">
           <label className="btn btn-primary" style={{ cursor: orgId ? "pointer" : "default", opacity: orgId ? 1 : .5 }}>
-            <Icon name="plus" /> {busy === "upload" ? "Lädt…" : "Datei ablegen"}
+            {busy === "upload" ? <span className="speichern-dreh" /> : <Icon name="upload" />} {busy === "upload" ? "Lädt…" : "Datei ablegen"}
             <input type="file" style={{ display: "none" }} disabled={!orgId}
               onChange={(e) => { const f = e.target.files?.[0]; if (f) hochladen(f, zielGruppe); e.target.value = ""; }} />
           </label>
@@ -444,88 +456,104 @@ export default function BetriebsaktePage() {
             title="Formular aus einer Vorlage erzeugen – mit den Firmendaten vorausgefüllt">
             <Icon name="file-text" /> Aus Vorlage
           </button>
+          <span className="abl-trenner" />
           <button className="btn" disabled={!orgId || !geraetId || busy === "scan"}
             onClick={() => scannen(zielGruppe, gruppen.find((g) => g.id === zielGruppe)?.name || "")}
             title={geraetId ? "Vorlage einlesen und hier ablegen" : "Kein Scanner eingerichtet"}>
             <Icon name="printer" /> {busy === "scan" ? "Scannt…" : "Scannen"}
           </button>
           {geraete.length > 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span className="muted" style={{ fontSize: 12 }}>Vorlage</span>
-              <button className="btn" onClick={() => setScanQuelle((q) => (q === "Platen" ? "Feeder" : "Platen"))}
-                title="Zwischen Flachbett und Einzug wechseln">
-                {scanQuelle === "Feeder" ? "Einzug" : "Flachbett"}
-              </button>
+            <div className="kt-segment" role="radiogroup" aria-label="Scan-Quelle" title="Zwischen Flachbett und Einzug wechseln">
+              {([["Platen", "Flachbett"], ["Feeder", "Einzug"]] as const).map(([wert, text]) => (
+                <button key={wert} role="radio" aria-checked={scanQuelle === wert} className={scanQuelle === wert ? "an" : ""}
+                  onClick={() => setScanQuelle(wert)}>
+                  {text}
+                </button>
+              ))}
             </div>
           )}
           {geraete.length > 0 && busy !== "scan" && (papier || einzugFehler || (papier === false && scanQuelle === "Feeder")) && (
-            <span style={{
-              fontSize: 12.5, alignSelf: "center", display: "inline-flex", alignItems: "center", gap: 6,
-              color: einzugFehler || !papier ? "var(--warn, #c47f17)" : "var(--accent, #3b82f6)",
-            }}>
+            <span className={`abl-status ${einzugFehler || !papier ? "warn" : "ok"}`}>
               <Icon name={einzugFehler || !papier ? "alert" : "file-text"} size={14} />
               {einzugFehler || (papier
                 ? (scanQuelle === "Feeder" ? "Papier im Einzug erkannt" : "Papier im Einzug – es wird trotzdem vom Flachbett gescannt")
                 : "Einzug ist leer – Papier einlegen oder Flachbett wählen")}
             </span>
           )}
-          <span className="muted" style={{ fontSize: 12, alignSelf: "center" }}>
-            {ablageName ? `Ablage für ${ablageName}${akte ? " (eigene Akte)" : ""}` : "Erst einen Mandanten oder eine Akte wählen"}
-          </span>
+          {!ablageName && (
+            <span className="abl-status">
+              <Icon name="alert" size={14} /> Erst einen Mandanten oder eine Akte wählen
+            </span>
+          )}
         </div>
       </div>
 
       {/* ── Vorlagen: Formular erzeugen oder neue Vorlage hinterlegen ── */}
       {vorlagenOffen && (
-        <div onClick={() => setVorlagenOffen(false)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "grid", placeItems: "center", padding: 16, zIndex: 60 }}>
-          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster"
-            style={{ width: 560, maxWidth: "94vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
-              <Icon name="file-text" size={18} />
-              <h2 style={{ fontSize: 17, fontWeight: 700, flex: 1 }}>Vorlage verwenden</h2>
+        <div className="kt-huelle" style={{ zIndex: 60 }} onClick={() => setVorlagenOffen(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster kt-fenster" style={{ width: 560 }}>
+            <div className="abl-fenster-kopf">
+              <span className="abl-ic"><Icon name="file-text" size={17} /></span>
+              <h2>Vorlage verwenden<small>Formular für {ablageName || "die Akte"} erzeugen</small></h2>
+              <button className="btn btn-icon btn-flach" aria-label="Schließen" onClick={() => setVorlagenOffen(false)}><Icon name="x" /></button>
+            </div>
+            <div className="kt-inhalt">
+              {vorlagen.length === 0 && (
+                <div className="leer-zustand" style={{ padding: "28px 12px" }}>
+                  <div className="leer-icon"><Icon name="file-text" size={28} /></div>
+                  <div style={{ fontWeight: 650, color: "var(--fg)", fontSize: 15 }}>Noch keine Vorlage</div>
+                  <div style={{ fontSize: 13.5, lineHeight: 1.5, maxWidth: 380 }}>
+                    Lade unten ein ausfüllbares PDF hoch – etwa das
+                    SEPA-Lastschriftmandat. Die Formularfelder werden automatisch erkannt.
+                  </div>
+                </div>
+              )}
+              <div className="abl-fenster-liste">
+                {vorlagen.map((v) => {
+                  const felder = (() => { try { return JSON.parse(v.formFields || "[]").length; } catch { return 0; } })();
+                  return (
+                    <div key={v.id} className="abl-zeile einzeln drei">
+                      <DateiSymbol mime="application/pdf" />
+                      <div className="abl-haupt">
+                        <div className="abl-titel">
+                          <b>{v.name}</b>
+                          <span className="abzeichen blau">v{v.version}</span>
+                        </div>
+                        <div className="abl-meta">
+                          <span><Icon name="tasks" size={12} /> {felder ? `${felder} Formularfelder` : "keine Formularfelder"}</span>
+                        </div>
+                      </div>
+                      <button className="btn btn-primary" disabled={busy === "vorlage"}
+                        onClick={() => ausVorlage(v.id, v.name)}>
+                        {busy === "vorlage" ? <span className="speichern-dreh" /> : <Icon name="save" />} {busy === "vorlage" ? "Legt ab…" : akte ? "Ablegen" : "Vorausgefüllt ablegen"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+              {akte ? (
+                <div className="abl-hinweis">
+                  <Icon name="alert" size={15} />
+                  <span>Eine eigene Akte hat keine Firmendaten – das Formular wird <b>leer</b> abgelegt und bleibt ausfüllbar.</span>
+                </div>
+              ) : (
+                <div className="abl-hinweis">
+                  <Icon name="check" size={15} />
+                  <span>
+                    Vorausgefüllt werden Firmenname, Anschrift, Steuernummer, USt-IdNr. sowie Ort und Datum.
+                    <b> Bankverbindung bleibt leer</b> – IBAN und Kontoinhaber trägst du im geöffneten PDF selbst ein;
+                    das Dokument bleibt ausfüllbar.
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="kt-fuss">
+              <button className="btn" onClick={() => setVorlagenOffen(false)}><Icon name="x" /> Schließen</button>
               <label className="btn" style={{ cursor: "pointer" }} title="Neues Formular als Vorlage hinterlegen">
-                <Icon name="plus" /> <span className="btn-label">Vorlage</span>
+                {busy === "vorlage-upload" ? <span className="speichern-dreh" style={{ borderColor: "var(--border)", borderTopColor: "var(--accent)" }} /> : <Icon name="upload" />} Neue Vorlage
                 <input type="file" accept="application/pdf" style={{ display: "none" }}
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) vorlageHochladen(f); e.target.value = ""; }} />
               </label>
-              <button className="btn btn-icon" aria-label="Schließen" onClick={() => setVorlagenOffen(false)}><Icon name="x" /></button>
-            </div>
-            <div style={{ padding: 18, overflowY: "auto", display: "grid", gap: 8 }}>
-              {vorlagen.length === 0 && (
-                <div className="muted" style={{ fontSize: 13.5, lineHeight: 1.5 }}>
-                  Noch keine Vorlage. Lade oben ein ausfüllbares PDF hoch – etwa das
-                  SEPA-Lastschriftmandat. Die Formularfelder werden automatisch erkannt.
-                </div>
-              )}
-              {vorlagen.map((v) => {
-                const felder = (() => { try { return JSON.parse(v.formFields || "[]").length; } catch { return 0; } })();
-                return (
-                  <div key={v.id} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 10,
-                                           display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                    <Icon name="file-text" size={15} />
-                    <span style={{ fontWeight: 600, fontSize: 14 }}>{v.name}</span>
-                    <span className="muted" style={{ fontSize: 12 }}>
-                      v{v.version}{felder ? ` · ${felder} Formularfelder` : ""}
-                    </span>
-                    <button className="btn btn-primary" style={{ marginLeft: "auto" }} disabled={busy === "vorlage"}
-                      onClick={() => ausVorlage(v.id, v.name)}>
-                      <Icon name="save" /> {busy === "vorlage" ? "Legt ab…" : akte ? "Ablegen" : "Vorausgefüllt ablegen"}
-                    </button>
-                  </div>
-                );
-              })}
-              {akte ? (
-                <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
-                  Eine eigene Akte hat keine Firmendaten – das Formular wird <b>leer</b> abgelegt und bleibt ausfüllbar.
-                </div>
-              ) : (
-                <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
-                  Vorausgefüllt werden Firmenname, Anschrift, Steuernummer, USt-IdNr. sowie Ort und Datum.
-                  <b> Bankverbindung bleibt leer</b> – IBAN und Kontoinhaber trägst du im geöffneten PDF selbst ein;
-                  das Dokument bleibt ausfüllbar.
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -539,9 +567,18 @@ export default function BetriebsaktePage() {
       )}
 
       {!orgId && (
-        <div className="card muted" style={{ padding: 16, fontSize: 14 }}>
-          Bitte einen Mandanten oder eine eigene Akte wählen – dann erscheinen hier die Dokumente.
-          Eigene Akten (z. B. „Fuhrpark", „Immobilie Hauptstraße") legst du über <b>Neue Akte</b> an.
+        <div className="card">
+          <div className="leer-zustand">
+            <div className="leer-icon"><Icon name="building" size={28} /></div>
+            <div style={{ fontWeight: 650, color: "var(--fg)", fontSize: 15 }}>Mandant oder Akte wählen</div>
+            <div style={{ fontSize: 13.5, lineHeight: 1.5, maxWidth: 440 }}>
+              Bitte oben einen Mandanten oder eine eigene Akte wählen – dann erscheinen hier die Dokumente.
+              Eigene Akten (z. B. „Fuhrpark", „Immobilie Hauptstraße") legst du über <b>Neue Akte</b> an.
+            </div>
+            <button className="btn btn-primary" onClick={() => setAkteForm({ id: "", name: "", note: "" })}>
+              <Icon name="plus" /> Neue Akte
+            </button>
+          </div>
         </div>
       )}
 
@@ -551,36 +588,37 @@ export default function BetriebsaktePage() {
           {abschnitte.map((a) => {
             const zugeklappt = zu[a.id];
             return (
-              <div key={a.id} className="card" style={{ padding: 0, overflow: "hidden" }}>
-                <div className="akte-kopf" style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 10px", background: "var(--bg)", flexWrap: "wrap" }}>
-                  <button className="btn btn-icon" title={zugeklappt ? "Aufklappen" : "Zuklappen"}
+              <div key={a.id} className={`abl-rubrik${zugeklappt ? "" : " offen"}${a.echt ? "" : " ohne"}`}>
+                <div className="abl-rubrik-kopf akte-kopf">
+                  <button className="abl-rubrik-schalter" title={zugeklappt ? "Aufklappen" : "Zuklappen"} aria-expanded={!zugeklappt}
                     onClick={() => setZu((z) => ({ ...z, [a.id]: !z[a.id] }))}>
-                    <span style={{ display: "inline-flex", transform: zugeklappt ? "rotate(-90deg)" : "none", transition: "transform .15s" }}>
-                      <Icon name="chevron-down" />
+                    <span className="abl-pfeil"><Icon name="chevron-down" /></span>
+                    <span className="abl-rubrik-ic"><Icon name={a.echt ? "folder" : "archive"} size={16} /></span>
+                    <span style={{ display: "grid", minWidth: 0 }}>
+                      <span className="abl-rubrik-name">{a.name}</span>
+                      <span className="abl-rubrik-zahl">{a.dokumente.length} Dokument{a.dokumente.length === 1 ? "" : "e"}</span>
                     </span>
                   </button>
-                  <span style={{ fontWeight: 600, fontSize: 14 }}>{a.name}</span>
-                  <span className="muted" style={{ fontSize: 12 }}>
-                    {a.dokumente.length} Dokument{a.dokumente.length === 1 ? "" : "e"}
-                  </span>
-                  <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-                    <label className="btn btn-icon" style={{ cursor: "pointer" }} title="Datei in diese Rubrik ablegen">
-                      <Icon name="plus" />
+                  <div className="abl-rubrik-werkzeuge">
+                    <label className="btn btn-icon" style={{ cursor: "pointer" }} title="Datei in diese Rubrik ablegen" aria-label="Datei ablegen">
+                      <Icon name="upload" />
                       <input type="file" style={{ display: "none" }}
                         onChange={(e) => { const f = e.target.files?.[0]; if (f) hochladen(f, a.echt ? a.id : ""); e.target.value = ""; }} />
                     </label>
                     {/* Direkt in diese Rubrik einscannen – ohne Umweg über den Posteingang */}
                     <button className="btn btn-icon" disabled={!geraetId || busy === "scan"}
-                      title={geraetId ? `In „${a.name}" scannen` : "Kein Scanner eingerichtet"}
+                      title={geraetId ? `In „${a.name}" scannen` : "Kein Scanner eingerichtet"} aria-label="In diese Rubrik scannen"
                       onClick={() => scannen(a.echt ? a.id : "", a.name)}>
                       <Icon name="printer" />
                     </button>
                   </div>
                 </div>
 
-                {!zugeklappt && (
-                  <div style={{ padding: 10, display: "grid", gap: 8 }}>
-                    {a.dokumente.length === 0 && <div className="muted" style={{ fontSize: 12.5 }}>Noch nichts abgelegt.</div>}
+                {!zugeklappt && a.dokumente.length === 0 && (
+                  <div className="abl-rubrik-leer"><Icon name="folder" size={15} /> Noch nichts abgelegt – oben über die Symbole ablegen oder scannen.</div>
+                )}
+                {!zugeklappt && a.dokumente.length > 0 && (
+                  <div className="abl-liste">
                     {a.dokumente.map((d) => (
                       <Zeile key={d.id} d={d} suche={suche} busy={busy}
                         onOeffnen={oeffnen} onBearbeiten={setBearbeiten} onLoeschen={setLoeschen} />
@@ -595,63 +633,60 @@ export default function BetriebsaktePage() {
 
       {/* ── Ansicht: Zeitstrahl ── */}
       {orgId && ansicht === "zeitstrahl" && (
-        <div className="card" style={{ padding: 16 }}>
-          {zeitstrahl.length === 0 && <div className="muted" style={{ fontSize: 14 }}>Noch nichts abgelegt.</div>}
-          <div style={{ display: "grid", gap: 18 }}>
-            {zeitstrahl.map(({ monat, liste }) => (
-              <div key={monat}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                  <Icon name="calendar" size={16} />
-                  <span style={{ fontWeight: 700, fontSize: 14 }}>{monatsName(monat + "-01")}</span>
-                  <span className="muted" style={{ fontSize: 12 }}>{liste.length} Eintrag{liste.length === 1 ? "" : "e"}</span>
-                </div>
-                {/* Zeitstrahl: senkrechte Linie mit Punkten je Dokument */}
-                <div style={{ position: "relative", paddingLeft: 22 }}>
-                  <span style={{ position: "absolute", left: 6, top: 4, bottom: 4, width: 2, background: "var(--border)" }} />
-                  <div style={{ display: "grid", gap: 8 }}>
+        <div className="card">
+          {zeitstrahl.length === 0 && (
+            <div className="leer-zustand">
+              <div className="leer-icon"><Icon name="history" size={28} /></div>
+              <div style={{ fontWeight: 650, color: "var(--fg)", fontSize: 15 }}>Noch nichts abgelegt</div>
+              <div style={{ fontSize: 13.5 }}>Abgelegte Dokumente erscheinen hier nach Monat sortiert.</div>
+            </div>
+          )}
+          {zeitstrahl.length > 0 && (
+            <div className="abl-zeit">
+              {zeitstrahl.map(({ monat, liste }) => (
+                <div key={monat}>
+                  <div className="abl-zeit-monat">
+                    <span className="abl-rubrik-ic" style={{ background: "var(--accent-weich)", color: "var(--accent)" }}><Icon name="calendar" size={15} /></span>
+                    <b>{monatsName(monat + "-01")}</b>
+                    <span className="abzeichen">{liste.length} Eintrag{liste.length === 1 ? "" : "e"}</span>
+                  </div>
+                  {/* Zeitstrahl: senkrechte Linie mit Punkten je Dokument */}
+                  <div className="abl-zeit-spur">
                     {liste.map((d) => (
-                      <div key={d.id} style={{ position: "relative" }}>
-                        <span style={{ position: "absolute", left: -21, top: 14, width: 10, height: 10, borderRadius: "50%",
-                                       background: "var(--accent)", border: "2px solid var(--card, var(--bg))" }} />
-                        <Zeile d={d} suche={suche} busy={busy} rubrik={rubrikName(d.groupId)}
+                      <div key={d.id} className="abl-zeit-punkt">
+                        <Zeile d={d} suche={suche} busy={busy} rubrik={rubrikName(d.groupId)} einzeln
                           onOeffnen={oeffnen} onBearbeiten={setBearbeiten} onLoeschen={setLoeschen} />
                       </div>
                     ))}
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* ── Bearbeiten ── */}
       {bearbeiten && (
-        <div onClick={() => setBearbeiten(null)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "grid", placeItems: "center", padding: 16, zIndex: 60 }}>
-          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster"
-            style={{ width: 520, maxWidth: "94vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
-              <Icon name="file-text" size={18} />
-              <h2 style={{ fontSize: 17, fontWeight: 700, flex: 1 }}>Dokument bearbeiten</h2>
-              <button className="btn btn-icon" aria-label="Schließen" onClick={() => setBearbeiten(null)}><Icon name="x" /></button>
+        <div className="kt-huelle" style={{ zIndex: 60 }} onClick={() => setBearbeiten(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster kt-fenster" style={{ width: 520 }}>
+            <div className="abl-fenster-kopf">
+              <span className="abl-ic"><Icon name="pencil" size={17} /></span>
+              <h2>Dokument bearbeiten<small>Titel, Datum, Rubrik und Notiz</small></h2>
+              <button className="btn btn-icon btn-flach" aria-label="Schließen" onClick={() => setBearbeiten(null)}><Icon name="x" /></button>
             </div>
-            <div style={{ padding: 20, overflowY: "auto", display: "grid", gap: 12 }}>
+            <div className="kt-inhalt">
               <Feld label="Titel" icon="file-text" wert={bearbeiten.title}
                 setWert={(v) => setBearbeiten({ ...bearbeiten, title: v })} />
-              <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                  <Icon name="calendar" size={14} /> Datum des Schriftstücks
-                </span>
+              <label className="abl-label">
+                <span><Icon name="calendar" size={13} /> Datum des Schriftstücks</span>
                 <input className="input" type="date"
                   value={bearbeiten.documentDate ? String(bearbeiten.documentDate).slice(0, 10) : ""}
                   onChange={(e) => setBearbeiten({ ...bearbeiten, documentDate: e.target.value ? new Date(e.target.value).toISOString() : null })} />
                 <span className="muted" style={{ fontSize: 12 }}>Bestimmt die Einordnung im Zeitstrahl.</span>
               </label>
-              <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                <span className="muted" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                  <Icon name="tag" size={14} /> Rubrik
-                </span>
+              <label className="abl-label">
+                <span><Icon name="tag" size={13} /> Rubrik</span>
                 <SuchSelect
                   value={bearbeiten.groupId}
                   onChange={(v) => setBearbeiten({ ...bearbeiten, groupId: v })}
@@ -663,14 +698,14 @@ export default function BetriebsaktePage() {
                   onNeu={rubrikAnlegen}
                 />
               </label>
-              <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-                <span className="muted">Notiz</span>
+              <label className="abl-label">
+                <span><Icon name="pencil" size={13} /> Notiz</span>
                 <textarea className="input" rows={3} value={bearbeiten.note || ""}
                   onChange={(e) => setBearbeiten({ ...bearbeiten, note: e.target.value })} />
               </label>
             </div>
-            <div style={{ padding: "12px 20px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button className="btn" onClick={() => setBearbeiten(null)}>Abbrechen</button>
+            <div className="kt-fuss">
+              <button className="btn" onClick={() => setBearbeiten(null)}><Icon name="x" /> Abbrechen</button>
               <button className="btn btn-primary" onClick={speichernBearbeitet}><Icon name="save" /> Speichern</button>
             </div>
           </div>
@@ -697,26 +732,27 @@ export default function BetriebsaktePage() {
 
       {/* ── Eigene Akte anlegen / bearbeiten ── */}
       {akteForm && (
-        <div onClick={() => setAkteForm(null)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "grid", placeItems: "center", padding: 16, zIndex: 60 }}>
-          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster"
-            style={{ width: 480, maxWidth: "94vw", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
-              <Icon name="folder" size={18} />
-              <h2 style={{ fontSize: 17, fontWeight: 700, flex: 1 }}>{akteForm.id ? "Akte bearbeiten" : "Neue Akte"}</h2>
-              <button className="btn btn-icon" aria-label="Schließen" onClick={() => setAkteForm(null)}><Icon name="x" /></button>
+        <div className="kt-huelle" style={{ zIndex: 60 }} onClick={() => setAkteForm(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster kt-fenster" style={{ width: 480 }}>
+            <div className="abl-fenster-kopf">
+              <span className="abl-ic"><Icon name="folder" size={17} /></span>
+              <h2>{akteForm.id ? "Akte bearbeiten" : "Neue Akte"}<small>Eigene Ablage neben den Mandanten</small></h2>
+              <button className="btn btn-icon btn-flach" aria-label="Schließen" onClick={() => setAkteForm(null)}><Icon name="x" /></button>
             </div>
-            <div style={{ padding: 18, display: "grid", gap: 12 }}>
+            <div className="kt-inhalt">
               <Feld label="Name der Akte" icon="folder" wert={akteForm.name} autoFocus
                 setWert={(v) => setAkteForm({ ...akteForm, name: v })} platzhalter="z. B. Fuhrpark, Immobilie Hauptstraße" />
               <Feld label="Notiz (optional)" icon="pencil" wert={akteForm.note}
                 setWert={(v) => setAkteForm({ ...akteForm, note: v })} platzhalter="Wofür ist die Akte?" />
-              <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
-                Eigene Akten stehen in der Auswahl neben den Mandanten und haben dieselben Rubriken,
-                Zeitstrahl, Scannen und Ablage. Auch Scans aus dem Posteingang lassen sich hierher zuordnen.
+              <div className="abl-hinweis">
+                <Icon name="alert" size={15} />
+                <span>
+                  Eigene Akten stehen in der Auswahl neben den Mandanten und haben dieselben Rubriken,
+                  Zeitstrahl, Scannen und Ablage. Auch Scans aus dem Posteingang lassen sich hierher zuordnen.
+                </span>
               </div>
             </div>
-            <div style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <div className="kt-fuss">
               <button className="btn" onClick={() => setAkteForm(null)}><Icon name="x" /> Abbrechen</button>
               <button className="btn btn-primary" onClick={akteSpeichern}>
                 <Icon name="save" /> {akteForm.id ? "Speichern" : "Akte anlegen"}
@@ -744,42 +780,41 @@ export default function BetriebsaktePage() {
   );
 }
 
-/** Eine Dokumentzeile – in beiden Ansichten gleich aufgebaut. */
-function Zeile({ d, suche, busy, rubrik, onOeffnen, onBearbeiten, onLoeschen }: {
-  d: Dokument; suche: string; busy: string; rubrik?: string;
+/** Eine Dokumentzeile – in beiden Ansichten gleich aufgebaut (am Handy als Karte). */
+function Zeile({ d, suche, busy, rubrik, einzeln, onOeffnen, onBearbeiten, onLoeschen }: {
+  d: Dokument; suche: string; busy: string; rubrik?: string; einzeln?: boolean;
   onOeffnen: (d: Dokument, speichern: boolean) => void;
   onBearbeiten: (d: Dokument) => void;
   onLoeschen: (d: Dokument) => void;
 }) {
   return (
-    <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 10, display: "grid", gap: 6 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <Icon name={String(d.mimeType || "").startsWith("image/") ? "image" : "file-text"} size={15} />
-        <span style={{ fontWeight: 600, fontSize: 14 }}><Hervorheben text={d.title} suche={suche} /></span>
-        {d.version > 1 && (
-          <span className="muted" style={{ fontSize: 12, border: "1px solid var(--border)", borderRadius: 6, padding: "1px 6px" }}>
-            v{d.version}
-          </span>
-        )}
-        {rubrik && <span className="muted" style={{ fontSize: 12 }}>· {rubrik}</span>}
-        <span className="muted" style={{ fontSize: 12, marginLeft: "auto" }}>
-          {datum(d.documentDate || d.createdAt)}{d.size ? ` · ${groesse(d.size)}` : ""}
-        </span>
-      </div>
-      {d.note && (
-        <div className="muted" style={{ fontSize: 12.5, whiteSpace: "pre-wrap", borderLeft: "2px solid var(--border)", paddingLeft: 8 }}>
-          <Hervorheben text={d.note} suche={suche} />
+    <div className={`abl-zeile drei${einzeln ? " einzeln" : ""}`}>
+      <DateiSymbol mime={d.mimeType} name={d.fileName} />
+      <div className="abl-haupt">
+        <div className="abl-titel">
+          <b><Hervorheben text={d.title} suche={suche} /></b>
+          {d.version > 1 && <span className="abzeichen blau" title="Version">v{d.version}</span>}
+          {rubrik && <span className="abzeichen"><Icon name="folder" size={11} /> {rubrik}</span>}
         </div>
-      )}
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-        <button className="btn" disabled={busy === "dok" + d.id} onClick={() => onOeffnen(d, false)}>
+        <div className="abl-meta">
+          <span><Icon name="calendar" size={12} /> {datum(d.documentDate || d.createdAt)}</span>
+          {d.size ? <span>{groesse(d.size)}</span> : null}
+        </div>
+        {d.note && (
+          <div className="abl-notiz-text">
+            <Hervorheben text={d.note} suche={suche} />
+          </div>
+        )}
+      </div>
+      <div className="abl-aktionen">
+        <button className="abl-haupt-aktion" disabled={busy === "dok" + d.id} onClick={() => onOeffnen(d, false)} title="Dokument öffnen">
           <Icon name="eye" /> Öffnen
         </button>
-        <button className="btn" disabled={busy === "dok" + d.id} onClick={() => onOeffnen(d, true)}>
-          <Icon name="save" /> Speichern
+        <button disabled={busy === "dok" + d.id} onClick={() => onOeffnen(d, true)} title="Herunterladen / speichern" aria-label="Speichern">
+          <Icon name="download" />
         </button>
-        <button className="btn btn-icon" title="Bearbeiten" onClick={() => onBearbeiten(d)}><Icon name="pencil" /></button>
-        <button className="btn btn-icon btn-danger" title="Entfernen" onClick={() => onLoeschen(d)}><Icon name="trash" /></button>
+        <button title="Bearbeiten" aria-label="Bearbeiten" onClick={() => onBearbeiten(d)}><Icon name="pencil" /></button>
+        <button className="abl-weg" title="Entfernen" aria-label="Entfernen" onClick={() => onLoeschen(d)}><Icon name="trash" /></button>
       </div>
     </div>
   );

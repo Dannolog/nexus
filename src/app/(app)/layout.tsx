@@ -213,24 +213,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Abmelden: eigenes Fenster, auf dem Handy fingerfreundlich und über der Tastatur */}
       {abmeldenFrage && (
-        <div onClick={() => setAbmeldenFrage(false)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", display: "grid", placeItems: "center",
-                   padding: 16, zIndex: 120 }}>
-          <div onClick={(e) => e.stopPropagation()} className="card abmelde-fenster"
-            style={{ width: 380, maxWidth: "94vw", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
-              <Icon name="logout" size={18} />
-              <h2 style={{ fontSize: 17, fontWeight: 700 }}>Abmelden?</h2>
+        <div className="cd-schatten" onClick={() => setAbmeldenFrage(false)} style={{ zIndex: 120 }}>
+          <div onClick={(e) => e.stopPropagation()} className="card cd-fenster">
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <span className="nutzer-avatar" style={{ width: 44, height: 44, fontSize: 15 }}>
+                {String(user?.name || "?").trim().split(/\s+/).map((t: string) => t[0]).slice(0, 2).join("").toUpperCase()}
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <h2 style={{ fontSize: 18, fontWeight: 700 }}>Abmelden?</h2>
+                {user?.name && <div className="muted" style={{ fontSize: 13 }}>Angemeldet als {user.name}</div>}
+              </div>
             </div>
-            <div style={{ padding: 20, fontSize: 14, lineHeight: 1.55, display: "grid", gap: 8 }}>
-              <span>Du wirst von Nexus abgemeldet und landest wieder auf der Anmeldeseite.</span>
-              {user?.name && (
-                <span className="muted" style={{ fontSize: 13 }}>Angemeldet als {user.name} ({user.globalRole})</span>
-              )}
+            <div className="muted" style={{ fontSize: 14, marginBottom: 20, lineHeight: 1.5 }}>
+              Du wirst von Nexus abgemeldet und landest wieder auf der Anmeldeseite.
             </div>
-            <div style={{ padding: "12px 20px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button className="btn" onClick={() => setAbmeldenFrage(false)}>Bleiben</button>
-              <button className="btn btn-danger" onClick={abmelden}><Icon name="logout" /> Abmelden</button>
+            <div className="cd-knoepfe">
+              <button className="btn" onClick={() => setAbmeldenFrage(false)} autoFocus>Angemeldet bleiben</button>
+              <button className="btn btn-primary" style={{ background: "var(--rot)", borderColor: "var(--rot)" }} onClick={abmelden}><Icon name="logout" /> Abmelden</button>
             </div>
           </div>
         </div>

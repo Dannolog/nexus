@@ -106,45 +106,40 @@ export default function CommandPalette() {
   if (!open) return null;
 
   return (
-    <div
-      onClick={() => setOpen(false)}
-      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "flex", justifyContent: "center", alignItems: "flex-start", paddingTop: "12vh", zIndex: 200 }}
-    >
-      <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: 560, maxWidth: "92vw", overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,.4)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderBottom: "1px solid var(--border)" }}>
-          <Icon name="search" size={18} style={{ opacity: 0.5 }} />
+    <div onClick={() => setOpen(false)} className="cp-huelle">
+      <div onClick={(e) => e.stopPropagation()} className="card cp-fenster" role="dialog" aria-label="Suchen">
+        <div className="cp-kopf">
+          <Icon name="search" size={19} style={{ color: "var(--accent)" }} />
           <input
             ref={inputRef}
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="Suchen oder springen… (Kunden, Projekte, Mitarbeiter)"
-            style={{ flex: 1, border: 0, outline: "none", background: "transparent", color: "var(--fg)", fontSize: 16 }}
+            placeholder="Suchen oder springen… (Kunden, Kontakte, Mitarbeiter)"
+            enterKeyHint="go"
           />
-          <kbd style={{ fontSize: 11, padding: "2px 6px", borderRadius: 6, border: "1px solid var(--border)", color: "var(--muted)" }}>ESC</kbd>
+          {q && <button className="btn btn-icon btn-flach" aria-label="Eingabe leeren" onClick={() => { setQ(""); inputRef.current?.focus(); }}><Icon name="x" size={15} /></button>}
+          <button className="cp-esc" onClick={() => setOpen(false)}>ESC</button>
         </div>
-        <div style={{ maxHeight: 360, overflowY: "auto", padding: 6 }}>
+        <div className="cp-liste">
           {q.trim() && items.length === 0 && (
-            <div className="muted" style={{ padding: 18, textAlign: "center", fontSize: 14 }}>Keine Treffer für „{q}".</div>
+            <div className="leer-zustand" style={{ padding: 28 }}>
+              <span className="leer-icon" style={{ width: 48, height: 48, borderRadius: 14 }}><Icon name="search" size={22} /></span>
+              Keine Treffer für „{q}".
+            </div>
           )}
-          {!q.trim() && <div className="muted" style={{ padding: "6px 12px", fontSize: 12, textTransform: "uppercase", letterSpacing: 0.5 }}>Schnellnavigation</div>}
+          {!q.trim() && <div className="sektion-titel" style={{ padding: "8px 12px 6px" }}>Schnell springen</div>}
           {items.map((it, i) => (
-            <button
-              key={it.href + i}
-              onClick={() => go(it)}
-              onMouseEnter={() => setActive(i)}
-              style={{
-                display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left",
-                padding: "10px 12px", border: 0, borderRadius: 8, cursor: "pointer",
-                background: i === active ? "var(--accent)" : "transparent",
-                color: i === active ? "#fff" : "var(--fg)",
-              }}
-            >
-              <Icon name={it.icon} size={18} style={{ opacity: i === active ? 1 : 0.7 }} />
-              <span style={{ flex: 1, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.label}</span>
-              {it.sub && <span style={{ fontSize: 12, opacity: 0.7 }}>{it.sub}</span>}
+            <button key={it.href + i} onClick={() => go(it)} onMouseEnter={() => setActive(i)}
+              className={"cp-eintrag" + (i === active ? " aktiv" : "")}>
+              <span className="cp-icon"><Icon name={it.icon} size={16} /></span>
+              <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.label}</span>
+              {it.sub && <span className="abzeichen">{it.sub}</span>}
             </button>
           ))}
+        </div>
+        <div className="cp-fuss only-desktop">
+          <span><kbd>↑</kbd><kbd>↓</kbd> auswählen</span><span><kbd>↵</kbd> öffnen</span><span><kbd>Esc</kbd> schließen</span>
         </div>
       </div>
     </div>

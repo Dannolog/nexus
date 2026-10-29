@@ -788,72 +788,76 @@ export default function Page() {
 
       {/* ── Firmenangaben: Webadresse, Bezeichnung, Standard-Mail, Anschrift ── */}
       {firmenOffen && (
-        <div onClick={() => setFirmenOffen(false)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", display: "grid", placeItems: "center", padding: 16, zIndex: 70 }}>
-          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster"
-            style={{ width: 640, maxWidth: "94vw", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
-              <Icon name="building" size={18} />
-              <h2 style={{ fontSize: 17, fontWeight: 700, flex: 1 }}>Firmenangaben und Anschrift</h2>
-              <button className="btn btn-icon" aria-label="Schließen" onClick={() => setFirmenOffen(false)}>
+        <div className="kt-huelle" style={{ zIndex: 70 }} onClick={() => setFirmenOffen(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="card kt-fenster dm-fenster" style={{ width: 660 }}>
+            <div className="sca-fenster-kopf">
+              <span className="sca-ic"><Icon name="building" size={16} /></span>
+              <div>
+                <h2>Firmenangaben und Anschrift</h2>
+                <div className="sca-unter">Gilt für alle Karten · wird in diesem Browser gespeichert</div>
+              </div>
+              <button className="btn btn-icon btn-flach" aria-label="Schließen" onClick={() => setFirmenOffen(false)}>
                 <Icon name="x" />
               </button>
             </div>
 
             {/* Reiter: je Firma ein Bereich, dazu die Anschrift – so bleibt das Fenster kurz */}
-            <div style={{ display: "flex", gap: 6, padding: "10px 14px", borderBottom: "1px solid var(--border)",
-                          overflowX: "auto", flexShrink: 0 }}>
-              {(["handel", "ing", "masch", "group"] as const).map((sch) => {
-                const aktiv = firmenReiter === sch;
-                return (
-                  <button key={sch} className="btn" onClick={() => setFirmenReiter(sch)}
-                    style={{ whiteSpace: "nowrap", background: aktiv ? "var(--accent)" : undefined,
-                             color: aktiv ? "#fff" : undefined }}>
-                    <span style={{ width: 10, height: 10, borderRadius: 3, background: FARBEN[sch].akzent,
-                                   display: "inline-block", marginRight: 6 }} />
+            <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
+              <div className="kt-segment" role="tablist" aria-label="Bereich">
+                {(["handel", "ing", "masch", "group"] as const).map((sch) => (
+                  <button key={sch} role="tab" aria-selected={firmenReiter === sch}
+                    className={firmenReiter === sch ? "an" : ""} onClick={() => setFirmenReiter(sch)}>
+                    <span className="sca-reiter-punkt" style={{ background: FARBEN[sch].akzent }} />
                     {firmen[sch].name}
                   </button>
-                );
-              })}
-              <button className="btn" onClick={() => setFirmenReiter("anschrift")}
-                style={{ whiteSpace: "nowrap", background: firmenReiter === "anschrift" ? "var(--accent)" : undefined,
-                         color: firmenReiter === "anschrift" ? "#fff" : undefined }}>
-                <Icon name="home" size={14} /> Anschrift
-              </button>
+                ))}
+                <button role="tab" aria-selected={firmenReiter === "anschrift"}
+                  className={firmenReiter === "anschrift" ? "an" : ""} onClick={() => setFirmenReiter("anschrift")}>
+                  <Icon name="home" size={14} /> Anschrift
+                </button>
+              </div>
             </div>
 
-            <div style={{ padding: 20, overflowY: "auto", display: "grid", gap: 14 }}>
+            <div className="kt-inhalt" style={{ flex: 1 }}>
               {firmenReiter !== "anschrift" && (() => {
                 const sch = firmenReiter as FirmaSchluessel;
                 return (
                   <>
-                    <div className="feld-zeile feld-zeile-2">
-                      <Feld label="Bezeichnung" icon="building" wert={firmen[sch].name}
-                        setWert={(v) => firmaAendern(sch, "name", v)} />
-                      <Feld label="Zusatz" icon="tag" wert={firmen[sch].zusatz}
-                        setWert={(v) => firmaAendern(sch, "zusatz", v)} />
-                    </div>
-                    <div className="feld-zeile feld-zeile-2">
-                      <Feld label="Webadresse" icon="command" wert={firmen[sch].web}
-                        platzhalter="z. B. baier-handel.de"
-                        setWert={(v) => firmaAendern(sch, "web", v)} />
-                      <Feld label="Standard-E-Mail" icon="mail" typ="email" wert={firmen[sch].mail}
-                        setWert={(v) => firmaAendern(sch, "mail", v)} />
+                    <div className="kt-abschnitt">
+                      <div className="kt-abschnitt-titel">
+                        <span className="ic"><Icon name="building" size={15} /></span> Firma
+                      </div>
+                      <div className="feld-zeile feld-zeile-2">
+                        <Feld label="Bezeichnung" icon="building" wert={firmen[sch].name}
+                          setWert={(v) => firmaAendern(sch, "name", v)} />
+                        <Feld label="Zusatz" icon="tag" wert={firmen[sch].zusatz}
+                          setWert={(v) => firmaAendern(sch, "zusatz", v)} />
+                      </div>
+                      <div className="feld-zeile feld-zeile-2">
+                        <Feld label="Webadresse" icon="globe" wert={firmen[sch].web}
+                          platzhalter="z. B. baier-handel.de"
+                          setWert={(v) => firmaAendern(sch, "web", v)} />
+                        <Feld label="Standard-E-Mail" icon="mail" typ="email" wert={firmen[sch].mail}
+                          setWert={(v) => firmaAendern(sch, "mail", v)} />
+                      </div>
+                      <div className="sca-hinweis">
+                        Die Webadresse der <b>Vorderseite</b> kommt aus der Firma, die bei der Person gewählt ist;
+                        die <b>Rückseite</b> zeigt alle drei Firmen und die Anschrift. Der QR-Code wird aus der
+                        jeweils eingetragenen Adresse erzeugt.
+                      </div>
                     </div>
 
-                    <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, display: "grid", gap: 8 }}>
-                      <div className="muted" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".04em",
-                                                      display: "flex", alignItems: "center", gap: 6 }}>
-                        <Icon name="image" size={14} /> Farben dieser Karte
+                    <div className="kt-abschnitt">
+                      <div className="kt-abschnitt-titel">
+                        <span className="ic"><Icon name="image" size={15} /></span> Farben dieser Karte
+                        <small>zum Weitergeben</small>
                       </div>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                         {([["akzent", "Akzent"], ["dunkel", "Dunkel"], ["grund", "Grund"]] as const).map(([feld, text]) => (
-                          <div key={feld} style={{ display: "flex", alignItems: "center", gap: 6,
-                                                   border: "1px solid var(--border)", borderRadius: 8, padding: "4px 6px 4px 4px" }}>
-                            <span style={{ width: 22, height: 22, borderRadius: 6, flexShrink: 0,
-                                           background: FARBEN[sch][feld], border: "1px solid rgba(128,128,128,.35)" }} />
+                          <div key={feld} className="sca-farbe">
+                            <i style={{ background: FARBEN[sch][feld] }} />
                             <span className="muted" style={{ fontSize: 12 }}>{text}</span>
-                            <code style={{ fontSize: 12.5, fontFamily: "ui-monospace, monospace" }}>{FARBEN[sch][feld]}</code>
+                            <code>{FARBEN[sch][feld]}</code>
                             <KopierKnopf wert={FARBEN[sch][feld]} was={`${text}-Farbe`} klein />
                           </div>
                         ))}
@@ -866,18 +870,15 @@ export default function Page() {
                         </button>
                       </div>
                     </div>
-
-                    <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
-                      Die Webadresse der <b>Vorderseite</b> kommt aus der Firma, die bei der Person gewählt ist;
-                      die <b>Rückseite</b> zeigt alle drei Firmen und die Anschrift. Der QR-Code wird aus der
-                      jeweils eingetragenen Adresse erzeugt.
-                    </div>
                   </>
                 );
               })()}
 
               {firmenReiter === "anschrift" && (
-                <>
+                <div className="kt-abschnitt">
+                  <div className="kt-abschnitt-titel">
+                    <span className="ic"><Icon name="home" size={15} /></span> Anschrift der Rückseite
+                  </div>
                   <div className="feld-zeile feld-zeile-2">
                     <Feld label="Straße und Hausnummer" icon="home" wert={anschrift.strasse}
                       setWert={(v) => setAnschrift({ ...anschrift, strasse: v })} />
@@ -887,16 +888,16 @@ export default function Page() {
                   <Feld label="Schlusszeile" icon="file-text" wert={anschrift.zusatz}
                     hinweis="Steht unter der Anschrift, z. B. Planung, Fertigung und Vertrieb aus einer Hand."
                     setWert={(v) => setAnschrift({ ...anschrift, zusatz: v })} />
-                  <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
+                  <div className="sca-hinweis">
                     Diese Angaben stehen auf der <b>Rückseite</b> jeder Karte. Sie gelten für alle Firmen
                     und werden in diesem Browser gespeichert.
                   </div>
-                </>
+                </div>
               )}
             </div>
 
-            <div style={{ padding: "12px 20px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button className="btn" onClick={() => { setFirmen(FIRMEN); setAnschrift(ANSCHRIFT_STANDARD); }}>
+            <div className="kt-fuss">
+              <button className="btn sca-fuss-links" onClick={() => { setFirmen(FIRMEN); setAnschrift(ANSCHRIFT_STANDARD); }}>
                 <Icon name="undo" /> Zurücksetzen
               </button>
               <button className="btn btn-primary" onClick={() => setFirmenOffen(false)}>
@@ -909,74 +910,83 @@ export default function Page() {
 
       {/* ── Einstellungen für den beidseitigen Druck ── */}
       {duplexDialog && (
-        <div onClick={() => setDuplexDialog(false)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", display: "grid", placeItems: "center", padding: 16, zIndex: 70 }}>
-          <div onClick={(e) => e.stopPropagation()} className="card dm-fenster"
-            style={{ width: 520, maxWidth: "94vw", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
-              <h2 style={{ fontSize: 17, fontWeight: 700, flex: 1 }}>Beidseitig drucken</h2>
-              <button className="btn btn-icon" aria-label="Schließen" onClick={() => setDuplexDialog(false)}>
+        <div className="kt-huelle" style={{ zIndex: 95 }} onClick={() => setDuplexDialog(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="card kt-fenster dm-fenster" style={{ width: 540 }}>
+            <div className="sca-fenster-kopf">
+              <span className="sca-ic"><Icon name="printer" size={16} /></span>
+              <div>
+                <h2>Beidseitig drucken</h2>
+                <div className="sca-unter">Blatt 1 Vorderseiten, Blatt 2 Rückseiten – passend gewendet</div>
+              </div>
+              <button className="btn btn-icon btn-flach" aria-label="Schließen" onClick={() => setDuplexDialog(false)}>
                 <Icon name="x" />
               </button>
             </div>
-            <div style={{ padding: 20, display: "grid", gap: 14 }}>
-              <div style={{ display: "grid", gap: 6 }}>
-                <span className="muted" style={{ fontSize: 13 }}>Karten je Bogen</span>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {[[10, "10 Stück (2 × 5)"], [1, "1 Stück (mittig)"]].map(([wert, text]) => (
-                    <button key={String(wert)} className="btn" onClick={() => setProBogen(Number(wert))}
-                      style={{ background: proBogen === wert ? "var(--accent)" : undefined, color: proBogen === wert ? "#fff" : undefined }}>
+            <div className="kt-inhalt" style={{ flex: 1 }}>
+              <div className="kt-abschnitt">
+                <div className="kt-abschnitt-titel">
+                  <span className="ic"><Icon name="copy" size={15} /></span> Karten je Bogen
+                </div>
+                <div className="sca-segment" role="group" aria-label="Karten je Bogen">
+                  {([[10, "10 Stück (2 × 5)"], [1, "1 Stück (mittig)"]] as const).map(([wert, text]) => (
+                    <button key={String(wert)} aria-pressed={proBogen === wert} onClick={() => setProBogen(Number(wert))}>
                       {text}
                     </button>
                   ))}
                 </div>
               </div>
-              <div style={{ display: "grid", gap: 6 }}>
-                <span className="muted" style={{ fontSize: 13 }}>Wie wendet der Drucker?</span>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {[["lang", "Lange Kante (Standard)"], ["kurz", "Kurze Kante"]].map(([wert, text]) => (
-                    <button key={wert} className="btn" onClick={() => setWendekante(wert as "lang" | "kurz")}
-                      style={{ background: wendekante === wert ? "var(--accent)" : undefined, color: wendekante === wert ? "#fff" : undefined }}>
+              <div className="kt-abschnitt">
+                <div className="kt-abschnitt-titel">
+                  <span className="ic"><Icon name="redo" size={15} /></span> Wie wendet der Drucker?
+                </div>
+                <div className="sca-segment" role="group" aria-label="Wendekante">
+                  {([["lang", "Lange Kante (Standard)"], ["kurz", "Kurze Kante"]] as const).map(([wert, text]) => (
+                    <button key={wert} aria-pressed={wendekante === wert} onClick={() => setWendekante(wert)}>
                       {text}
                     </button>
                   ))}
                 </div>
               </div>
-              <div style={{ display: "grid", gap: 6 }}>
-                <span className="muted" style={{ fontSize: 13 }}>
-                  Feinabgleich der Rückseite (mm) – positiv schiebt nach rechts bzw. nach unten
-                </span>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                  <label style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
-                    waagerecht
-                    <input className="input" type="number" step={0.5} style={{ width: 90 }}
+              <div className="kt-abschnitt">
+                <div className="kt-abschnitt-titel">
+                  <span className="ic"><Icon name="maximize" size={15} /></span> Feinabgleich der Rückseite
+                  <small>in mm</small>
+                </div>
+                <div className="sca-hinweis">Positiv schiebt nach rechts bzw. nach unten.</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 10, alignItems: "end" }}>
+                  <label className="sca-zahlfeld">
+                    <span>waagerecht</span>
+                    <input className="input" type="number" step={0.5} inputMode="decimal"
                       value={versatzX} onChange={(e) => setVersatzX(Number(e.target.value) || 0)} />
                   </label>
-                  <label style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
-                    senkrecht
-                    <input className="input" type="number" step={0.5} style={{ width: 90 }}
+                  <label className="sca-zahlfeld">
+                    <span>senkrecht</span>
+                    <input className="input" type="number" step={0.5} inputMode="decimal"
                       value={versatzY} onChange={(e) => setVersatzY(Number(e.target.value) || 0)} />
                   </label>
-                  <button className="btn" onClick={() => { setVersatzX(0); setVersatzY(0); }}>
-                    <Icon name="undo" /> ohne Versatz
+                  <button className="btn" onClick={() => { setVersatzX(0); setVersatzY(0); }} title="ohne Versatz">
+                    <Icon name="undo" /> <span className="btn-label">ohne Versatz</span>
                   </button>
                 </div>
-                <span className="muted" style={{ fontSize: 12 }}>
+                <span className="sca-hinweis">
                   Voreingestellt sind −1 mm / +1 mm – das gleicht aus, dass die Rückseite bisher
                   1 mm zu weit rechts und 1 mm zu hoch lag. Der Wert wird gemerkt.
                 </span>
               </div>
 
-              <div className="muted" style={{ fontSize: 12.5, lineHeight: 1.6 }}>
-                Es entstehen <b>zwei Seiten</b>: Blatt 1 mit den Vorderseiten, Blatt 2 mit den
-                Rückseiten – bereits so angeordnet, dass sie nach dem Wenden genau übereinander liegen.
-                Im Druckdialog bitte <b>beidseitig</b> einschalten, <b>Skalierung 100 %</b> und
-                <b> Ränder: keine</b> wählen; die Ränder bringt das Layout selbst mit.
-                Die gestrichelten Linien sind Schnitthilfen und werden hell gedruckt.
+              <div className="hinweis-leiste" style={{ marginBottom: 0, alignItems: "flex-start", fontSize: 12.5, lineHeight: 1.6 }}>
+                <Icon name="alert" size={15} />
+                <span>
+                  Es entstehen <b>zwei Seiten</b>: Blatt 1 mit den Vorderseiten, Blatt 2 mit den
+                  Rückseiten – bereits so angeordnet, dass sie nach dem Wenden genau übereinander liegen.
+                  Im Druckdialog bitte <b>beidseitig</b> einschalten, <b>Skalierung 100 %</b> und
+                  <b> Ränder: keine</b> wählen; die Ränder bringt das Layout selbst mit.
+                  Die gestrichelten Linien sind Schnitthilfen und werden hell gedruckt.
+                </span>
               </div>
             </div>
-            <div style={{ padding: "12px 20px", borderTop: "1px solid var(--border)", display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button className="btn" onClick={() => setDuplexDialog(false)}>Abbrechen</button>
+            <div className="kt-fuss">
+              <button className="btn sca-fuss-links" onClick={() => setDuplexDialog(false)}><Icon name="x" /> Abbrechen</button>
               <button className="btn btn-primary" onClick={beidseitigDrucken}>
                 <Icon name="printer" /> Drucken
               </button>

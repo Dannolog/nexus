@@ -7,7 +7,8 @@
 
 /* ── Aufteilung: Gerät links (bleibt stehen), Posteingang rechts ── */
 .sca-raster { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 18px; align-items: start; }
-.sca-seitenleiste { position: sticky; top: 96px; display: grid; gap: 14px; }
+.sca-seitenleiste { display: grid; gap: 14px; }
+@media (min-width: 1101px) and (min-height: 860px) { .sca-seitenleiste { position: sticky; top: 96px; } }
 
 /* ── Karten mit Titelzeile ── */
 .sca-karte { padding: 16px; display: grid; gap: 14px; }

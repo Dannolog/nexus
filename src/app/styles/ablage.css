@@ -173,3 +173,7 @@
 /* Zeile ohne Rubrik-Auswahl (Betriebsakte): nur Symbol, Inhalt, Aktionen */
 .abl-zeile.drei { grid-template-columns: 40px minmax(0, 1fr) auto; }
 @media (max-width: 768px) { .abl-zeile.drei { grid-template-columns: 40px minmax(0, 1fr); } }
+@media (max-width: 768px) {
+  /* Vorlagen-Aktionen dürfen am Handy in zwei Reihen umbrechen */
+  .abl-vorlage .abl-aktionen > button, .abl-vorlage .abl-aktionen > label { flex: 1 1 auto; border-top: 1px solid var(--border); margin-top: -1px; }
+}
