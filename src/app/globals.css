@@ -189,7 +189,9 @@ body.sidebar-zieht { cursor: col-resize; user-select: none; }
 @keyframes update-auf { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
 
 @media (max-width: 768px) {
-  .app-shell { display: block; height: 100vh; overflow: auto; }
+  /* Nur die Seite selbst scrollt – kein zweiter Scrollbereich im Rahmen (doppeltes Scrollen) */
+  .app-shell { display: block; height: auto; min-height: 100dvh; overflow: visible; }
+  html, body { overflow-x: hidden; }
   .topbar {
     display: flex; align-items: center; gap: 12px;
     position: fixed; top: 0; left: 0; right: 0; z-index: 40;
@@ -817,13 +819,16 @@ mark.treffer {
 .rv-link { color: inherit; text-decoration: none; overflow: hidden; text-overflow: ellipsis; }
 .rv-link:hover { color: var(--accent); text-decoration: underline; }
 .rv-initialen { border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; color: #fff; font-weight: 700; letter-spacing: .02em; user-select: none; }
-.rv-karte { padding: 14px; display: grid; gap: 12px; cursor: pointer; border-radius: 16px; }
+.rv-karte { padding: 14px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; cursor: pointer; border-radius: 16px; min-width: 0; overflow: hidden; }
+/* Kein Inhalt darf die Karte breiter machen – lange Namen/E-Mails werden gekürzt bzw. umbrochen */
+.rv-karte > * { min-width: 0; }
+.rv-karte-titel { font-weight: 650; font-size: 15.5px; line-height: 1.3; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .rv-karte:active { background: color-mix(in srgb, var(--accent) 4%, var(--card)); }
 .rv-karte-werte { display: grid; gap: 6px; font-size: 13px; padding: 10px 12px; border-radius: 12px; background: var(--flaeche); }
 .rv-karte-werte > div { display: flex; gap: 10px; align-items: center; min-width: 0; }
 .rv-karte-werte > div > span:first-child { min-width: 104px; flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px; }
 .rv-karte-werte > div > span:last-child { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.rv-karte-aktionen { display: flex; gap: 2px; justify-content: flex-end; margin: -4px -6px -6px; }
+.rv-karte-aktionen { display: flex; flex-wrap: wrap; gap: 2px; justify-content: flex-end; margin: -4px -6px -6px; }
 .rv-karte-aktionen .btn { min-width: 40px; min-height: 40px; justify-content: center; }
 .rv-raster { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 12px; row-gap: 14px; }
 .rv-feld { font-size: 13px; display: grid; gap: 5px; min-width: 0; align-content: start; }

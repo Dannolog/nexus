@@ -336,7 +336,7 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               {vorschau(row, true)}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 650, fontSize: 15.5, overflow: "hidden", textOverflow: "ellipsis" }}>{zelle(row, titelSpalte)}</div>
+                <div className="rv-karte-titel">{zelle(row, titelSpalte)}</div>
                 {weitereSpalten[0] && cell(row[weitereSpalten[0].key]) !== "–" && typeof row[weitereSpalten[0].key] !== "boolean" && (
                   <div className="muted" style={{ fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     <Hervorheben text={cell(row[weitereSpalten[0].key])} suche={search} />
