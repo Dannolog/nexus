@@ -1187,3 +1187,6 @@
 - `.rv-sticky-header` Grid `minmax(0,1fr)`: breite Filterleiste (Kontakte) schob „Neu“-Knopf aus dem Bild; `.kt-segment` scrollt in sich.
 - A–Z-Register: `src/components/BuchstabenLeiste.tsx` (anfangsBuchstabe, vergleicheAZ, springeZu; Leiste rechts, Tippen/Wischen, Buchstaben-Blase). ResourceView: Umschalter „A–Z / Neueste“ (useSeitenZustand `sort`, Vorgabe A–Z), Buchstaben-Abschnitte in Tabelle (`tr.rv-gruppe`) und Karten (`.rv-gruppe-handy`), Ziel per `data-buchstabe`. Kontakte: Leiste auf vorhandene Gruppen.
 - Test nur mit erfundenen Testdaten (`scripts/ui-test-testdaten.mjs`): 9 Seiten Handy + 2 Rechner ok, 0 Seitenfehler.
+
+## 2026-10-29 – Nutzerkarte im Menü immer sichtbar
+- `.sidebar` overflow hidden, nur `.sidebar-nav` scrollt (flex 1, min-height 0); `.sidebar-fuss` fest unten mit Trennlinie. Test (gesperrte API): Rechner 600 px hoch und Handy mit offenem Menü – Karte sichtbar.

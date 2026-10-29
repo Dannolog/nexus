@@ -913,3 +913,9 @@ mark.treffer {
 .rv-sticky-header { grid-template-columns: minmax(0, 1fr); }
 .rv-sticky-header > * { min-width: 0; }
 .kt-segment { overflow-x: auto; scrollbar-width: none; }
+
+/* Menü: nur die Einträge scrollen – Logo, Suche und Nutzerkarte unten bleiben immer sichtbar */
+.sidebar { overflow: hidden; }
+.sidebar-nav { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; align-content: start;
+  margin: 0 -6px; padding: 2px 6px 8px; scrollbar-width: thin; }
+.sidebar-fuss { flex-shrink: 0; margin-top: 0; padding-top: 10px; border-top: 1px solid var(--border); }
