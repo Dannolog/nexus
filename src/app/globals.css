@@ -878,3 +878,25 @@ mark.treffer {
   .sidebar { box-shadow: none; }
   .sidebar.open { box-shadow: 0 0 40px rgba(0,0,0,.3); }
 }
+
+/* ==== A–Z-Register (src/components/BuchstabenLeiste.tsx) ==== */
+.az-leiste { position: fixed; right: 6px; top: 50%; transform: translateY(-50%); z-index: 30; display: flex; flex-direction: column; align-items: center;
+  padding: 6px 2px; border-radius: 999px; touch-action: none; user-select: none; -webkit-user-select: none; cursor: pointer;
+  background: color-mix(in srgb, var(--card) 75%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: var(--schatten-1); }
+.az-leiste span { font-size: 10.5px; font-weight: 700; line-height: 1; padding: 2.5px 5px; color: color-mix(in srgb, var(--muted) 55%, transparent); }
+.az-leiste span.da { color: var(--accent); }
+.az-leiste span:hover { color: var(--fg); }
+.az-blase { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 70; width: 76px; height: 76px; border-radius: 22px;
+  display: grid; place-items: center; font-family: var(--font-display), var(--font-sans), sans-serif; font-size: 38px; font-weight: 700;
+  color: #fff; background: color-mix(in srgb, var(--accent) 88%, transparent); box-shadow: var(--schatten-3); pointer-events: none; }
+/* Buchstaben-Abschnitt in der Tabelle */
+.card > table tbody tr.rv-gruppe td { padding: 14px 14px 6px; font-size: 13px; font-weight: 750; color: var(--accent); background: transparent; border-bottom: 1px solid var(--border); }
+.card > table tbody tr.rv-gruppe:hover { background: transparent; }
+.rv-gruppe-handy { margin: 10px 2px 0; }
+.rv-gruppe-handy:first-child { margin-top: 0; }
+@media (min-width: 769px) { .main:has(.az-leiste) { padding-right: 44px; } }
+@media (max-width: 768px) {
+  .az-leiste { right: 1px; top: calc(54px + env(safe-area-inset-top) + 8px); bottom: calc(76px + env(safe-area-inset-bottom)); transform: none;
+    justify-content: space-between; padding: 6px 0; box-shadow: none; background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .az-leiste span { padding: 0 4px; font-size: 10px; }
+}

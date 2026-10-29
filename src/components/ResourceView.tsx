@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { Fragment, useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { api, ConflictError } from "@/lib/clientApi";
 import { RESOURCES, Field } from "@/lib/uiSchema";
@@ -17,6 +17,7 @@ import SuchSelect from "@/components/SuchSelect";
 import TextField from "@/components/TextField";
 import { KopierKnopf } from "@/components/KontaktFeld";
 import TelefonListe, { TelefonAnzeige } from "@/components/TelefonListe";
+import BuchstabenLeiste, { anfangsBuchstabe, vergleicheAZ } from "@/components/BuchstabenLeiste";
 
 const LOGO_RESOURCES = ["customers", "organizations"];
 
@@ -77,7 +78,7 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
   const [rows, setRows] = useState<any[]>([]);
   const [logos, setLogos] = useState<Record<string, string>>({});
   // Suchbegriff bleibt erhalten: in der Adresszeile und beim Zurückkommen auf die Seite
-  const [seite, setSeite] = useSeitenZustand(`liste:${resourceKey}`, { q: "" });
+  const [seite, setSeite] = useSeitenZustand(`liste:${resourceKey}`, { q: "", sort: "az" });
   const search = seite.q;
   const setSearch = (v: string) => setSeite({ q: v });
   const [loading, setLoading] = useState(true);
@@ -233,6 +234,16 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
   const titelSpalte = R.columns.find((c) => c.key === R.titleField) ? R.titleField : R.columns[0]?.key;
   const weitereSpalten = R.columns.filter((c) => c.key !== titelSpalte);
   const einzahl = R.einzahl || R.title;
+  // Reihenfolge: A–Z mit Buchstaben-Register (Vorgabe) oder zuletzt geändert zuerst (wie vom Server)
+  const az = seite.sort !== "neu";
+  const liste = az ? [...rows].sort((a, b) => vergleicheAZ(a[titelSpalte], b[titelSpalte])) : rows;
+  const buchstaben = az ? Array.from(new Set(liste.map((r) => anfangsBuchstabe(r[titelSpalte])))) : [];
+  /** Buchstabe, falls mit diesem Eintrag ein neuer Abschnitt beginnt. */
+  const neuerBuchstabe = (i: number) => {
+    if (!az) return null;
+    const b = anfangsBuchstabe(liste[i][titelSpalte]);
+    return i === 0 || anfangsBuchstabe(liste[i - 1][titelSpalte]) !== b ? b : null;
+  };
 
   return (
     <div>
@@ -252,7 +263,15 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
           </button>
         </div>
         {/* Suchfeld linksbündig direkt über der Liste – dort wird es gesucht, nicht am rechten Rand. */}
-        <SearchInput value={search} onChange={setSearch} style={{ width: "100%", maxWidth: 560 }} />
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <SearchInput value={search} onChange={setSearch} style={{ flex: "1 1 260px", maxWidth: 560 }} />
+          <div className="kt-segment" role="tablist" aria-label="Reihenfolge">
+            <button role="tab" aria-selected={az} className={az ? "an" : ""} onClick={() => setSeite({ sort: "az" })} title="Alphabetisch mit Buchstaben-Register">A–Z</button>
+            <button role="tab" aria-selected={!az} className={!az ? "an" : ""} onClick={() => setSeite({ sort: "neu" })} title="Zuletzt geänderte zuerst">
+              <Icon name="history" size={13} /> Neueste
+            </button>
+          </div>
+        </div>
       </div>
       {msg && (
         <div className={"hinweis-leiste" + (/^(Fehler|Versionskonflikt)/.test(msg) ? " fehler" : "")} role="status">
@@ -299,8 +318,12 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
               {loading && rows.length === 0 && [0, 1, 2, 3, 4].map((i) => (
                 <tr key={i}><td colSpan={R.columns.length + 1} style={{ padding: "16px 14px" }}><span className="lade-zeile" style={{ display: "block", width: `${70 - i * 8}%` }} /></td></tr>
               ))}
-              {rows.map((row) => (
-                <tr key={row.id} onClick={() => zeileKlick(row)} onDoubleClick={() => zeileDoppel(row)}
+              {liste.map((row, i) => (
+                <Fragment key={row.id}>
+                {neuerBuchstabe(i) && (
+                  <tr className="rv-gruppe" data-buchstabe={neuerBuchstabe(i)!}><td colSpan={R.columns.length + 1}>{neuerBuchstabe(i)}</td></tr>
+                )}
+                <tr onClick={() => zeileKlick(row)} onDoubleClick={() => zeileDoppel(row)}
                   style={{ cursor: "pointer" }} title={R.detail ? "Klick: ansehen · Doppelklick: bearbeiten" : "Klick: bearbeiten"}>
                   <td style={{ padding: "10px 14px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
@@ -318,6 +341,7 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
                     <div className="zeilen-aktionen" style={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>{aktionen(row)}</div>
                   </td>
                 </tr>
+                </Fragment>
               ))}
             </tbody>
           </table>
@@ -331,8 +355,10 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
             <span className="lade-zeile" style={{ width: "60%" }} /><span className="lade-zeile" style={{ width: "40%" }} />
           </div>
         ))}
-        {rows.map((row) => (
-          <div key={row.id} className="card rv-karte" onClick={() => zeileKlick(row)}>
+        {liste.map((row, i) => (
+          <Fragment key={row.id}>
+          {neuerBuchstabe(i) && <div className="kt-gruppe rv-gruppe-handy" data-buchstabe={neuerBuchstabe(i)!}>{neuerBuchstabe(i)}</div>}
+          <div className="card rv-karte" onClick={() => zeileKlick(row)}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               {vorschau(row, true)}
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -358,8 +384,10 @@ export default function ResourceView({ resourceKey }: { resourceKey: string }) {
             )}
             <div onClick={(e) => e.stopPropagation()} className="rv-karte-aktionen">{aktionen(row)}</div>
           </div>
+          </Fragment>
         ))}
       </div>
+      {az && !loading && <BuchstabenLeiste vorhanden={buchstaben} />}
 
       {/* ── Logo/Bild groß ansehen und herunterladen ── */}
       {bild && (

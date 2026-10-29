@@ -7,7 +7,8 @@ const lang = "Testfirma Mustermann Sondermaschinenbau und Anlagenautomatisierung
 const zeile = (i) => ({ id: "t" + i, name: i % 2 ? lang : "Test-Kunde " + i, companyName: i % 2 ? lang : "Test-Kunde " + i, title: i % 2 ? lang : "Testprojekt " + i, firstName: "Maximiliane", lastName: "Testperson-Langername-" + i,
   company: lang, city: "Teststadt-an-der-Langen-Beispielstraße", street: "Beispielweg 1", zip: "00000", email: "sehr.lange.testadresse.nummer" + i + "@beispiel-testdomain-nexus.example",
   phone: "+49 000 0000000", number: "K-T" + i, status: "aktiv", archived: false, kind: "Kunde", role: "Testrolle", contacts: [], links: [] });
-const daten = Array.from({ length: 6 }, (_, i) => zeile(i));
+const namen = ["Alpha Testbau", "Ähren Testhof", "Beta Probe GmbH", "Delta Muster AG", "Gamma Beispiel", "Kappa Demo KG", "Lambda Test", "Omega Fantasie", "Sigma Probe", "Zeta Muster", "1. Testverein", lang];
+const daten = namen.map((n, i) => ({ ...zeile(i), name: n, companyName: n, title: n, lastName: n.split(" ")[0], firstName: "Test" }));
 const seiten = (process.argv[2] || "/,/customers,/contacts,/employees,/suppliers,/projects").split(",");
 const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
 await ctx.addInitScript(() => { localStorage.setItem("nexus_user", JSON.stringify({ name: "Test Nutzer", globalRole: "admin" })); });

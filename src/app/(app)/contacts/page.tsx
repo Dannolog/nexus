@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, getToken } from "@/lib/clientApi";
 import Icon from "@/components/Icon";
 import SearchInput from "@/components/SearchInput";
+import BuchstabenLeiste from "@/components/BuchstabenLeiste";
 import Hervorheben from "@/components/Hervorheben";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import SuchSelect from "@/components/SuchSelect";
@@ -516,9 +517,10 @@ export default function ContactsPage() {
       )}
 
       {/* ── Karten, nach Nachnamen A–Z gruppiert ── */}
+      <BuchstabenLeiste vorhanden={gruppen.map(([b]) => b)} />
       {gruppen.map(([b, liste]) => (
         <section key={b}>
-          <div className="kt-gruppe">{b}</div>
+          <div className="kt-gruppe" data-buchstabe={b}>{b}</div>
           <div className="kt-raster">
             {liste.map((k) => {
               const nummer = k.phone || k.mobile || erster(k, "phone") || erster(k, "mobile");
